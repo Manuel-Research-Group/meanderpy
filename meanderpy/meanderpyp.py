@@ -15,6 +15,10 @@ import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
 from matplotlib import cm
 
+OMEGA = -1.0 # constant in curvature calculation (Howard and Knutson, 1984)
+GAMMA = 2.5  # from Ikeda et al., 1981 and Howard and Knutson, 1984
+K = 1.0 # constant in HK equation
+
 def update_progress(progress):
     """progress bar from https://stackoverflow.com/questions/3160699/python-progress-bar
     update_progress() : Displays or updates a console progress bar
@@ -41,7 +45,7 @@ def update_progress(progress):
 
 class Channel:
     """class for Channel objects"""
-    def __init__(self,x,y,z,W,D):
+    def __init__(self,x,y,z,w,d):
         """initialize Channel object
         x, y, z  - coordinates of centerline
         W - channel width
@@ -49,8 +53,34 @@ class Channel:
         self.x = x
         self.y = y
         self.z = z
-        self.W = W
-        self.D = D
+        self.w = w
+        self.d = d
+
+    def curve_offset(self):
+        x = self.x
+        y = self.y
+        d = self.w / 2
+
+        dx = np.gradient(x)
+        dy = np.gradient(y)
+
+        n = np.stack((dy, -dx))
+        l = np.sqrt(np.sum(np.conj(n) * n, axis = 0))
+            
+        xo = d * (  dy / l )
+        yo = d * ( -dx / l )
+
+        return xo, yo
+
+    def plot(self, axis = plt, color=sns.xkcd_rgb["ocean blue"]):
+        x = self.x
+        y = self.y
+
+        xo, yo = self.curve_offset()
+        
+        xm = np.hstack((x + xo, (x - xo)[::-1]))
+        ym = np.hstack((y + yo, (y - yo)[::-1]))
+        axis.fill(xm, ym, color=color, edgecolor='k', linewidth=0.25)
 
 class Cutoff:
     """class for Cutoff objects"""
@@ -164,9 +194,9 @@ class ChannelBelt:
         D - channel depth (m)"""
         channel = self.channels[-1] # first channel is the same as last channel of input
         x = channel.x; y = channel.y; z = channel.z
-        W = channel.W;
+        W = channel.w[0];
         if len(D)==0: 
-            D = channel.D
+            D = channel.d[0]
         else:
             D = D[0]
         k = 1.0 # constant in HK equation
@@ -182,9 +212,11 @@ class ChannelBelt:
         pad1 = int(pad/10.0)
         omega = -1.0 # constant in curvature calculation (Howard and Knutson, 1984)
         gamma = 2.5 # from Ikeda et al., 1981 and Howard and Knutson, 1984
+
         for itn in range(nit): # main loop
             update_progress(itn/nit)
             x, y = migrate_one_step(x,y,z,W,kl,dt,k,Cf,D,pad,pad1,omega,gamma)
+        
             # x, y = migrate_one_step_w_bias(x,y,z,W,kl,dt,k,Cf,D,pad,pad1,omega,gamma)
             x,y,z,xc,yc,zc = cut_off_cutoffs(x,y,z,s,crdist,deltas) # find and execute cutoffs
             x,y,z,dx,dy,dz,ds,s = resample_centerline(x,y,z,deltas) # resample centerline
@@ -215,286 +247,25 @@ class ChannelBelt:
                 channel = Channel(x,y,z,W,D) # create channel object
                 self.channels.append(channel)
 
-    def plot(self, plot_type, pb_age, ob_age, end_time, n_channels):
-        """plot ChannelBelt object
-        plot_type - can be either 'strat' (for stratigraphic plot) or 'morph' (for morphologic plot)
-        pb_age - age of point bars (in years) at which they get covered by vegetation
-        ob_age - age of oxbow lakes (in years) at which they get covered by vegetation
-        end_time (optional) - age of last channel to be plotted (in years)"""
+    def plot(self, end_time = 0):
         cot = np.array(self.cutoff_times)
         sclt = np.array(self.cl_times)
-        if end_time>0:
+
+        if end_time > 0:
             cot = cot[cot<=end_time]
             sclt = sclt[sclt<=end_time]
         times = np.sort(np.hstack((cot,sclt)))
-        times = np.unique(times)
-        order = 0 # variable for ordering objects in plot
-        # set up min and max x and y coordinates of the plot:
-        xmin = np.min(self.channels[0].x)
-        xmax = np.max(self.channels[0].x)
-        ymax = 0
-        for i in range(len(self.channels)):
-            ymax = max(ymax, np.max(np.abs(self.channels[i].y)))
-        ymax = ymax+2*self.channels[0].W # add a bit of space on top and bottom
-        ymin = -1*ymax
-        # size figure so that its size matches the size of the model:
-        fig = plt.figure(figsize=(20,(ymax-ymin)*20/(xmax-xmin)))
-        if plot_type == 'morph':
-            pb_crit = len(times[times<times[-1]-pb_age])/float(len(times))
-            ob_crit = len(times[times<times[-1]-ob_age])/float(len(times))
-            green = (106/255.0,159/255.0,67/255.0) # vegetation color
-            pb_color = (189/255.0,153/255.0,148/255.0) # point bar color
-            ob_color = (15/255.0,58/255.0,65/255.0) # oxbow color
-            pb_cmap = make_colormap([green,green,pb_crit,green,pb_color,1.0,pb_color]) # colormap for point bars
-            ob_cmap = make_colormap([green,green,ob_crit,green,ob_color,1.0,ob_color]) # colormap for oxbows
-            plt.fill([xmin,xmax,xmax,xmin],[ymin,ymin,ymax,ymax],color=(106/255.0,159/255.0,67/255.0))
-        if plot_type == 'age':
-            age_cmap = cm.get_cmap('magma',n_channels)
-        for i in range(0,len(times)):
-            if times[i] in sclt:
-                ind = np.where(sclt==times[i])[0][0]
-                x1 = self.channels[ind].x
-                y1 = self.channels[ind].y
-                W = self.channels[ind].W
-                xm, ym = get_channel_banks(x1,y1,W)
-                if plot_type == 'raw':
-                    plt.plot(x1, y1)
-                if plot_type == 'morph':
-                    if times[i]>times[-1]-pb_age:
-                        plt.fill(xm,ym,facecolor=pb_cmap(i/float(len(times)-1)),edgecolor='k',linewidth=0.2)
-                    else:
-                        plt.fill(xm,ym,facecolor=pb_cmap(i/float(len(times)-1)))
-                if plot_type == 'strat':
-                    order += 1
-                    plt.fill(xm,ym,sns.xkcd_rgb["light tan"],edgecolor='k',linewidth=0.25,zorder=order)
-                if plot_type == 'age':
-                    order += 1
-                    plt.fill(xm,ym,facecolor=age_cmap(i/float(n_channels-1)),edgecolor='k',linewidth=0.1,zorder=order)
-            if times[i] in cot:
-                ind = np.where(cot==times[i])[0][0]
-                for j in range(0,len(self.cutoffs[ind].x)):
-                    x1 = self.cutoffs[ind].x[j]
-                    y1 = self.cutoffs[ind].y[j]
-                    xm, ym = get_channel_banks(x1,y1,self.cutoffs[ind].W)
-                    if plot_type == 'raw':
-                        plt.plot(x1, y1)
-                    if plot_type == 'morph':
-                        plt.fill(xm,ym,color=ob_cmap(i/float(len(times)-1)))
-                    if plot_type == 'strat':
-                        order = order+1
-                        plt.fill(xm,ym,sns.xkcd_rgb["ocean blue"],edgecolor='k',linewidth=0.25,zorder=order)
-                    if plot_type == 'age':
-                        order += 1
-                        plt.fill(xm,ym,sns.xkcd_rgb["sea blue"],edgecolor='k',linewidth=0.1,zorder=order)
-        x1 = self.channels[len(sclt)-1].x
-        y1 = self.channels[len(sclt)-1].y
-        xm, ym = get_channel_banks(x1,y1,self.channels[len(sclt)-1].W)
-        order = order+1
-        if plot_type == 'age':
-            plt.fill(xm,ym,color=sns.xkcd_rgb["sea blue"],zorder=order,edgecolor='k',linewidth=0.1)
-        if plot_type == 'raw':
-            pass
-        else:
-            plt.fill(xm,ym,color=(16/255.0,73/255.0,90/255.0),zorder=order) #,edgecolor='k')
-        plt.axis('equal')
-        plt.xlim(xmin,xmax)
-        plt.ylim(ymin,ymax)
+        times = np.unique(times).tolist()
+
+        fig, axis = plt.subplots(1, 1)
+
+        for i, t in enumerate(times):
+            color = sns.xkcd_rgb["ocean blue"] if i == len(times) - 1 else sns.xkcd_rgb["sand yellow"]
+            if t in sclt:
+                index = np.where(sclt==t)[0][0]
+                self.channels[index].plot(axis, color)
+
         return fig
-
-    def create_movie(self, xmin, xmax, plot_type, filename, dirname, pb_age, ob_age, scale, end_time, n_channels):
-        """method for creating movie frames (PNG files) that capture the plan-view evolution of a channel belt through time
-        movie has to be assembled from the PNG file after this method is applied
-        xmin - value of x coodinate on the left side of frame
-        xmax - value of x coordinate on right side of frame
-        plot_type = - can be either 'strat' (for stratigraphic plot) or 'morph' (for morphologic plot)
-        filename - first few characters of the output filenames
-        dirname - name of directory where output files should be written
-        pb_age - age of point bars (in years) at which they get covered by vegetation (if the 'morph' option is used for 'plot_type')
-        ob_age - age of oxbow lakes (in years) at which they get covered by vegetation (if the 'morph' option is used for 'plot_type')
-        scale - scaling factor (e.g., 2) that determines how many times larger you want the frame to be, compared to the default scaling of the figure
-        end_time - time at which simulation should be stopped
-        n_channels - total number of channels + cutoffs for which simulation is run (usually it is len(chb.cutoffs) + len(chb.channels)). Used when plot_type = 'age'
-        """
-        sclt = np.array(self.cl_times)
-        if len(end_time)>0:
-            sclt = sclt[sclt<=end_time]
-        channels = self.channels[:len(sclt)]
-        ymax = 0
-        for i in range(len(channels)):
-            ymax = max(ymax, np.max(np.abs(channels[i].y)))
-        ymax = ymax+2*channels[0].W # add a bit of space on top and bottom
-        ymin = -1*ymax
-        for i in range(0,len(sclt)):
-            fig = self.plot(plot_type, pb_age, ob_age, sclt[i], n_channels)
-            fig_height = scale*fig.get_figheight()
-            fig_width = (xmax-xmin)*fig_height/(ymax-ymin)
-            fig.set_figwidth(fig_width)
-            fig.set_figheight(fig_height)
-            fig.gca().set_xlim(xmin,xmax)
-            fig.gca().set_xticks([])
-            fig.gca().set_yticks([])
-            plt.plot([xmin+200, xmin+200+5000],[ymin+200, ymin+200], 'k', linewidth=2)
-            plt.text(xmin+200+2000, ymin+200+100, '5 km', fontsize=14)
-            fname = dirname+filename+'%03d.png'%(i)
-            fig.savefig(fname, bbox_inches='tight')
-            plt.close()
-
-    def build_3d_model(self,model_type,h_mud,levee_width,h,w,bth,dcr,dx,delta_s,starttime,endtime,xmin,xmax,ymin,ymax):
-        """method for building 3D model from set of centerlines (that are part of a ChannelBelt object)
-        Inputs: 
-        model_type - model type ('fluvial' or 'submarine')
-        h_mud - maximum thickness of overbank mud
-        levee_width - width of overbank mud
-        h - channel depth
-        w - channel width
-        bth - thickness of channel sand (only used in submarine models)
-        dcr - critical channel depth where sand thickness goes to zero (only used in submarine models)
-        dx - cell size in x and y directions
-        delta_s - sampling distance alogn centerlines
-        starttime - age of centerline that will be used as the first centerline in the model
-        endtime - age of centerline that will be used as the last centerline in the model
-        xmin,xmax,ymin,ymax - x and y coordinates that define the model domain; if xmin is set to zero,
-        a plot of the centerlines is generated and the model domain has to be defined by clicking its upper 
-        left and lower right corners
-        Returns: a ChannelBelt3D object
-        """
-        sclt = np.array(self.cl_times)
-        ind1 = np.where(sclt>=starttime)[0][0] 
-        ind2 = np.where(sclt<=endtime)[0][-1]
-        sclt = sclt[ind1:ind2+1]
-        channels = self.channels[ind1:ind2+1]
-        cot = np.array(self.cutoff_times)
-        if (len(cot)>0) & (len(np.where(cot>=starttime)[0])>0) & (len(np.where(cot<=endtime)[0])>0):
-            cfind1 = np.where(cot>=starttime)[0][0] 
-            cfind2 = np.where(cot<=endtime)[0][-1]
-            cot = cot[cfind1:cfind2+1]
-            cutoffs = self.cutoffs[cfind1:cfind2+1]
-        else:
-            cot = []
-            cutoffs = []
-        n_steps = len(sclt) # number of events
-        if xmin == 0: # plot centerlines and define model domain
-            plt.figure(figsize=(15,4))
-            maxX, minY, maxY = 0, 0, 0
-            for i in range(n_steps): # plot centerlines
-                plt.plot(channels[i].x,channels[i].y,'k')
-                maxX = max(maxX,np.max(channels[i].x))
-                maxY = max(maxY,np.max(channels[i].y))
-                minY = min(minY,np.min(channels[i].y))
-            plt.axis([0,maxX,minY-10*w,maxY+10*w])
-            plt.gca().set_aspect('equal', adjustable='box')
-            plt.tight_layout()
-            pts = np.zeros((2,2))
-            for i in range(0,2):
-                pt = np.asarray(plt.ginput(1))
-                pts[i,:] = pt
-                plt.scatter(pt[0][0],pt[0][1])
-            plt.plot([pts[0,0],pts[1,0],pts[1,0],pts[0,0],pts[0,0]],[pts[0,1],pts[0,1],pts[1,1],pts[1,1],pts[0,1]],'r')
-            xmin = min(pts[0,0],pts[1,0])
-            xmax = max(pts[0,0],pts[1,0])
-            ymin = min(pts[0,1],pts[1,1])
-            ymax = max(pts[0,1],pts[1,1])
-        iwidth = int((xmax-xmin)/dx)
-        iheight = int((ymax-ymin)/dx)
-        topo = np.zeros((iheight,iwidth,4*n_steps)) # array for storing topographic surfaces
-        facies = np.zeros((4*n_steps,1))
-        # create initial topography:
-        x1 = np.linspace(0,iwidth-1,iwidth)
-        y1 = np.linspace(0,iheight-1,iheight)
-        xv, yv = np.meshgrid(x1,y1)
-        z1 = channels[0].z
-        z1 = z1[(channels[0].x>xmin) & (channels[0].x<xmax)]
-        topoinit = z1[0] - ((z1[0]-z1[-1])/(xmax-xmin))*xv*dx # initial (sloped) topography
-        topo[:,:,0] = topoinit.copy()
-        surf = topoinit.copy()
-        facies[0] = np.NaN
-        # generate surfaces:
-        channels3D = []
-        for i in range(n_steps):
-            update_progress(i/n_steps)
-            x = channels[i].x
-            y = channels[i].y
-            z = channels[i].z
-            cutoff_ind = []
-            # check if there were cutoffs during the last time step and collect indices in an array:
-            for j in range(len(cot)):
-                if (cot[j] >= sclt[i-1]) & (cot[j] < sclt[i]):
-                    cutoff_ind = np.append(cutoff_ind,j)
-            # create distance map:
-            cl_dist, x_pix, y_pix, z_pix, s_pix, z_map, x1, y1, z1 = dist_map(x,y,z,xmin,xmax,ymin,ymax,dx,delta_s)
-            if i == 0:
-                cl_dist_prev = cl_dist
-            # erosion:
-            surf = np.minimum(surf,erosion_surface(h,w/dx,cl_dist,z_map))
-            topo[:,:,4*i] = surf # erosional surface
-            facies[4*i] = np.NaN
-
-            if model_type == 'fluvial':
-                pb = point_bar_surface(cl_dist,z_map,h,w/dx)
-                th = np.maximum(surf,pb)-surf
-                th_oxbows = th.copy()
-                # setting sand thickness to zero at cutoff locations:
-                if len(cutoff_ind)>0:
-                    cutoff_dists = 1e10*np.ones(np.shape(th)) #initialize cutoff_dists with a large number
-                    for j in range(len(cutoff_ind)):
-                        cutoff_dist, cfx_pix, cfy_pix = cl_dist_map(cutoffs[int(cutoff_ind[j])].x[0],cutoffs[int(cutoff_ind[j])].y[0],cutoffs[int(cutoff_ind[j])].z[0],xmin,xmax,ymin,ymax,dx)
-                        cutoff_dists = np.minimum(cutoff_dists,cutoff_dist)
-                    th_oxbows[cutoff_dists>=0.9*w/dx] = 0 # set oxbow fill thickness to zero outside of oxbows
-                    th[cutoff_dists<0.9*w/dx] = 0 # set point bar thickness to zero inside of oxbows
-                else: # no cutoffs
-                    th_oxbows = np.zeros(np.shape(th))
-                th[th<0] = 0 # eliminate negative th values
-                surf = surf+th_oxbows # update topographic surface with oxbow deposit thickness
-                topo[:,:,4*i+1] = surf # top of oxbow mud
-                facies[4*i+1] = 0
-                surf = surf+th # update topographic surface with sand thickness
-                topo[:,:,4*i+2] = surf # top of sand
-                facies[4*i+2] = 1
-                surf = surf + mud_surface(h_mud,levee_width/dx,cl_dist,w/dx,z_map,surf) # mud/levee deposition
-                topo[:,:,4*i+3] = surf # top of levee
-                facies[4*i+3] = 2
-                channels3D.append(Channel(x1-xmin,y1-ymin,z1,w,h))
-
-            if model_type == 'submarine':
-                surf = surf + mud_surface(h_mud[i],levee_width/dx,cl_dist,w/dx,z_map,surf) # mud/levee deposition
-                topo[:,:,4*i+1] = surf # top of levee
-                facies[4*i+1] = 2
-                # sand thickness:
-                th, relief = sand_surface(surf,bth,dcr,z_map,h)
-                th[th<0] = 0 # eliminate negative th values
-                th[cl_dist>1.0*w/dx] = 0 # eliminate sand outside of channel
-                th_oxbows = th.copy()
-                # setting sand thickness to zero at cutoff locations:
-                if len(cutoff_ind)>0:
-                    cutoff_dists = 1e10*np.ones(np.shape(th)) #initialize cutoff_dists with a large number
-                    for j in range(len(cutoff_ind)):
-                        cutoff_dist, cfx_pix, cfy_pix = cl_dist_map(cutoffs[int(cutoff_ind[j])].x[0],cutoffs[int(cutoff_ind[j])].y[0],cutoffs[int(cutoff_ind[j])].z[0],xmin,xmax,ymin,ymax,dx)
-                        cutoff_dists = np.minimum(cutoff_dists,cutoff_dist)
-                    th_oxbows[cutoff_dists>=0.9*w/dx] = 0 # set oxbow fill thickness to zero outside of oxbows
-                    th[cutoff_dists<0.9*w/dx] = 0 # set point bar thickness to zero inside of oxbows
-                    # adding back sand near the channel axis (submarine only):
-                    # th[cl_dist<0.5*w/dx] = bth*(1 - relief[cl_dist<0.5*w/dx]/dcr)
-                else: # no cutoffs
-                    th_oxbows = np.zeros(np.shape(th))
-                surf = surf+th_oxbows # update topographic surface with oxbow deposit thickness
-                topo[:,:,4*i+2] = surf # top of oxbow mud
-                facies[4*i+2] = 0
-                surf = surf+th # update topographic surface with sand thickness
-                topo[:,:,4*i+3] = surf # top of sand
-                facies[4*i+3] = 1
-                channels3D.append(Channel(x1-xmin,y1-ymin,z1,w,h))
-
-            cl_dist_prev = cl_dist.copy()
-        topo = np.concatenate((np.reshape(topoinit,(iheight,iwidth,1)),topo),axis=2) # add initial topography to array
-        strat = topostrat(topo) # create stratigraphic surfaces
-        strat = np.delete(strat, np.arange(4*n_steps+1)[1::4], 2) # get rid of unnecessary stratigraphic surfaces (duplicates)
-        facies = np.delete(facies, np.arange(4*n_steps)[::4]) # get rid of unnecessary facies layers (NaNs)
-        if model_type == 'fluvial':
-            facies_code = {0:'oxbow', 1:'point bar', 2:'levee'}
-        if model_type == 'submarine':
-            facies_code = {0:'oxbow', 1:'channel sand', 2:'levee'}
-        chb_3d = ChannelBelt3D(model_type,topo,strat,facies,facies_code,dx,channels3D)
-        return chb_3d, xmin, xmax, ymin, ymax
 
 def resample_centerline(x,y,z,deltas):
     dx, dy, dz, ds, s = compute_derivatives(x,y,z) # compute derivatives
@@ -524,46 +295,6 @@ def migrate_one_step(x,y,z,W,kl,dt,k,Cf,D,pad,pad1,omega,gamma):
     x[pad1:ns-pad+1] = x[pad1:ns-pad+1] + R1[pad1:ns-pad+1]*dy_ds*dt  
     y[pad1:ns-pad+1] = y[pad1:ns-pad+1] - R1[pad1:ns-pad+1]*dx_ds*dt 
     return x,y
-
-def migrate_one_step_w_bias(x,y,z,W,kl,dt,k,Cf,D,pad,pad1,omega,gamma):
-    ns=len(x)
-    curv = compute_curvature(x,y)
-    dx, dy, dz, ds, s = compute_derivatives(x,y,z)
-    sinuosity = s[-1]/(x[-1]-x[0])
-    curv = W*curv # dimensionless curvature
-    R0 = kl*curv # simple linear relationship between curvature and nominal migration rate
-    alpha = k*2*Cf/D # exponent for convolution function G
-    R1 = compute_migration_rate(pad,ns,ds,alpha,omega,gamma,R0)
-    R1 = sinuosity**(-2/3.0)*R1
-    pad = -1
-    # calculate new centerline coordinates:
-    dy_ds = dy[pad1:ns-pad+1]/ds[pad1:ns-pad+1]
-    dx_ds = dx[pad1:ns-pad+1]/ds[pad1:ns-pad+1]
-    tilt_factor = 0.2
-    T = kl*tilt_factor*np.ones(np.shape(x))
-    angle = 90.0
-    # adjust x and y coordinates (this *is* the migration):
-    x[pad1:ns-pad+1] = x[pad1:ns-pad+1] + R1[pad1:ns-pad+1] * dy_ds * dt + T[pad1:ns-pad+1] * dy_ds * dt * (np.sin(np.deg2rad(angle)) * dx_ds + np.cos(np.deg2rad(angle)) * dy_ds)
-    y[pad1:ns-pad+1] = y[pad1:ns-pad+1] - R1[pad1:ns-pad+1] * dx_ds * dt - T[pad1:ns-pad+1] * dx_ds * dt * (np.sin(np.deg2rad(angle)) * dx_ds + np.cos(np.deg2rad(angle)) * dy_ds)
-    return x,y
-
-def generate_initial_channel(W,D,Sl,deltas,pad,n_bends):
-    """generate straight Channel object with some noise added that can serve
-    as input for initializing a ChannelBelt object
-    W - channel width
-    D - channel depth
-    Sl - channel gradient
-    deltas - distance between nodes on centerline
-    pad - padding (number of nodepoints along centerline)
-    n_bends - approximate number of bends to be simulated"""
-    noisy_len = n_bends*10*W/2.0 # length of noisy part of initial centerline
-    pad1 = int(pad/10.0) # padding at upstream end can be shorter than padding on downstream end
-    x = np.linspace(0, noisy_len+(pad+pad1)*deltas, int(noisy_len/deltas+pad+pad1)+1) # x coordinate
-    y = 10.0 * (2*np.random.random_sample(int(noisy_len/deltas)+1,)-1)
-    y = np.hstack((np.zeros((pad1),),y,np.zeros((pad),))) # y coordinate
-    deltaz = Sl * deltas*(len(x)-1)
-    z = np.linspace(0,deltaz,len(x))[::-1] # z coordinate
-    return Channel(x,y,z,W,D)
 
 #@numba.jit(nopython=True) # use Numba to speed up the heaviest computation
 def compute_migration_rate(pad,ns,ds,alpha,omega,gamma,R0):
@@ -681,31 +412,6 @@ def cut_off_cutoffs(x,y,z,s,crdist,deltas):
         z = np.hstack((z[:ind1[0]+1],z[ind2[0]:])) # z coordinates after cutoff
         ind1, ind2 = find_cutoffs(x,y,crdist,deltas)       
     return x,y,z,xc,yc,zc
-
-def get_channel_banks(x,y,W):
-    """function for finding coordinates of channel banks, given a centerline and a channel width
-    x,y - coordinates of centerline
-    W - channel width
-    outputs:
-    xm, ym - coordinates of channel banks (both left and right banks)"""
-    x1 = x.copy()
-    y1 = y.copy()
-    x2 = x.copy()
-    y2 = y.copy()
-    ns = len(x)
-    dx = np.diff(x); dy = np.diff(y) 
-    ds = np.sqrt(dx**2+dy**2)
-    x1[:-1] = x[:-1] + 0.5*W*np.diff(y)/ds
-    y1[:-1] = y[:-1] - 0.5*W*np.diff(x)/ds
-    x2[:-1] = x[:-1] - 0.5*W*np.diff(y)/ds
-    y2[:-1] = y[:-1] + 0.5*W*np.diff(x)/ds
-    x1[ns-1] = x[ns-1] + 0.5*W*(y[ns-1]-y[ns-2])/ds[ns-2]
-    y1[ns-1] = y[ns-1] - 0.5*W*(x[ns-1]-x[ns-2])/ds[ns-2]
-    x2[ns-1] = x[ns-1] - 0.5*W*(y[ns-1]-y[ns-2])/ds[ns-2]
-    y2[ns-1] = y[ns-1] + 0.5*W*(x[ns-1]-x[ns-2])/ds[ns-2]
-    xm = np.hstack((x1,x2[::-1]))
-    ym = np.hstack((y1,y2[::-1]))
-    return xm, ym
 
 def dist_map(x,y,z,xmin,xmax,ymin,ymax,dx,delta_s):
     """function for centerline rasterization and distance map calculation
@@ -942,86 +648,3 @@ def order_cl_pixels(x_pix,y_pix):
     x_pix = x_pix[clinds]
     y_pix = y_pix[clinds]
     return x_pix,y_pix
-
-def plot_chb(chb, plot_type, pb_age, ob_age, end_time, n_channels, ax, cmap_name, water_color):
-        """plot ChannelBelt object
-        plot_type - can be either 'strat' (for stratigraphic plot) or 'morph' (for morphologic plot)
-        pb_age - age of point bars (in years) at which they get covered by vegetation
-        ob_age - age of oxbow lakes (in years) at which they get covered by vegetation
-        end_time - age of last channel to be plotted (in years)
-        ax -
-        cmap_name - 
-        water_color - """
-        cot = np.array(chb.cutoff_times)
-        sclt = np.array(chb.cl_times)
-        if end_time>0:
-            cot = cot[cot<=end_time]
-            sclt = sclt[sclt<=end_time]
-        times = np.sort(np.hstack((cot,sclt)))
-        times = np.unique(times)
-        order = 0 # variable for ordering objects in plot
-        # set up min and max x and y coordinates of the plot:
-        xmin = np.min(chb.channels[0].x)
-        xmax = np.max(chb.channels[0].x)
-        ymax = 0
-        for i in range(len(chb.channels)):
-            ymax = max(ymax, np.max(np.abs(chb.channels[i].y)))
-        ymax = ymax+2*chb.channels[0].W # add a bit of space on top and bottom
-        ymin = -1*ymax
-        # size figure so that its size matches the size of the model:
-        # fig = plt.figure(figsize=(20,(ymax-ymin)*20/(xmax-xmin))) 
-        if plot_type == 'morph':
-            pb_crit = len(times[times<times[-1]-pb_age])/float(len(times))
-            ob_crit = len(times[times<times[-1]-ob_age])/float(len(times))
-            green = (106/255.0,159/255.0,67/255.0) # vegetation color
-            pb_color = (189/255.0,153/255.0,148/255.0) # point bar color
-            ob_color = (15/255.0,58/255.0,65/255.0) # oxbow color
-            pb_cmap = make_colormap([green,green,pb_crit,green,pb_color,1.0,pb_color]) # colormap for point bars
-            ob_cmap = make_colormap([green,green,ob_crit,green,ob_color,1.0,ob_color]) # colormap for oxbows
-            ax.fill([xmin,xmax,xmax,xmin],[ymin,ymin,ymax,ymax],color=(106/255.0,159/255.0,67/255.0))
-        if plot_type == 'age':
-            age_cmap = cm.get_cmap(cmap_name,n_channels)
-        for i in range(0,len(times)):
-            if times[i] in sclt:
-                ind = np.where(sclt==times[i])[0][0]
-                x1 = chb.channels[ind].x
-                y1 = chb.channels[ind].y
-                W = chb.channels[ind].W
-                xm, ym = get_channel_banks(x1,y1,W)
-                if plot_type == 'morph':
-                    if times[i]>times[-1]-pb_age:
-                        ax.fill(xm,ym,facecolor=pb_cmap(i/float(len(times)-1)),edgecolor='k',linewidth=0.2)
-                    else:
-                        ax.fill(xm,ym,facecolor=pb_cmap(i/float(len(times)-1)))
-                if plot_type == 'strat':
-                    order += 1
-                    ax.fill(xm,ym,sns.xkcd_rgb["light tan"],edgecolor='k',linewidth=0.25,zorder=order)
-                if plot_type == 'age':
-                    order += 1
-                    ax.fill(xm,ym,facecolor=age_cmap(i/float(n_channels-1)),edgecolor='k',linewidth=0.1,zorder=order)
-            if times[i] in cot:
-                ind = np.where(cot==times[i])[0][0]
-                for j in range(0,len(chb.cutoffs[ind].x)):
-                    x1 = chb.cutoffs[ind].x[j]
-                    y1 = chb.cutoffs[ind].y[j]
-                    xm, ym = get_channel_banks(x1,y1,chb.cutoffs[ind].W)
-                    if plot_type == 'morph':
-                        ax.fill(xm,ym,color=ob_cmap(i/float(len(times)-1)))
-                    if plot_type == 'strat':
-                        order = order+1
-                        ax.fill(xm,ym,sns.xkcd_rgb["ocean blue"],edgecolor='k',linewidth=0.25,zorder=order)
-                    if plot_type == 'age':
-                        order += 1
-                        ax.fill(xm,ym,sns.xkcd_rgb[water_color],edgecolor='k',linewidth=0.1,zorder=order)
-        x1 = chb.channels[len(sclt)-1].x
-        y1 = chb.channels[len(sclt)-1].y
-        xm, ym = get_channel_banks(x1,y1,chb.channels[len(sclt)-1].W)
-        order = order+1
-        if plot_type == 'age':
-            ax.fill(xm,ym,color=sns.xkcd_rgb[water_color],zorder=order,edgecolor='k',linewidth=0.1)
-        else:
-            ax.fill(xm,ym,color=(16/255.0,73/255.0,90/255.0),zorder=order) #,edgecolor='k')
-        # plt.axis('equal')
-        # plt.xlim(xmin,xmax)
-        # plt.ylim(ymin,ymax)
-        # return fig
