@@ -1,11 +1,11 @@
 import meanderpy as mp
-import meandering as mpn
+import meanderpyp as mpn
 import matplotlib.pyplot as plt
 import numpy as np
 
 
 W2, W1, W0 = 695.4154350661511, -45.231656699536124, 104.60941780103624
-D1, D0 = -1038.6756354535573, -4.136666533884889
+D2, D1 = 9.914006824924071, 26.588599799775164
 
 L = 20000                     # channel length (m)
 W = 200.0                     # constant channel width (m)
@@ -35,20 +35,22 @@ z = np.tan(5.0 * np.pi / 180) * (L/2  + x * ( x / (2*L) - 1))
 dz = np.gradient(z) / ds
 
 w = W2 * np.exp(- W1 * dz) + W0
-d = D1 * dz + D0
+d = D2 * np.exp(- D1 * dz)
 
 y = w * np.sin( x / 875 )
 
-plt.plot(x,y)
-#plt.plot(x, z)
+#plt.plot(x,y)
+#plt.plot(x, d)
 plt.show()
 
-ch = mp.Channel(x, y, z, W, D)
-chb = mp.ChannelBelt(channels=[ch],cutoffs=[],cl_times=[0.0],cutoff_times=[]) 
+chp = mpn.Channel(x, y, z, w, d)
+chbp = mpn.ChannelBelt(channels=[chp],cutoffs=[],cl_times=[0.0],cutoff_times=[]) 
 
-#ch = mp.generate_initial_channel(W,D,Sl,deltas,pad,n_bends) # initialize channel
-#chb = mp.ChannelBelt(channels=[ch],cutoffs=[],cl_times=[0.0],cutoff_times=[]) # create channel belt object
+ch = mp.Channel(x, y, z, 200, 12)
+chb = mp.ChannelBelt(channels=[ch],cutoffs=[],cl_times=[0.0],cutoff_times=[]) # create channel belt object
 
-chb.migrate(int(nit/100),saved_ts,deltas,pad,crdist,Cf,kl,kv,25 * dt,dens,int(t1/100),int(t2/100),int(t3/100),aggr_factor)
+chbp.migrate(int(nit/100),saved_ts,deltas,pad,crdist,Cf,kl,kv,5*dt,dens,int(t1/100),int(t2/100),int(t3/100),aggr_factor)
+chb.migrate(int(nit/100),saved_ts,deltas,pad,crdist,Cf,kl,kv,5*dt,dens,int(t1/100),int(t2/100),int(t3/100),aggr_factor)
 chb.plot('strat',20,60, 0, 0)
+chbp.plot()
 plt.show()

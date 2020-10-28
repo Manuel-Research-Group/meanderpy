@@ -49,7 +49,7 @@ class ChannelSine(ChannelBase):
   def __init__(self):
     super().__init__()
 
-    self.y = np.sin(self.x / self.L * 2 * np.pi)
+    self.y = 2 * self.W * np.sin(self.x / self.L * 2 * np.pi)
 
     self.saved_ts = 1
     self.nit = 1
@@ -76,9 +76,42 @@ class ChannelSineRampSlope(ChannelSine):
 
     self.z = np.tan(5.0 * np.pi / 180) / (2 * self.L) * (self.x ** 2 + self.L * ( self.L - 2 * self.x ) )
 
+class ChannelScatteredSine(ChannelBase):
+  def __init__(self):
+    super().__init__()
+    self.ds = 100.0
+
+    self.x = np.linspace(0, self.L, int(self.L / self.ds) + 1)
+    self.y = 2 * self.W * np.exp(( 1.0 / self.L) * self.x) * np.sin((self.x / self.L) * 16 * np.pi)
+    self.z = np.zeros(len(self.x))
+
+    self.saved_ts = 1
+    self.nit = 1
+    self.t1 = 2
+    self.t2 = 2
+    self.t3 = 2
+
+class ChannelScatteredSineNoSlope(ChannelScatteredSine):
+  def __init__(self):
+    super().__init__()
+
+    self.z = np.zeros(len(self.x))
+
+class ChannelScatteredSineConstantSlope(ChannelScatteredSine):
+  def __init__(self):
+    super().__init__()
+
+    self.z = np.tan(5.0 * np.pi / 180) * ( self.L - self.x )
+
+class ChannelScatteredSineRampSlope(ChannelScatteredSine):
+  def __init__(self):
+    super().__init__()
+
+    self.z = np.tan(5.0 * np.pi / 180) / (2 * self.L) * (self.x ** 2 + self.L * ( self.L - 2 * self.x ) )
 
 if __name__ == '__main__':
-  cases = [ChannelSineRampSlope()]
+  #cases = [ChannelSineNoSlope(), ChannelSineConstantSlope(), ChannelSineRampSlope()]
+  cases = [ChannelScatteredSineNoSlope(), ChannelScatteredSineConstantSlope(), ChannelScatteredSineRampSlope()]
 
   for case in cases:
     case.plot()
