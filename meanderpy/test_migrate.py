@@ -14,7 +14,7 @@ def test_sine_no_slope():
 	test_ch = mpp.Channel(self.x.copy(), self.y.copy(), self.z.copy(), self.W * ONES, self.D * ONES)
 
 	base_ch_belt = mp.ChannelBelt(channels=[base_ch],cutoffs=[],cl_times=[0.0],cutoff_times=[])
-	test_ch_belt = mpp.ChannelBelt(channels=[test_ch],cutoffs=[],cl_times=[0.0],cutoff_times=[])
+	test_ch_belt = mpp.ChannelBelt(test_ch)
 
 	base_ch_belt.migrate(self.nit,self.saved_ts,self.ds,self.pad,self.crdist,self.Cf,self.kl,self.kv,self.dt,self.density,self.t1,self.t2,self.t3,self.aggr_factor)
 	test_ch_belt.migrate(self.nit,self.saved_ts,self.ds,self.pad,self.crdist,self.Cf,self.kl,self.kv,self.dt,self.density,self.t1,self.t2,self.t3,self.aggr_factor)
@@ -31,7 +31,7 @@ def test_sine_constant_slope():
 	test_ch = mpp.Channel(self.x.copy(), self.y.copy(), self.z.copy(), self.W * ONES, self.D * ONES)
 
 	base_ch_belt = mp.ChannelBelt(channels=[base_ch],cutoffs=[],cl_times=[0.0],cutoff_times=[])
-	test_ch_belt = mpp.ChannelBelt(channels=[test_ch],cutoffs=[],cl_times=[0.0],cutoff_times=[])
+	test_ch_belt = mpp.ChannelBelt(test_ch)
 
 	base_ch_belt.migrate(self.nit,self.saved_ts,self.ds,self.pad,self.crdist,self.Cf,self.kl,self.kv,self.dt,self.density,self.t1,self.t2,self.t3,self.aggr_factor)
 	test_ch_belt.migrate(self.nit,self.saved_ts,self.ds,self.pad,self.crdist,self.Cf,self.kl,self.kv,self.dt,self.density,self.t1,self.t2,self.t3,self.aggr_factor)
@@ -48,7 +48,7 @@ def test_scattered_sine_no_slope():
 	test_ch = mpp.Channel(self.x.copy(), self.y.copy(), self.z.copy(), self.W * ONES, self.D * ONES)
 
 	base_ch_belt = mp.ChannelBelt(channels=[base_ch],cutoffs=[],cl_times=[0.0],cutoff_times=[])
-	test_ch_belt = mpp.ChannelBelt(channels=[test_ch],cutoffs=[],cl_times=[0.0],cutoff_times=[])
+	test_ch_belt = mpp.ChannelBelt(test_ch)
 
 	base_ch_belt.migrate(self.nit,self.saved_ts,self.ds,self.pad,self.crdist,self.Cf,self.kl,self.kv,self.dt,self.density,self.t1,self.t2,self.t3,self.aggr_factor)
 	test_ch_belt.migrate(self.nit,self.saved_ts,self.ds,self.pad,self.crdist,self.Cf,self.kl,self.kv,self.dt,self.density,self.t1,self.t2,self.t3,self.aggr_factor)
@@ -65,7 +65,7 @@ def test_scattered_sine_constant_slope():
 	test_ch = mpp.Channel(self.x.copy(), self.y.copy(), self.z.copy(), self.W * ONES, self.D * ONES)
 
 	base_ch_belt = mp.ChannelBelt(channels=[base_ch],cutoffs=[],cl_times=[0.0],cutoff_times=[])
-	test_ch_belt = mpp.ChannelBelt(channels=[test_ch],cutoffs=[],cl_times=[0.0],cutoff_times=[])
+	test_ch_belt = mpp.ChannelBelt(test_ch)
 
 	base_ch_belt.migrate(self.nit,self.saved_ts,self.ds,self.pad,self.crdist,self.Cf,self.kl,self.kv,self.dt,self.density,self.t1,self.t2,self.t3,self.aggr_factor)
 	test_ch_belt.migrate(self.nit,self.saved_ts,self.ds,self.pad,self.crdist,self.Cf,self.kl,self.kv,self.dt,self.density,self.t1,self.t2,self.t3,self.aggr_factor)

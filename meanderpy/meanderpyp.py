@@ -1,3 +1,4 @@
+import bisect
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -233,6 +234,7 @@ class ChannelMapper:
         self.xmin = xmin
         self.ymin = ymin
         
+        #grid size
         self.xsize = xsize
         self.ysize = ysize
 
@@ -242,18 +244,24 @@ class ChannelMapper:
         self.width = int(self.dx / self.xsize)
         self.height = int(self.dy / self.ysize)
 
+    def __repr__(self):
+        return 'GRID-SIZE: ({};{})\nIMAGE-SIZE: ({};{})\n PIXELS: {}'.format(self.xsize, self.ysize, self.width, self.height, self.width * self.height)
+
     def create_maps(self, channel):
-        return (self.create_cld_map(channel), self.create_md_map(channel), self.create_z_map(channel))
+        ch_map = self.create_ch_map(channel)
+        
+        cld_map = self.create_cld_map(channel)
+        md_map = self.create_md_map(channel)
+        z_map = self.create_z_map(channel)
 
-    def create_cld_map(self, channel):
-        pixels = self.to_pixels(channel.x, channel.y)
-        img = Image.new("1", (self.width, self.height), 1)
-        draw = ImageDraw.Draw(img)
-        draw.line(pixels, fill=0)
-    
-        cld_map = ndimage.distance_transform_edt(np.array(img), sampling=[self.xsize, self.ysize])
+        hw_inside = cld_map + md_map
+        hw_outside = cld_map - md_map
 
-        return ndimage.gaussian_filter(cld_map, sigma=1)
+        hw_inside[np.array(np.logical_not(ch_map).astype(bool))] = 0.0
+        hw_outside[np.array(ch_map.astype(bool))] = 0.0
+        hw_map = hw_inside + hw_outside
+
+        return (ch_map, cld_map, md_map, z_map, hw_map)
 
     def create_md_map(self, channel):
         xo, yo = channel.margin_offset()
@@ -268,7 +276,17 @@ class ChannelMapper:
 
         md_map = ndimage.distance_transform_edt(np.array(img), sampling=[self.xsize, self.ysize])
 
-        return ndimage.gaussian_filter(md_map, sigma=1)
+        return md_map
+
+    def create_cld_map(self, channel):
+        pixels = self.to_pixels(channel.x, channel.y)
+        img = Image.new("1", (self.width, self.height), 1)
+        draw = ImageDraw.Draw(img)
+        draw.line(pixels, fill=0)
+    
+        cld_map = ndimage.distance_transform_edt(np.array(img), sampling=[self.xsize, self.ysize])
+
+        return cld_map
 
     def create_ch_map(self, channel):
         x, y = channel.x, channel.y
@@ -283,16 +301,7 @@ class ChannelMapper:
         draw = ImageDraw.Draw(img)
         draw.polygon(xy, fill=1)
 
-        
-        pix = ndimage.morphology.binary_fill_holes(np.array(img).astype(int))
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        cax = ax.matshow(pix, interpolation='nearest')
-        fig.colorbar(cax)
-        plt.show()
-
-        return pix
+        return np.array(img)
 
     def create_z_map(self, channel):
         x_p = ((channel.x - self.xmin) / self.dx) * self.width
@@ -330,34 +339,29 @@ def channel_surface(ch_map, cld_map, md_map, z_map):
     h_map = d *(cld_map / w2) ** 2 - d 
     h_map[np.array(np.logical_not(ch_map).astype(bool))] = 0.0
 
-    return z_map + h_map + levee
+    return h_map + levee + z_map
 
+def surface(ch_map, cld_map, md_map, z_map, hw_map):
+    d = D2 * hw_map ** 2 + D1 * hw_map + D0
 
-class Cutoff:
-    """class for Cutoff objects"""
-    def __init__(self,x,y,z,W,D):
-        """initialize Cutoff object
-        x, y, z  - coordinates of centerline
-        W - channel width
-        D - channel depth"""
-        self.x = x
-        self.y = y
-        self.z = z
-        self.W = W
-        self.D = D
+    levee = np.where((hw_map >= 62.5) & (hw_map < 100), (hw_map - 62.5) / 3.75, 0) + np.where((hw_map >= 100) & (hw_map < 125), (125 - hw_map) / 2.5, 0)
+    levee[np.array(ch_map.astype(bool))] = 0.0
+    levee = ndimage.median_filter(levee, size=3)
+    levee = levee - md_map / 125
+    levee = np.where((levee < 0), 0, levee)
+
+    return levee
+
 class ChannelBelt:
     """class for ChannelBelt objects"""
-    def __init__(self, channels, cutoffs, cl_times, cutoff_times):
+    def __init__(self, channel):
         """initialize ChannelBelt object
         channels - list of Channel objects
         cutoffs - list of Cutoff objects
         cl_times - list of ages of Channel objects
         cutoff_times - list of ages of Cutoff objects"""
-        self.channels = channels
-        self.cutoffs = cutoffs
-        self.cl_times = cl_times
-        self.cutoff_times = cutoff_times
-
+        self.channels = [channel]
+        self.times = [0.0]
 
     def migrate(self,nit,saved_ts,ds,pad,crdist,Cf,kl,kv,dt,dens,t1,t2,t3,aggr_factor,*D):
         channel = self.channels[-1].copy()
@@ -374,79 +378,57 @@ class ChannelBelt:
             
             if itn % saved_ts == 0:
                 #channel.refit(ds)
-                self.cl_times.append(last_cl_time+(itn+1)*dt/(365*24*60*60.0))
+                self.times.append(last_cl_time+(itn+1)*dt/(365*24*60*60.0))
                 self.channels.append(channel.copy())
 
-    def plot(self, end_time = 0):
-        cot = np.array(self.cutoff_times)
-        sclt = np.array(self.cl_times)
+    def plot(self, start_time=0, end_time = 0):
+        start_index = 0
+        if start_time > 0:
+            start_index = bisect.bisect_left(self.times, start_time)
 
+        end_index = len(self.times)
         if end_time > 0:
-            cot = cot[cot<=end_time]
-            sclt = sclt[sclt<=end_time]
-        times = np.sort(np.hstack((cot,sclt)))
-        times = np.unique(times).tolist()
-
+            end_index = bisect.bisect_right(self.times, end_time)
+            
         fig, axis = plt.subplots(1, 1)
 
-        for i, t in enumerate(times):
+        for i in range(start_index, end_index):
             color = sns.xkcd_rgb["ocean blue"] if i == len(times) - 1 else sns.xkcd_rgb["sand yellow"]
-            if t in sclt:
-                index = np.where(sclt==t)[0][0]
-                self.channels[index].plot(axis, color)
+            self.channels[i].plot(axis, color)
 
-            if t in cot:
-                index = np.where(cot==times[i])[0][0]
-                for cutoff in self.cutoffs[index]:
-                    cutoff.plot(axis, color)
         return fig
 
-    def image_test(self, dx):
+    def image_test(self, dx, downscale = 1):
         channel = self.channels[0]
         xmax, xmin = max(channel.x), min(channel.x)
         ymax, ymin = max(channel.y), min(channel.y)
 
-        mapper = ChannelMapper(xmin, xmax, ymin * 2, ymax * 2, dx, dx)
+        mapper = ChannelMapper(xmin, xmax, ymin * 2, ymax * 2, dx / downscale, dx / downscale)
 
-        ch_map = mapper.create_ch_map(channel)
+        print(mapper, int(mapper.width/downscale) * int(mapper.height/downscale))
 
-        cld_map = mapper.create_cld_map(channel)
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        cax = ax.matshow(cld_map, interpolation='nearest')
-        fig.colorbar(cax)
-        plt.show()
-
-        md_map = mapper.create_md_map(channel)
+        ch_map, cld_map, md_map, z_map, hw_map = mapper.create_maps(channel)
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        cax = ax.matshow(md_map, interpolation='nearest')
+        cax = ax.matshow(hw_map, interpolation='nearest')
         fig.colorbar(cax)
         plt.show()
 
-        z_map = mapper.create_z_map(channel)
+        surf = surface(ch_map, cld_map, md_map, z_map, hw_map)
+        surf = np.array(Image.fromarray(surf).resize((int(mapper.width/downscale), int(mapper.height/downscale)), Image.BILINEAR))
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        cax = ax.matshow(cld_map - md_map, interpolation='nearest')
+        cax = ax.matshow(surf, interpolation='nearest')
         fig.colorbar(cax)
         plt.show()
 
-        cl_dist = channel_surface(ch_map, cld_map, md_map, z_map)
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        cax = ax.matshow(cl_dist, interpolation='nearest')
-        fig.colorbar(cax)
-        plt.show()
-
-        x = np.linspace(xmin, xmax, cl_dist.shape[1])
-        y = np.linspace(ymin, ymax, cl_dist.shape[0])
+        x = np.linspace(xmin, xmax, surf.shape[1])
+        y = np.linspace(ymin, ymax, surf.shape[0])
 
         xx, yy = np.meshgrid(x, y)
 
-        grid = pv.StructuredGrid(xx, yy, 5*cl_dist)
+        grid = pv.StructuredGrid(xx, yy, 5*surf)
 
         grid.plot()
