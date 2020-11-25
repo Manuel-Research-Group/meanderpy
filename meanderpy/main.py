@@ -39,17 +39,17 @@ d = D2 * np.exp(- D1 * dz)
 
 TR = int(10/100*L/ds)
 
-y = w * np.sin(x * 180 / np.pi * 0.1 * L / 2)
-#y[-int(0.25*L/ds):] *= np.exp(-(x[-int(0.25*L/ds):] - 0.9*L)/ds)
+scale = np.exp((x - 0.75 * L) / (0.025 * L)) + 1
+y = w * np.sin(x * 180 / np.pi * 0.1 * L / 2) 
+
+#y[-int(0.25*L/ds):] /= np.exp(-(x[-int(0.25*L/ds):] - 0.9*L)/ds)
 plt.plot(x,y)
+#plt.plot(x,scale)
 #plt.plot(x, d)
 plt.show()
 
 chp = mpn.Channel(x, y, z, w, d)
-chbp = mpn.ChannelBelt(channels=[chp],cutoffs=[],cl_times=[0.0],cutoff_times=[]) 
-
-ch = mp.Channel(x, y, z, 200, 12)
-chb = mp.ChannelBelt(channels=[ch],cutoffs=[],cl_times=[0.0],cutoff_times=[]) # create channel belt object
+chbp = mpn.ChannelBelt(chp)
 
 chbp.migrate(nit,saved_ts,deltas,pad,crdist,Cf,kl,kv,dt,dens,t1,t2,t3,aggr_factor)
 #chb.migrate(nit,saved_ts,deltas,pad,crdist,Cf,kl,kv,dt,dens,t1,t2,t3,aggr_factor)

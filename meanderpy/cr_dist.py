@@ -6,8 +6,8 @@ import numpy as np
 
 PARAMS = cases.ChannelScatteredSineRampSlope()
 
-
-chp = mpn.Channel(PARAMS.x, PARAMS.y, PARAMS.z, PARAMS.w, PARAMS.d)
+scale = np.exp((PARAMS.x - 0.75 * PARAMS.L) / (0.025 * PARAMS.L)) + 1
+chp = mpn.Channel(PARAMS.x, PARAMS.y/scale, PARAMS.z, PARAMS.w, PARAMS.d)
 chbp = mpn.ChannelBelt(chp) 
 
 ch = mp.Channel(PARAMS.x, PARAMS.y, PARAMS.z, PARAMS.W, PARAMS.D)

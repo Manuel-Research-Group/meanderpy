@@ -95,6 +95,12 @@ class Channel:
         D2, D1, D0 = 35.903468691717954, 15.06078709431349, -35.96222916210254
         return np.clip(D2 * np.exp(- D1 * slope) + D0, 100, -5)
 
+    @classmethod
+    def slope2migration(cls, slope):
+        ARCTG_2 = -0.035
+        K = ARCTG_2 ** 2 / (4 * np.log(2))
+        return np.where(slope > ARCTG_2, np.exp(-(slope - ARCTG_2) ** 2 / K),1)
+
     """class for Channel objects"""
     def __init__(self,x,y,z,w,d):
         """initialize Channel object
@@ -160,11 +166,12 @@ class Channel:
 
     def migrate(self,Cf,kl,dt):
         curv = self.curvature()
-        dx, dy, _, ds, s = self.derivatives()
+        dx, dy, dz, ds, s = self.derivatives()
+        slope = dz / ds
         sinuosity = s[-1]/(self.x[-1]-self.x[0])
         R0 = kl * self.w * curv
         R1 = compute_migration_rate(R0, Cf, self.d, ds, s[-1])
-        RN = sinuosity**(-2/3.0) * R1 
+        RN = sinuosity**(-2/3.0) * R1 * self.slope2migration(slope)
         self.x += RN * (dy/ds) * dt  
         self.y -= RN * (dx/ds) * dt 
 
@@ -350,7 +357,10 @@ def surface(ch_map, cld_map, md_map, z_map, hw_map):
     levee = levee - md_map / 125
     levee = np.where((levee < 0), 0, levee)
 
-    return levee
+    h_map = d * (cld_map / hw_map) ** 2 - d 
+    h_map[np.array(np.logical_not(ch_map).astype(bool))] = 0.0
+
+    return h_map + levee + z_map
 
 class ChannelBelt:
     """class for ChannelBelt objects"""
@@ -391,9 +401,10 @@ class ChannelBelt:
             end_index = bisect.bisect_right(self.times, end_time)
             
         fig, axis = plt.subplots(1, 1)
+        axis.set_aspect('equal', 'datalim')
 
         for i in range(start_index, end_index):
-            color = sns.xkcd_rgb["ocean blue"] if i == len(times) - 1 else sns.xkcd_rgb["sand yellow"]
+            color = sns.xkcd_rgb["ocean blue"] if i == end_index - 1 else sns.xkcd_rgb["sand yellow"]
             self.channels[i].plot(axis, color)
 
         return fig
