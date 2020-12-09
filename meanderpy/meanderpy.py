@@ -755,11 +755,6 @@ def dist_map(x,y,z,xmin,xmax,ymin,ymax,dx,delta_s):
     draw = ImageDraw.Draw(img)
     draw.line(pixels, fill="rgb(0, 0, 0)") # draw centerline as black line
     pix = np.array(img)
-    
-    plt.matshow(pix, interpolation='nearest')
-    #fig.colorbar(cax)
-    plt.show()
-    
     cl = pix[:,:,0]
     cl[cl==255] = 1 # set background to 1 (centerline is 0)
     y_pix,x_pix = np.where(cl==0) 
@@ -783,8 +778,6 @@ def dist_map(x,y,z,xmin,xmax,ymin,ymax,dx,delta_s):
     #redo the distance calculation (because x_pix and y_pix do not always contain all the points in cl):
     cl[cl==0] = 1
     cl[y_pix,x_pix] = 0
-    plt.matshow(cl)
-    plt.show()
     cl_dist, inds = ndimage.distance_transform_edt(cl, return_indices=True)
     dx,dy,dz,ds,s = compute_derivatives(x,y,z)
     dx_pix = np.diff(x_pix)
@@ -804,12 +797,6 @@ def dist_map(x,y,z,xmin,xmax,ymin,ymax,dx,delta_s):
     yinds=inds[0,:,:]
     for i in range(0,len(x_pix)):
         z_map[(xinds==x_pix[i]) & (yinds==y_pix[i])] = z_pix[i]
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    cax = ax.matshow(cl_dist, interpolation='nearest')
-    fig.colorbar(cax)
-    plt.show()
 
     return cl_dist, x_pix, y_pix, z_pix, s_pix, z_map, x, y, z
 

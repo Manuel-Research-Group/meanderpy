@@ -1,2 +1,2 @@
 name = "meanderpy"
-from .meanderpy import *
+from .meanderpyp import *

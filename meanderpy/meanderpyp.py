@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.interpolate
 from scipy.spatial import distance
-from scipy import ndimage
+from scipy import ndimage, stats
 from scipy.signal import savgol_filter
 from PIL import Image, ImageDraw
 from skimage import measure
@@ -17,8 +17,8 @@ import matplotlib.gridspec as gridspec
 from matplotlib import cm
 import pyvista as pv
 
-D2, D1, D0 = 0.0013265249206961816, -0.8297607727804712, 118.89179709531096
-
+D2, D1, D0 = 0.0014037355196363848, -0.8514792665395621, 120.08049908837464
+LH1, LH2, LH3, LH4 = 1.6273636610885987e-06, -0.0015696818378884967, 0.3939090951922842, -3.0090911297132212
 
 OMEGA = -1.0 # constant in curvature calculation (Howard and Knutson, 1984)
 GAMMA = 2.5  # from Ikeda et al., 1981 and Howard and Knutson, 1984
@@ -237,13 +237,16 @@ class Channel:
         #axis.plot(x, y)
 
 class ChannelMapper:
-    def __init__(self, xmin, xmax, ymin, ymax, xsize, ysize):
+    def __init__(self, xmin, xmax, ymin, ymax, xsize, ysize, downscale = 4, sigma = 2):
         self.xmin = xmin
         self.ymin = ymin
         
+        self.downscale = downscale
+        self.sigma = sigma
+
         #grid size
-        self.xsize = xsize
-        self.ysize = ysize
+        self.xsize = int(xsize / downscale)
+        self.ysize = int(ysize / downscale)
 
         self.dx = xmax - xmin
         self.dy = ymax - ymin
@@ -251,8 +254,23 @@ class ChannelMapper:
         self.width = int(self.dx / self.xsize)
         self.height = int(self.dy / self.ysize)
 
+        self.rwidth = int(self.width/self.downscale)
+        self.rheight = int(self.height/self.downscale)
+
     def __repr__(self):
         return 'GRID-SIZE: ({};{})\nIMAGE-SIZE: ({};{})\n PIXELS: {}'.format(self.xsize, self.ysize, self.width, self.height, self.width * self.height)
+
+    def map_size(self):
+        return (self.result_width, self.result_height)
+
+    def post_processing(self, _map):
+        return self.downsize(self.filter(_map))
+
+    def filter(self, _map):
+        return scipy.ndimage.gaussian_filter(_map, sigma = self.sigma)
+
+    def downsize(self, _map):
+        return np.array(Image.fromarray(_map).resize((self.rwidth, self.rheight), Image.BILINEAR))
 
     def create_maps(self, channel):
         ch_map = self.create_ch_map(channel)
@@ -283,7 +301,7 @@ class ChannelMapper:
 
         md_map = ndimage.distance_transform_edt(np.array(img), sampling=[self.xsize, self.ysize])
 
-        return md_map
+        return self.post_processing(md_map)
 
     def create_cld_map(self, channel):
         pixels = self.to_pixels(channel.x, channel.y)
@@ -293,7 +311,7 @@ class ChannelMapper:
     
         cld_map = ndimage.distance_transform_edt(np.array(img), sampling=[self.xsize, self.ysize])
 
-        return cld_map
+        return self.post_processing(cld_map)
 
     def create_ch_map(self, channel):
         x, y = channel.x, channel.y
@@ -308,7 +326,7 @@ class ChannelMapper:
         draw = ImageDraw.Draw(img)
         draw.polygon(xy, fill=1)
 
-        return np.array(img)
+        return self.downsize(np.array(img))
 
     def create_z_map(self, channel):
         x_p = ((channel.x - self.xmin) / self.dx) * self.width
@@ -317,7 +335,7 @@ class ChannelMapper:
         u = np.linspace(0,1,self.width)
         _, z_level = scipy.interpolate.splev(u, tck)
 
-        return np.tile(z_level, (self.height, 1))
+        return self.post_processing(np.tile(z_level, (self.height, 1)))
 
     def to_pixels(self, x, y):
         x_p = ((x - self.xmin) / self.dx) * self.width
@@ -326,7 +344,7 @@ class ChannelMapper:
         xy = np.vstack((x_p, y_p)).astype(int).T
         return tuple(map(tuple, xy))
 
-def channel_surface(ch_map, cld_map, md_map, z_map):
+def channel_surface_(ch_map, cld_map, md_map, z_map):
     """
     docstring
     """
@@ -348,7 +366,7 @@ def channel_surface(ch_map, cld_map, md_map, z_map):
 
     return h_map + levee + z_map
 
-def surface(ch_map, cld_map, md_map, z_map, hw_map):
+def surface_2(ch_map, cld_map, md_map, z_map, hw_map):
     d = D2 * hw_map ** 2 + D1 * hw_map + D0
 
     levee = np.where((hw_map >= 62.5) & (hw_map < 100), (hw_map - 62.5) / 3.75, 0) + np.where((hw_map >= 100) & (hw_map < 125), (125 - hw_map) / 2.5, 0)
@@ -361,6 +379,32 @@ def surface(ch_map, cld_map, md_map, z_map, hw_map):
     h_map[np.array(np.logical_not(ch_map).astype(bool))] = 0.0
 
     return h_map + levee + z_map
+
+def topostrat(topo):
+    """function for converting a stack of geomorphic surfaces into stratigraphic surfaces
+    inputs:
+    topo - 3D numpy array of geomorphic surfaces
+    returns:
+    strat - 3D numpy array of stratigraphic surfaces
+    """
+    r,c,ts = np.shape(topo)
+    strat = np.copy(topo)
+    for i in (range(0,ts)):
+        strat[:,:,i] = np.amin(topo[:,:,i:], axis=2)
+    return strat
+
+def erosional_surface(cld_map, z_map, hw_map):
+    d = D2 * hw_map ** 2 + D1 * hw_map + D0
+    return np.where(d > 0,  d * ((cld_map / hw_map) ** 2 - 1), 0) + z_map
+
+def deposicional_height_map(hw_map):
+    return np.clip(LH1 * hw_map ** 3 + LH2 * hw_map ** 2 + LH3 * hw_map + LH4, 0, None)
+
+def gausian_surface(S, cld_map, hw_map):
+    return stats.norm.pdf(cld_map / hw_map, scale = S)
+
+def deposional_surface(H, dh_map, cld_map, hw_map):
+    return H * dh_map * np.exp(- (cld_map / (4 * hw_map))** 2)
 
 class ChannelBelt:
     """class for ChannelBelt objects"""
@@ -387,7 +431,6 @@ class ChannelBelt:
             channel.resample(ds)
             
             if itn % saved_ts == 0:
-                #channel.refit(ds)
                 self.times.append(last_cl_time+(itn+1)*dt/(365*24*60*60.0))
                 self.channels.append(channel.copy())
 
@@ -408,6 +451,47 @@ class ChannelBelt:
             self.channels[i].plot(axis, color)
 
         return fig
+
+    def build_3d_model(self, dx):
+        channel = self.channels[0]
+        xmax, xmin = max(channel.x), min(channel.x)
+        ymax, ymin = max(channel.y), min(channel.y)
+
+        mapper = ChannelMapper(xmin, xmax, ymin * 2, ymax * 2, dx, dx)
+
+        ch_map, cld_map, md_map, z_map, hw_map = mapper.create_maps(channel)
+
+        surface = z_map
+
+        N = len(self.channels)
+        L = 3 + 1
+
+        topo = np.zeros((mapper.rheight, mapper.rwidth, N*L))
+
+        print(N)
+        for i in range(0, N):
+            update_progress(i/N)
+            ch_map, cld_map, md_map, z_map, hw_map = mapper.create_maps(self.channels[i])
+            dh_map = deposicional_height_map(hw_map)
+
+            channel_surface = erosional_surface(cld_map, z_map, hw_map)
+            levee1_surface = 2.0 * dh_map * gausian_surface(0.50, cld_map, hw_map)
+            levee2_surface = 1.0 * dh_map * gausian_surface(0.75, cld_map, hw_map)
+            levee3_surface = 0.5 * dh_map * gausian_surface(1.00, cld_map, hw_map)
+
+            # CUTTING CHANNEL
+            surface = np.minimum(surface, channel_surface)
+            topo[:,:,i*L + 0] = surface
+
+            # DEPOSITING SEDIMENT
+            surface = surface + levee3_surface
+            topo[:,:,i*L + 1] = surface
+            surface = surface + levee2_surface
+            topo[:,:,i*L + 2] = surface
+            surface = surface + levee1_surface
+            topo[:,:,i*L + 3] = surface
+            
+        return ChannelBelt3D(topo, xmin, ymin, dx, dx)
 
     def image_test(self, dx, downscale = 1):
         channel = self.channels[0]
@@ -443,3 +527,59 @@ class ChannelBelt:
         grid = pv.StructuredGrid(xx, yy, 5*surf)
 
         grid.plot()
+
+class ChannelBelt3D():
+    def __init__(self, topo, xmin, ymin, dx, dy):
+        """initialize ChannelBelt object
+        channels - list of Channel objects
+        cutoffs - list of Cutoff objects
+        cl_times - list of ages of Channel objects
+        cutoff_times - list of ages of Cutoff objects"""
+        self.strat = topostrat(topo)
+        self.topo = topo
+
+        self.xmin = xmin
+        self.ymin = ymin
+    
+        self.dx = dx
+        self.dy = dy
+
+    def plot_xsection(self, xsec, ve = 5):
+        strat = self.strat
+        sy, sx, sz = np.shape(strat)
+        xsec = int(xsec * sx)
+
+        fig1 = plt.figure(figsize=(20,5))
+        ax1 = fig1.add_subplot(111)
+
+        Xv = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
+        X1 = np.concatenate((Xv, Xv[::-1]))  
+
+        for i in range(0, sz, 4):
+            Y1 = np.concatenate((strat[:,xsec,i],   strat[::-1,xsec,i+1])) 
+            Y2 = np.concatenate((strat[:,xsec,i+1], strat[::-1,xsec,i+2]))
+            Y3 = np.concatenate((strat[:,xsec,i+2], strat[::-1,xsec,i+3]))
+
+            ax1.fill(X1, Y1, facecolor=[255/255, 215/255, 0], linewidth=0.5, edgecolor=[0,0,0]) # oxbow mud
+            ax1.fill(X1, Y2, facecolor=[255/255, 69/255,0], linewidth=0.5) # levee mud
+            ax1.fill(X1, Y3, facecolor=[0.5,0.25,0], linewidth=0.5) # levee mud
+        
+        ax1.set_xlim(self.ymin, self.ymin + sy * self.dy)
+        ax1.set_aspect(ve, adjustable='datalim')
+
+        return fig1
+
+
+    def plot(self):
+        sy, sx, sz = np.shape(self.strat)
+        x = np.linspace(self.xmin, self.xmin + sx * self.dx, sx)
+        y = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
+
+        xx, yy, _ = np.meshgrid(x, y, np.linspace(0, 1, sz))
+
+        grid = pv.StructuredGrid(xx, yy, self.strat)
+
+        grid.plot()
+
+    def render(self):
+        return 0

@@ -3,6 +3,7 @@ import meanderpy as mp
 import meanderpyp as mpn
 import matplotlib.pyplot as plt
 import numpy as np
+import pyvista as pv
 
 PARAMS = cases.ChannelScatteredSineRampSlope()
 
@@ -20,8 +21,14 @@ chb = mp.ChannelBelt(channels=[ch],cutoffs=[],cl_times=[0.0],cutoff_times=[]) # 
 #chbp.plot()
 plt.plot(chp.x, chp.z)
 plt.show()
-dx = 50
+dx = 25
 
-chbp.migrate(1,PARAMS.saved_ts,PARAMS.ds,PARAMS.pad,PARAMS.crdist,PARAMS.Cf,PARAMS.kl,PARAMS.kv,PARAMS.dt,PARAMS.density,PARAMS.t1,PARAMS.t2,PARAMS.t3,PARAMS.aggr_factor)
-chbp.image_test(dx, 10)
+chbp.migrate(100,10,PARAMS.ds,PARAMS.pad,PARAMS.crdist,PARAMS.Cf,PARAMS.kl,PARAMS.kv, 5*PARAMS.dt,PARAMS.density,PARAMS.t1,PARAMS.t2,PARAMS.t3,PARAMS.aggr_factor)
+model = chbp.build_3d_model(dx)
+fig = model.plot_xsection(0.95)
+fig.show()
+plt.show()
+model.plot()
+
+
 #chb.build_3d_model('submarine',h_mud=h_mud,levee_width=5000.0,h=12.0,w=PARAMS.W,bth=6.0, dcr=7.0,dx=dx,delta_s=PARAMS.ds,starttime=chb.cl_times[0],endtime=chb.cl_times[-1], xmin=1,xmax=20000,ymin=-2500,ymax=2500)
