@@ -1,3 +1,4 @@
+from mpl_toolkits.mplot3d import Axes3D
 import bisect
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,14 +16,16 @@ import numba
 import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
 from matplotlib import cm
+from io import BytesIO
+import base64
 import pyvista as pv
 
 D2, D1, D0 = 0.0014037355196363848, -0.8514792665395621, 120.08049908837464
-LH1, LH2, LH3, LH4 = 1.6273636610885987e-06, -0.0015696818378884967, 0.3939090951922842, -3.0090911297132212
-
+LH1, LH2, LH3, LH4 = 106626.10915626335, 8232.473083905528, -88.55157340056991, -0.5999325153044045
 OMEGA = -1.0 # constant in curvature calculation (Howard and Knutson, 1984)
 GAMMA = 2.5  # from Ikeda et al., 1981 and Howard and Knutson, 1984
 K = 1.0 # constant in HK equation
+ONE_YEAR = 365*24*60*60.0
 
 def update_progress(progress):
     """progress bar from https://stackoverflow.com/questions/3160699/python-progress-bar
@@ -59,9 +62,10 @@ def compute_migration_rate(r0, Cf, d, dl, L):
     R0 - nominal migration rate (dimensionless curvature * migration rate constant)"""
     NS = len(dl)
     r1 = np.zeros(NS) # preallocate adjusted channel migration rate
+    D = np.mean(d)
     for i in range(0, NS):
         SIGMA_2 = np.hstack((np.array([0]),np.cumsum(dl[i-1::-1])))  # distance along centerline, backwards from current point 
-        G = np.exp(-2.0 * K * Cf / max(d[i], 1) * SIGMA_2) # convolution vector
+        G = np.exp(-2.0 * K * Cf / (d[i] + 1) * SIGMA_2) # convolution vector
         r1[i] = OMEGA*r0[i] + GAMMA*np.sum(r0[i::-1]*G)/np.sum(G) # main equation
     return r1
 
@@ -88,12 +92,12 @@ class Channel:
     @classmethod
     def slope2width(cls, slope):
         W2, W1, W0 = 695.4154350661511, -45.231656699536124, 104.60941780103624
-        return np.clip(W2 * np.exp(- W1 * slope) + W0, 100, 800)
+        return scipy.ndimage.gaussian_filter1d(W2 * np.exp(- W1 * slope) + W0, sigma = 20)
 
     @classmethod
     def slope2depth(cls, slope):
-        D2, D1, D0 = 35.903468691717954, 15.06078709431349, -35.96222916210254
-        return np.clip(D2 * np.exp(- D1 * slope) + D0, 100, -5)
+        D2, D1 = 9.480956682443292, 27.154192555435458
+        return np.clip(scipy.ndimage.gaussian_filter1d(D2 * np.exp(- D1 * slope), sigma = 20), a_min = 0, a_max = 100)
 
     @classmethod
     def slope2migration(cls, slope):
@@ -102,7 +106,7 @@ class Channel:
         return np.where(slope > ARCTG_2, np.exp(-(slope - ARCTG_2) ** 2 / K),1)
 
     """class for Channel objects"""
-    def __init__(self,x,y,z,w,d):
+    def __init__(self, x, y, z, w = None, d = None):
         """initialize Channel object
         x, y, z  - coordinates of centerline
         W - channel width
@@ -134,7 +138,7 @@ class Channel:
         dx = np.gradient(self.x)
         dy = np.gradient(self.y)   
         dz = np.gradient(self.z)   
-        ds = np.sqrt(dx**2+dy**2+dz**2)
+        ds = np.sqrt(dx**2 + dy**2 + dz**2)
         s = np.hstack((0,np.cumsum(ds[1:])))
 
         return dx, dy, dz, ds, s
@@ -148,32 +152,37 @@ class Channel:
 
         return (dx*ddy-dy*ddx)/((dx**2+dy**2)**1.5)
 
-    def refit(self, target_ds):
-        _, _, dz, ds, _ = self.derivatives()
+    def slope(self):
+        return np.clip(np.gradient(self.z, self.x), -0.1, 0.1)
         
-        slope = savgol_filter(dz / ds, 51, 3)
-        plt.plot(self.x, slope)
+    def refit(self, ds):
+        slope = np.gradient(self.z, self.x)
+
         self.w  = self.slope2width(slope)
         self.d  = self.slope2depth(slope)
 
-
     def resample(self, target_ds):
         _, _, _, _, s = self.derivatives()
-        
-        tck, _ = scipy.interpolate.splprep([self.x,self.y,self.z,self.w,self.d],s=0) 
-        u = np.linspace(0,1,1+int(round(s[-1]/target_ds)))
+        N = 1 + int(round(s[-1]/target_ds))
+        tck, _ = scipy.interpolate.splprep([self.x, self.y, self.z, self.w, self.d], s=0)
+        # TODO! IS TARGET_DS NECESSARY?
+        u = np.linspace(0,1,N)
         self.x, self.y, self.z, self.w, self.d = scipy.interpolate.splev(u,tck) 
+
 
     def migrate(self,Cf,kl,dt):
         curv = self.curvature()
         dx, dy, dz, ds, s = self.derivatives()
-        slope = dz / ds
+        slope = dz / dx
         sinuosity = s[-1]/(self.x[-1]-self.x[0])
         R0 = kl * self.w * curv
         R1 = compute_migration_rate(R0, Cf, self.d, ds, s[-1])
         RN = sinuosity**(-2/3.0) * R1 * self.slope2migration(slope)
+        
+        x = self.x.copy()
         self.x += RN * (dy/ds) * dt  
         self.y -= RN * (dx/ds) * dt 
+        self.z = scipy.interpolate.interp1d(x, self.z, kind='cubic', fill_value='extrapolate')(self.x)
 
     def cut_cutoffs(self, crdist, ds):
         cuts = []
@@ -225,7 +234,7 @@ class Channel:
 
         return cuts
 
-    def plot(self, axis = plt, color=sns.xkcd_rgb["ocean blue"]):
+    def plot(self, axis = plt, color=sns.xkcd_rgb["ocean blue"], points = False):
         x = self.x
         y = self.y
 
@@ -233,8 +242,11 @@ class Channel:
         
         xm = np.hstack((x + xo, (x - xo)[::-1]))
         ym = np.hstack((y + yo, (y - yo)[::-1]))
-        axis.fill(xm, ym, color=color, edgecolor='k', linewidth=0.25)
-        #axis.plot(x, y)
+        
+        if points:
+            axis.plot(x, y, 'o')
+        else:
+            axis.fill(xm, ym, color=color, edgecolor='k', linewidth=0.25)
 
 class ChannelMapper:
     def __init__(self, xmin, xmax, ymin, ymax, xsize, ysize, downscale = 4, sigma = 2):
@@ -278,6 +290,7 @@ class ChannelMapper:
         cld_map = self.create_cld_map(channel)
         md_map = self.create_md_map(channel)
         z_map = self.create_z_map(channel)
+        sl_map = self.create_sl_map(channel)
 
         hw_inside = cld_map + md_map
         hw_outside = cld_map - md_map
@@ -286,7 +299,7 @@ class ChannelMapper:
         hw_outside[np.array(ch_map.astype(bool))] = 0.0
         hw_map = hw_inside + hw_outside
 
-        return (ch_map, cld_map, md_map, z_map, hw_map)
+        return (ch_map, cld_map, md_map, z_map, sl_map, hw_map)
 
     def create_md_map(self, channel):
         xo, yo = channel.margin_offset()
@@ -317,8 +330,8 @@ class ChannelMapper:
         x, y = channel.x, channel.y
         xo, yo = channel.margin_offset()
 
-        xm = np.hstack((x + xo, (x - xo)[::-1]))
-        ym = np.hstack((y + yo, (y - yo)[::-1]))
+        xm = np.hstack(((x + xo), (x - xo)[::-1]))
+        ym = np.hstack(((y + yo), (y - yo)[::-1]))
 
         xy = self.to_pixels(xm, ym)
 
@@ -337,6 +350,20 @@ class ChannelMapper:
 
         return self.post_processing(np.tile(z_level, (self.height, 1)))
 
+    def create_sl_map(self, channel):
+        x_p = ((channel.x - self.xmin) / self.dx) * self.width
+        
+        tck, _ = scipy.interpolate.splprep([x_p, channel.slope()], s = 0)
+        u = np.linspace(0,1,self.width)
+        _, z_level = scipy.interpolate.splev(u, tck)
+
+        return self.post_processing(np.tile(z_level, (self.height, 1)))
+
+    def plot_map(self, _map):
+        plt.matshow(_map)
+        plt.colorbar()
+        plt.show()
+
     def to_pixels(self, x, y):
         x_p = ((x - self.xmin) / self.dx) * self.width
         y_p = ((y - self.ymin) / self.dy) * self.height
@@ -351,7 +378,6 @@ def channel_surface_(ch_map, cld_map, md_map, z_map):
     w2 = cld_map + md_map
     d = D2 * w2 ** 2 + D1 * w2 + D0
 
-
     w2o = cld_map - md_map
     #levee = np.where((w2o >= 62.5) & (w2o < 100), (w2o - 62.5) / 3.75 , 0) + np.where((w2o >= 100) & (w2o <= 125), (125 - w2o) / 2.5, 0)
     levee = np.where((w2o >= 62.5) & (w2o < 100), (w2o - 62.5) / 3.75, 0) + np.where((w2o >= 100) & (w2o < 125), (125 - w2o) / 2.5, 0)
@@ -360,7 +386,6 @@ def channel_surface_(ch_map, cld_map, md_map, z_map):
     levee = levee - md_map / 125
     levee = np.where((levee < 0), 0, levee)
 
-   
     h_map = d *(cld_map / w2) ** 2 - d 
     h_map[np.array(np.logical_not(ch_map).astype(bool))] = 0.0
 
@@ -406,32 +431,83 @@ def gausian_surface(S, cld_map, hw_map):
 def deposional_surface(H, dh_map, cld_map, hw_map):
     return H * dh_map * np.exp(- (cld_map / (4 * hw_map))** 2)
 
+class ChannelEvent:
+    '''
+        mode: 'LATERAL_MIGRATION' | 'INCISION' | 'AGGRADATION' 
+    '''
+    def __init__(self, mode = 'LATERAL_MIGRATION', nit = 100, dt = 0.1 * ONE_YEAR, saved_ts = 10, cr_dist = 25, Cf = 0.02, kl = 60.0/ONE_YEAR, kv = 0.01/ONE_YEAR, dens = 1000, aggr_factor = 1):
+        self.mode = mode
+        self.nit = nit
+        self.dt = dt
+        self.saved_ts = saved_ts
+        self.cr_dist = cr_dist
+        self.Cf = Cf
+        self.kl = kl
+        self.kv = kv
+        self.dens = dens
+        self.aggr_factor = aggr_factor
+
 class ChannelBelt:
-    """class for ChannelBelt objects"""
     def __init__(self, channel):
-        """initialize ChannelBelt object
-        channels - list of Channel objects
-        cutoffs - list of Cutoff objects
-        cl_times - list of ages of Channel objects
-        cutoff_times - list of ages of Cutoff objects"""
+        """
+            Times in years.
+        """
         self.channels = [channel]
         self.times = [0.0]
+        self.events = []
 
-    def migrate(self,nit,saved_ts,ds,pad,crdist,Cf,kl,kv,dt,dens,t1,t2,t3,aggr_factor,*D):
+        _, _, _, ds, _ = channel.derivatives()
+        self.ds = np.mean(ds)
+
+    def simulate(self, event):
         channel = self.channels[-1].copy()
-        last_cl_time = 0
+
+        if len(self.events) == 0:
+            self.events.append(event)
+
+        for itn in range(event.nit):
+            update_progress(itn/event.nit)
+            channel.migrate(event.Cf, event.kl, event.dt)
+            channel.cut_cutoffs(event.cr_dist, self.ds)
+            channel.resample(self.ds)
+            
+            K = event.kv * event.dens * 9.81 * event.dt
+            slope = channel.slope()
+            if event.mode == 'INCISION': 
+                K *= slope
+            if event.mode == 'LATERAL_MIGRATION':
+                K *= (slope - np.median(slope))
+            if event.mode == 'AGGRADATION': 
+                K *= (slope - event.aggr_factor*np.mean(slope))
+
+            #channel.z += scipy.ndimage.gaussian_filter1d(K, sigma = 20)
+            
+            
+            if itn % event.saved_ts == 0:
+                #channel.refit(self.ds)
+                
+                self.times.append((itn+1) * event.dt / ONE_YEAR)
+                self.channels.append(channel.copy())
+                self.events.append(event)
+
+                #plt.plot(channel.x, channel.z)
+                #plt.show()
+                #self.plot()
+                #plt.show()
+
+
+    def migrate(self, nit, dt, saved_ts, cr_dist, Cf = 0.02, kl = 60.0/(365*24*60*60.0), kv = 0.3/(365*24*60*60.0), dens = 1000, aggr_factor = 1):
+        channel = self.channels[-1].copy()
 
         for itn in range(nit):
             update_progress(itn/nit)
-            #print(channel.w)
-            #channel.refit(ds)
             
-            channel.migrate(Cf,kl,dt)
-            channel.cut_cutoffs(25,ds)
-            channel.resample(ds)
-            
+            channel.migrate(Cf, kl, dt)
+            channel.cut_cutoffs(cr_dist, self.ds)
+            channel.resample(self.ds)
+
             if itn % saved_ts == 0:
-                self.times.append(last_cl_time+(itn+1)*dt/(365*24*60*60.0))
+                self.times.append((itn+1)*dt/(365*24*60*60.0))
                 self.channels.append(channel.copy())
 
     def plot(self, start_time=0, end_time = 0):
@@ -453,13 +529,23 @@ class ChannelBelt:
         return fig
 
     def build_3d_model(self, dx):
-        channel = self.channels[0]
-        xmax, xmin = max(channel.x), min(channel.x)
-        ymax, ymin = max(channel.y), min(channel.y)
+        
+        xmax, xmin, ymax, ymin = [], [], [], []
+        for channel in self.channels:
+            xmax.append(max(channel.x))
+            xmin.append(min(channel.x))
+            ymax.append(max(channel.y))
+            ymin.append(min(channel.y))
+
+        xmax = max(xmax)
+        xmin = min(xmin)
+        ymax = max(ymax)
+        ymin = min(ymin)
 
         mapper = ChannelMapper(xmin, xmax, ymin * 2, ymax * 2, dx, dx)
 
-        ch_map, cld_map, md_map, z_map, hw_map = mapper.create_maps(channel)
+        channel = self.channels[0]
+        ch_map, cld_map, md_map, z_map, sl_map, hw_map = mapper.create_maps(channel)
 
         surface = z_map
 
@@ -468,16 +554,20 @@ class ChannelBelt:
 
         topo = np.zeros((mapper.rheight, mapper.rwidth, N*L))
 
-        print(N)
         for i in range(0, N):
             update_progress(i/N)
-            ch_map, cld_map, md_map, z_map, hw_map = mapper.create_maps(self.channels[i])
-            dh_map = deposicional_height_map(hw_map)
+            event = self.events[i]
+            ch_map, cld_map, md_map, z_map, sl_map, hw_map = mapper.create_maps(self.channels[i])
+
+            #mapper.plot_map(sl_map)
+            # DT NORMALIZATION
+            dt = self.times[i+1] - self.times[i] if i < N - 1 else self.times[i] - self.times[i-1]
+            dh_map = deposicional_height_map(sl_map) * (dt / 2)
 
             channel_surface = erosional_surface(cld_map, z_map, hw_map)
-            levee1_surface = 2.0 * dh_map * gausian_surface(0.50, cld_map, hw_map)
-            levee2_surface = 1.0 * dh_map * gausian_surface(0.75, cld_map, hw_map)
-            levee3_surface = 0.5 * dh_map * gausian_surface(1.00, cld_map, hw_map)
+            levee1_surface = 1.0 * dh_map * gausian_surface(2, cld_map, hw_map)
+            levee2_surface = 2.0 * dh_map * gausian_surface(0.50, cld_map, hw_map)
+            levee3_surface = 0.5 * dh_map * gausian_surface(0.25, cld_map, hw_map)
 
             # CUTTING CHANNEL
             surface = np.minimum(surface, channel_surface)
@@ -530,21 +620,22 @@ class ChannelBelt:
 
 class ChannelBelt3D():
     def __init__(self, topo, xmin, ymin, dx, dy):
-        """initialize ChannelBelt object
-        channels - list of Channel objects
-        cutoffs - list of Cutoff objects
-        cl_times - list of ages of Channel objects
-        cutoff_times - list of ages of Cutoff objects"""
         self.strat = topostrat(topo)
         self.topo = topo
 
         self.xmin = xmin
         self.ymin = ymin
+
+        zmin, zmax = np.amin(self.strat[:,:,0]), np.amax(self.strat[:,:,-1])
+        dz = zmax - zmin
+        
+        self.zmin = zmin - dz * 0.1 
+        self.zmax = zmax + dz * 0.1
     
         self.dx = dx
         self.dy = dy
 
-    def plot_xsection(self, xsec, ve = 5):
+    def plot_xsection(self, xsec, ve = 5, substrat = True):
         strat = self.strat
         sy, sx, sz = np.shape(strat)
         xsec = int(xsec * sx)
@@ -553,33 +644,97 @@ class ChannelBelt3D():
         ax1 = fig1.add_subplot(111)
 
         Xv = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
-        X1 = np.concatenate((Xv, Xv[::-1]))  
-
+        X1 = np.concatenate((Xv, Xv[::-1]))
+        
+        if substrat:
+            Yb = np.ones(sy) * self.zmin
+            ax1.fill(X1, np.concatenate((Yb, strat[::-1,xsec,0])), facecolor=[192/255, 192/255, 192/255])
+        
         for i in range(0, sz, 4):
             Y1 = np.concatenate((strat[:,xsec,i],   strat[::-1,xsec,i+1])) 
             Y2 = np.concatenate((strat[:,xsec,i+1], strat[::-1,xsec,i+2]))
             Y3 = np.concatenate((strat[:,xsec,i+2], strat[::-1,xsec,i+3]))
 
-            ax1.fill(X1, Y1, facecolor=[255/255, 215/255, 0], linewidth=0.5, edgecolor=[0,0,0]) # oxbow mud
-            ax1.fill(X1, Y2, facecolor=[255/255, 69/255,0], linewidth=0.5) # levee mud
-            ax1.fill(X1, Y3, facecolor=[0.5,0.25,0], linewidth=0.5) # levee mud
+            ax1.fill(X1, Y1, facecolor=[255/255, 102/255, 0/255],linewidth=0.1, edgecolor='r') # oxbow mud
+            ax1.fill(X1, Y2, facecolor=[255/255, 204/255, 0/255]) # levee mud
+            ax1.fill(X1, Y3, facecolor=[51/255, 51/255, 0]) # levee mud
         
         ax1.set_xlim(self.ymin, self.ymin + sy * self.dy)
         ax1.set_aspect(ve, adjustable='datalim')
 
         return fig1
 
+    def image_xsection(self, xsec):
+        out = BytesIO()
+        fig = self.plot_xsection(xsec, ve = 1)
+        plt.axis('off')
+        plt.close(fig)
+        plt.ioff()
+        fig.savefig(out, transparent=True, bbox_inches='tight', pad_inches = 0, dpi = 300)
+        out.seek(0)
+        plt.axis('on')
+        
 
-    def plot(self):
+        return 'data:image/png;base64,' + base64.b64encode(out.read()).decode()
+
+
+    def plot(self, ve = 1, curvature = False, save = False):
         sy, sx, sz = np.shape(self.strat)
         x = np.linspace(self.xmin, self.xmin + sx * self.dx, sx)
         y = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
 
-        xx, yy, _ = np.meshgrid(x, y, np.linspace(0, 1, sz))
+        xx, yy = np.meshgrid(x, y)
+        zz = self.strat[:,:,-1 - 4] * ve
 
-        grid = pv.StructuredGrid(xx, yy, self.strat)
+        grid = pv.StructuredGrid(xx, yy, zz)
 
-        grid.plot()
+        if curvature:
+            #grid.plot_curvature()
+            plotter = pv.Plotter()
+            plotter.add_mesh(grid, scalars='Elevation')
+            plotter.show()
 
-    def render(self):
-        return 0
+        else:
+            grid.plot()
+
+        if save:
+            plotter = pv.Plotter(off_screen=True)
+            plotter.add_mesh(grid, color = 'brown')
+
+            plotter.show(screenshot='3D.png')
+
+            plt.imshow(plotter.image)
+            plt.show()
+
+
+    def render(self, ve = 3, name = 'TEST.gif'):
+        sy, sx, sz = np.shape(self.strat)
+        x = np.linspace(self.xmin, self.xmin + sx * self.dx, sx)
+        y = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
+        
+        xx, yy = np.meshgrid(x, y)
+
+        zz = self.topo[:,:,0] * ve
+
+        grid = pv.StructuredGrid(xx, yy, zz)
+
+        plotter = pv.Plotter()
+        plotter.add_mesh(grid)
+
+        plotter.show(auto_close=False)
+        plotter.open_gif(name)
+
+        pts = grid.points.copy()
+        
+        for i in range(4, sz-1, 4):
+            strat = topostrat(self.topo[:,:,0:i+1])
+            zz = strat[:,:,i] * ve
+            pts[:, -1] = zz.T.ravel()
+
+            plotter.update_coordinates(pts, render=False)
+
+            plotter.write_frame()  # this will trigger the render
+            plotter.render()
+
+        plotter.close()
+

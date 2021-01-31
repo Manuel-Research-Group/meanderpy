@@ -31,7 +31,7 @@ aggr_factor = 4.0          # aggradation factor (it kicks in after t3)
 
 ds = deltas
 x = np.linspace(0, L, int(L/ds))
-z = np.tan(5.0 * np.pi / 180) * (L/2  + x * ( x / (2*L) - 1))
+z = np.tan(5.0 * np.pi / 180) * (L/2  + x * (x / (2*L) - 1))
 dz = np.gradient(z) / ds
 
 w = W2 * np.exp(- W1 * dz) + W0
