@@ -10,7 +10,6 @@ from skimage import measure
 from skimage import morphology
 from matplotlib.colors import LinearSegmentedColormap
 import time, sys
-import numba
 import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
 from matplotlib import cm
@@ -214,8 +213,9 @@ class ChannelBelt:
                 self.cl_times.append(last_cl_time+(itn+1)*dt/(365*24*60*60.0))
                 channel = Channel(x,y,z,W,D) # create channel object
                 self.channels.append(channel)
+        plt.show()
 
-    def plot(self, plot_type, pb_age, ob_age, end_time, n_channels):
+    def plot(self, plot_type, pb_age, ob_age, end_time = -1, n_channels = 60):
         """plot ChannelBelt object
         plot_type - can be either 'strat' (for stratigraphic plot) or 'morph' (for morphologic plot)
         pb_age - age of point bars (in years) at which they get covered by vegetation
@@ -515,8 +515,10 @@ def migrate_one_step(x,y,z,W,kl,dt,k,Cf,D,pad,pad1,omega,gamma):
     curv = W*curv # dimensionless curvature
     R0 = kl*curv # simple linear relationship between curvature and nominal migration rate
     alpha = k*2*Cf/D # exponent for convolution function G
+    print(alpha)
     R1 = compute_migration_rate(pad,ns,ds,alpha,omega,gamma,R0)
     R1 = sinuosity**(-2/3.0)*R1
+    plt.plot(R1)
     # calculate new centerline coordinates:
     dy_ds = dy[pad1:ns-pad+1]/ds[pad1:ns-pad+1]
     dx_ds = dx[pad1:ns-pad+1]/ds[pad1:ns-pad+1]
@@ -1026,3 +1028,39 @@ def plot_chb(chb, plot_type, pb_age, ob_age, end_time, n_channels, ax, cmap_name
         # plt.xlim(xmin,xmax)
         # plt.ylim(ymin,ymax)
         # return fig
+
+if __name__ == '__main__':
+    W = 200.0                    # channel width (m)
+    D = 12.0                     # channel depth (m)
+    pad = 50                    # padding (number of nodepoints along centerline)
+    deltas = 100.0                # sampling distance along centerline
+    nit = 1500                   # number of iterations
+    Cf = 0.00                    # dimensionless Chezy friction factor (0.005 > 0.01)
+    crdist = 1.5*W               # threshold distance at which cutoffs occur
+    kl = 60.0/(365*24*60*60.0)   # migration rate constant (m/s)
+    kv =  1.0E-11               # vertical slope-dependent erosion rate constant (m/s)
+    dt = 2*0.05*365*24*60*60.0     # time step (s)
+    dens = 1000                  # density of water (kg/m3)
+    saved_ts = 20                # which time steps will be saved
+    n_bends = 5                 # approximate number of bends you want to model
+    Sl = 0.01                     # initial slope (matters more for submarine channels than rivers)
+    t1 = 500                    # time step when incision starts
+    t2 = 700                    # time step when lateral migration starts
+    t3 = 1000                    # time step when aggradation starts
+    aggr_factor = 4.0          # aggradation factor (it kicks in after t3)
+
+    L = 20000
+    ds = 100
+
+    x = np.linspace(0, L, int(L/ds) + 1)
+    y = 500 * np.exp(( 1.0 / L) * x) * np.cos((x / L) * 16 * np.pi) / (np.exp((x - 0.75 * L) / (0.025 * L)) + 1)
+
+    z = np.tan(5.0 * np.pi / 180) / (2 * L) * (x ** 2 + L * ( L - 2 * x ) )
+
+
+    ch = Channel(x, y, z, W, D) # initialize channel
+    chb = ChannelBelt(channels=[ch],cutoffs=[],cl_times=[0.0],cutoff_times=[]) # create channel belt object
+
+    chb.migrate(nit,saved_ts,deltas,pad,crdist,Cf,kl,kv,dt,dens,t1,t2,t3,aggr_factor) # channel migration
+    fig = chb.plot('strat',20,60, ) # plotting
+    plt.show()

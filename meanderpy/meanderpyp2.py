@@ -1,4 +1,3 @@
-from mpl_toolkits.mplot3d import Axes3D
 import bisect
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,24 +6,22 @@ import scipy.interpolate
 from scipy.spatial import distance
 from scipy import ndimage, stats
 from scipy.signal import savgol_filter
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 from skimage import measure
 from skimage import morphology
 from matplotlib.colors import LinearSegmentedColormap
 import time, sys
-import numba
 import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
 from matplotlib import cm
 from io import BytesIO
 import base64
-import pyvista as pv
 
 D2, D1, D0 = 0.0014037355196363848, -0.8514792665395621, 120.08049908837464
 LH1, LH2, LH3, LH4 = 106626.10915626335, 8232.473083905528, -88.55157340056991, -0.5999325153044045
 OMEGA = -1.0 # constant in curvature calculation (Howard and Knutson, 1984)
 GAMMA = 2.5  # from Ikeda et al., 1981 and Howard and Knutson, 1984
-K = 1.0 # constant in HK equation
+K = 4.0 # constant in HK equation
 ONE_YEAR = 365*24*60*60.0
 
 def update_progress(progress):
@@ -63,9 +60,12 @@ def compute_migration_rate(r0, Cf, d, dl, L):
     NS = len(dl)
     r1 = np.zeros(NS) # preallocate adjusted channel migration rate
     for i in range(0, NS):
-        SIGMA_2 = np.hstack((np.array([0]),np.cumsum(dl[i-1::-1])))  # distance along centerline, backwards from current point 
-        G = np.exp(-2.0 * K * Cf / (d[i] + 1) * SIGMA_2) # convolution vector
-        r1[i] = OMEGA*r0[i] + GAMMA*np.sum(r0[i::-1]*G)/np.sum(G) # main equation
+        SIGMA_2 = np.hstack((np.array([0]), np.cumsum(dl[i-1::-1])))  # distance along centerline, backwards from current point
+        if d[i] > 1:
+            G = np.exp(-2.0 * K * Cf / d[i] * SIGMA_2) # convolution vector
+            r1[i] = OMEGA*r0[i] + GAMMA*np.sum(r0[i::-1]*G)/np.sum(G) # main equation
+        else:
+            r1[i] = r0[i]
     return r1
 
 def find_cutoffs(x, y, crdist, diag):
@@ -87,6 +87,20 @@ def find_cutoffs(x, y, crdist, diag):
 
     return ind1, ind2 # return indices of cutoff points and cutoff coordinates
 
+def find_cutoffs_R(R, D = 5, T = 1):
+    indexes = np.where(np.abs(R) > T)[0][-1:]
+
+    if len(indexes) == 0:
+        return -1, -1
+
+    ind1, ind2 = indexes[0] - D, indexes[0] + D
+    
+    for i in indexes:
+        if i > ind1:
+            ind1 = i - D
+        
+    return max(ind1, 0), min(ind2, len(R) -1)
+
 class Basin:    
     def __init__(self, x, z):
         self.x = x
@@ -103,6 +117,8 @@ class Basin:
 
     def slope(self, ws = 2500):
         slope = np.gradient(self.z, self.x)
+        sigma = ws / np.mean(np.gradient(self.x))
+        #return scipy.ndimage.gaussian_filter1d(slope, sigma = sigma )
         NS = len(self.x)
         sl = np.zeros(NS)
 
@@ -132,12 +148,6 @@ class Channel:
     @classmethod
     def slope2depth(cls, slope):
         return slope * 100 / np.tan(-5 * np.pi / 180)
-
-    @classmethod
-    def depth2migration(cls, depth):
-        T = 25
-        K = T / (4 * np.log(2))
-        return np.where(depth < T, np.exp(-(depth - T) ** 2 / K),1)
 
     """class for Channel objects"""
     def __init__(self, x, y, z = None, d = None, w = None):
@@ -204,19 +214,20 @@ class Channel:
 
     def migrate(self, Cf, kl, dt):
         curv = self.curvature()
-        dx, dy, dz, ds, s = self.derivatives()
+        dx, dy, _, ds, s = self.derivatives()
         sinuosity = s[-1]/(self.x[-1]-self.x[0])
-        R0 = kl * self.w * curv
+        # Velocity is proportial to cross section area
+        # Friction force is proportial to contact surface area
+        area = np.clip(self.d, a_min = 0, a_max = None) * self.w / 2
+        R0 = kl * self.w * curv 
         R1 = compute_migration_rate(R0, Cf, self.d, ds, s[-1])
-        RN = sinuosity**(-2/3.0) * R1 * self.depth2migration(self.d)
-        
-        #plt.plot(self.x, R1);plt.show()
-        #plt.plot(self.x, RN);plt.show()
+        RN = sinuosity**(-2/3.0) * R1 * (area / np.max(area)) ** 2
+
         self.x += RN * (dy/ds) * dt 
         self.y -= RN * (dx/ds) * dt
  
-    def cut_cutoffs(self, crdist, ds):
-        cuts = []
+    def cut_cutoffs(self, crdist, ds):     
+        cuts = []   
         
         diag_blank_width = int((crdist+20*ds)/ds)
         # UPPER MARGIN
@@ -265,6 +276,17 @@ class Channel:
 
         return cuts
 
+    def cut_cutoffs_R(self, cut_window, ds):
+        D = int(cut_window / (2 * ds))
+        ind1, ind2 = find_cutoffs_R(self.w * self.curvature(), D)
+        if ind1 != -1:
+            self.x = np.hstack((self.x[:ind1+1],self.x[ind2:])) # x coordinates after cutoff
+            self.y = np.hstack((self.y[:ind1+1],self.y[ind2:])) # y coordinates after cutoff
+            self.z = np.hstack((self.z[:ind1+1],self.z[ind2:])) # z coordinates after cutoff
+            self.w = np.hstack((self.w[:ind1+1],self.w[ind2:])) # z coordinates after cutoff
+            self.d = np.hstack((self.d[:ind1+1],self.d[ind2:])) # z coordinates after cutoff
+            ind1, ind2 = find_cutoffs_R(self.w * self.curvature(), D)
+
     def plot(self, axis = plt, color=sns.xkcd_rgb["ocean blue"], points = False):
         x = self.x
         y = self.y
@@ -275,7 +297,7 @@ class Channel:
         ym = np.hstack((y + yo, (y - yo)[::-1]))
         
         if points:
-            axis.plot(x, y, 'o')
+            axis.plot(x, y)
         else:
             axis.fill(xm, ym, color=color, edgecolor='k', linewidth=0.25)
 
@@ -304,7 +326,7 @@ class ChannelMapper:
         return 'GRID-SIZE: ({};{})\nIMAGE-SIZE: ({};{})\n PIXELS: {}'.format(self.xsize, self.ysize, self.width, self.height, self.width * self.height)
 
     def map_size(self):
-        return (self.result_width, self.result_height)
+        return (self.xsize, self.ysize)
 
     def post_processing(self, _map):
         return self.downsize(self.filter(_map))
@@ -320,7 +342,8 @@ class ChannelMapper:
         
         cld_map = self.create_cld_map(channel)
         md_map = self.create_md_map(channel)
-        z_map = self.create_z_map(basin)
+        cz_map = self.create_z_map(channel)
+        bz_map = self.create_z_map(basin)
         sl_map = self.create_sl_map(basin)
 
         hw_inside = cld_map + md_map
@@ -330,7 +353,7 @@ class ChannelMapper:
         hw_outside[np.array(ch_map.astype(bool))] = 0.0
         hw_map = hw_inside + hw_outside
 
-        return (ch_map, cld_map, md_map, z_map, sl_map, hw_map)
+        return (ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map)
 
     def create_md_map(self, channel):
         xo, yo = channel.margin_offset()
@@ -402,40 +425,6 @@ class ChannelMapper:
         xy = np.vstack((x_p, y_p)).astype(int).T
         return tuple(map(tuple, xy))
 
-def channel_surface_(ch_map, cld_map, md_map, z_map):
-    """
-    docstring
-    """
-    w2 = cld_map + md_map
-    d = D2 * w2 ** 2 + D1 * w2 + D0
-
-    w2o = cld_map - md_map
-    #levee = np.where((w2o >= 62.5) & (w2o < 100), (w2o - 62.5) / 3.75 , 0) + np.where((w2o >= 100) & (w2o <= 125), (125 - w2o) / 2.5, 0)
-    levee = np.where((w2o >= 62.5) & (w2o < 100), (w2o - 62.5) / 3.75, 0) + np.where((w2o >= 100) & (w2o < 125), (125 - w2o) / 2.5, 0)
-    levee[np.array(ch_map.astype(bool))] = 0.0
-    levee = ndimage.median_filter(levee, size=3)
-    levee = levee - md_map / 125
-    levee = np.where((levee < 0), 0, levee)
-
-    h_map = d *(cld_map / w2) ** 2 - d 
-    h_map[np.array(np.logical_not(ch_map).astype(bool))] = 0.0
-
-    return h_map + levee + z_map
-
-def surface_2(ch_map, cld_map, md_map, z_map, hw_map):
-    d = D2 * hw_map ** 2 + D1 * hw_map + D0
-
-    levee = np.where((hw_map >= 62.5) & (hw_map < 100), (hw_map - 62.5) / 3.75, 0) + np.where((hw_map >= 100) & (hw_map < 125), (125 - hw_map) / 2.5, 0)
-    levee[np.array(ch_map.astype(bool))] = 0.0
-    levee = ndimage.median_filter(levee, size=3)
-    levee = levee - md_map / 125
-    levee = np.where((levee < 0), 0, levee)
-
-    h_map = d * (cld_map / hw_map) ** 2 - d 
-    h_map[np.array(np.logical_not(ch_map).astype(bool))] = 0.0
-
-    return h_map + levee + z_map
-
 def topostrat(topo):
     """function for converting a stack of geomorphic surfaces into stratigraphic surfaces
     inputs:
@@ -449,24 +438,43 @@ def topostrat(topo):
         strat[:,:,i] = np.amin(topo[:,:,i:], axis=2)
     return strat
 
-def erosional_surface(cld_map, z_map, hw_map):
-    d = D2 * hw_map ** 2 + D1 * hw_map + D0
-    return np.where(d > 0,  d * ((cld_map / hw_map) ** 2 - 1), 0) + z_map
+def topostrat_evolution(topo):
+    """function for converting a stack of geomorphic surfaces into stratigraphic surfaces
+    inputs:
+    topo - 3D numpy array of geomorphic surfaces
+    returns:
+    strat - 3D numpy array of stratigraphic surfaces
+    """
+    N = 4
+    r,c,ts = np.shape(topo)
+    strat = np.zeros((r,c,int(ts/N)))
+    for i in (range(0,ts, N)):
+        strat[:,:,int((i+1)/N)] = np.amin(topo[:,:,i:i+N], axis=2)
+    return strat
+
+def erosional_surface(cld_map, z_map, hw_map, sl_map):
+    d = Channel.slope2depth(sl_map)
+    return d * ((cld_map / hw_map) ** 2 - 1) + z_map
 
 def deposicional_height_map(hw_map):
-    return np.clip(LH1 * hw_map ** 3 + LH2 * hw_map ** 2 + LH3 * hw_map + LH4, 0, None)
+    #return np.clip(LH1 * hw_map ** 3 + LH2 * hw_map ** 2 + LH3 * hw_map + LH4, 0, None)
+    return D2 * hw_map ** 2 + D1 * hw_map + D0
 
-def gausian_surface(S, cld_map, hw_map):
-    return stats.norm.pdf(cld_map / hw_map, scale = S)
-
-def deposional_surface(H, dh_map, cld_map, hw_map):
-    return H * dh_map * np.exp(- (cld_map / (4 * hw_map))** 2)
+def gausian_surface(S, cld_map, hw_map, norm = False):
+    if norm:
+        K = S * 2 * np.sqrt(np.pi)
+    else:
+        K  = 1
+    return K * stats.norm.pdf(cld_map / hw_map, scale = S)
 
 class ChannelEvent:
     '''
-        mode: 'LATERAL_MIGRATION' | 'INCISION' | 'AGGRADATION' 
+        mode: 'INCISION' | 'AGGRADATION' 
     '''
-    def __init__(self, mode = 'LATERAL_MIGRATION', nit = 100, dt = 0.1 * ONE_YEAR, saved_ts = 10, cr_dist = 25, Cf = 0.02, kl = 60.0/ONE_YEAR, kv = 0.01/ONE_YEAR, dens = 1000, aggr_factor = 2):
+    def __init__(self, mode = 'AGGRADATION', nit = 100, dt = 0.1 * ONE_YEAR, saved_ts = 10, \
+        cr_dist = 200, Cf = 0.01, kl = 60.0/ONE_YEAR, kv = 0.01/ONE_YEAR, \
+        silt_prop = 2, sand_prop = 5, gravel_prop = 3, silt_sigma = 2.0, sand_sigma = 0.5, gravel_sigma = 0.25, \
+        dens = 1000, dep_factor = 1/2, dep_offset = 10, aggr_factor = 2):
         self.mode = mode
         self.nit = nit
         self.dt = dt
@@ -475,6 +483,18 @@ class ChannelEvent:
         self.Cf = Cf
         self.kl = kl
         self.kv = kv
+
+        self.dep_factor = dep_factor
+        self.dep_offset = dep_offset #m
+
+        self.silt_prop = silt_prop
+        self.sand_prop = sand_prop
+        self.gravel_prop = gravel_prop
+
+        self.silt_sigma = silt_sigma
+        self.sand_sigma = sand_sigma
+        self.gravel_sigma = gravel_sigma
+
         self.dens = dens
         self.aggr_factor = aggr_factor
 
@@ -488,14 +508,14 @@ class ChannelBelt:
         self.times = [0.0]
         self.events = []
 
-
         channel.refit(basin)
         _, _, _, ds, _ = channel.derivatives()
         self.ds = np.mean(ds)
 
-    def simulate(self, event):
+    def simulate(self, event, axis = None, line = None):
         channel = self.channels[-1].copy()
         basin = self.basins[-1].copy()
+        last_time = self.times[-1]
 
         if len(self.events) == 0:
             self.events.append(event)
@@ -505,6 +525,7 @@ class ChannelBelt:
 
             channel.migrate(event.Cf, event.kl, event.dt)
             channel.cut_cutoffs(event.cr_dist, self.ds)
+            channel.cut_cutoffs_R(1500, self.ds)
             channel.resample(self.ds)
             channel.refit(basin)
             
@@ -515,12 +536,18 @@ class ChannelBelt:
 
             if itn % event.saved_ts == 0:
                 #plt.plot(basin.x, basin.z);plt.show()
-                self.times.append((itn+1) * event.dt / ONE_YEAR)
+                if axis:
+                    axis.plot(basin.x, basin.z)
+                    axis.relim()      
+                    axis.autoscale_view(True,True,True)
+                    plt.draw();plt.pause(0.05)
+
+                self.times.append(last_time + (itn+1) * event.dt / ONE_YEAR)
                 self.channels.append(channel.copy())
                 self.basins.append(basin.copy())
                 self.events.append(event)
 
-    def plot(self, start_time=0, end_time = 0):
+    def plot(self, start_time=0, end_time = 0, points = False):
         start_index = 0
         if start_time > 0:
             start_index = bisect.bisect_left(self.times, start_time)
@@ -534,12 +561,11 @@ class ChannelBelt:
 
         for i in range(start_index, end_index):
             color = sns.xkcd_rgb["ocean blue"] if i == end_index - 1 else sns.xkcd_rgb["sand yellow"]
-            self.channels[i].plot(axis, color)
+            self.channels[i].plot(axis, color, points)
 
         return fig
 
-    def build_3d_model(self, dx):
-        
+    def build_3d_model(self, dx, margin = 500):
         xmax, xmin, ymax, ymin = [], [], [], []
         for channel in self.channels:
             xmax.append(max(channel.x))
@@ -552,14 +578,14 @@ class ChannelBelt:
         ymax = max(ymax)
         ymin = min(ymin)
 
-        mapper = ChannelMapper(xmin, xmax, ymin * 5, ymax * 5, dx, dx)
+        mapper = ChannelMapper(xmin + margin, xmax - margin, ymin - margin, ymax + margin, dx, dx)
 
         channel = self.channels[0]
         basin = self.basins[0]
-        ch_map, cld_map, md_map, z_map, sl_map, hw_map = mapper.create_maps(channel, basin)
+        ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map = mapper.create_maps(channel, basin)
 
-        surface = z_map
-        last_z_map = z_map
+        surface = bz_map
+        last_z_map = bz_map
 
         N = len(self.channels)
         L = 3 + 1
@@ -569,44 +595,35 @@ class ChannelBelt:
         for i in range(0, N):
             update_progress(i/N)
             event = self.events[i]
-            ch_map, cld_map, md_map, z_map, sl_map, hw_map = mapper.create_maps(self.channels[i], self.basins[i])
+            ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map = mapper.create_maps(self.channels[i], self.basins[i])
 
-            delta_surface = z_map - last_z_map
-            last_z_map = z_map
+            delta_surface = bz_map - last_z_map
+            last_z_map = bz_map
 
             inc_map = np.where(delta_surface < 0, delta_surface, 0)
             aggr_map = np.where(delta_surface > 0, delta_surface, 0)
 
-            plt.plot(self.basins[i].x, self.basins[i].z);plt.show()
-            #mapper.plot_map(delta_surface)
-            #mapper.plot_map(inc_map)
-            #mapper.plot_map(aggr_map)
-            # DT NORMALIZATION
-            dt = self.times[i+1] - self.times[i] if i < N - 1 else self.times[i] - self.times[i-1]
-            dh_map = deposicional_height_map(sl_map) * (dt / 2)
+            dh_map = event.dep_factor * (Channel.slope2depth(sl_map) + event.dep_offset)
 
-            channel_surface = erosional_surface(cld_map, z_map, hw_map) - inc_map
+            channel_surface = erosional_surface(cld_map, cz_map, hw_map, sl_map)
             
-            levee1_surface = 1.0 * dh_map * gausian_surface(2, cld_map, hw_map) 
-            levee1_surface += 0.3 * aggr_map
-
-            levee2_surface = 2.0 * dh_map * gausian_surface(0.50, cld_map, hw_map)
-            levee2_surface += 0.5 * aggr_map
-            
-            levee3_surface = 0.5 * dh_map * gausian_surface(0.25, cld_map, hw_map)
-            levee3_surface += 0.2 * aggr_map
+            total_props = (event.gravel_prop + event.sand_prop + event.silt_prop)
+            gravel_surface = event.gravel_prop / total_props *  (dh_map * gausian_surface(event.gravel_sigma, cld_map, hw_map))
+            sand_surface = event.sand_prop / total_props * (dh_map * gausian_surface(event.sand_sigma, cld_map, hw_map))
+            silt_surface = event.silt_prop / total_props * (dh_map * gausian_surface(event.silt_sigma, cld_map, hw_map)) 
+            silt_surface += aggr_map * (gausian_surface(5, cld_map, hw_map, norm = True) )
 
             # CUTTING CHANNEL
-            surface = scipy.ndimage.gaussian_filter(np.minimum(surface, channel_surface), sigma = 10 / dx)
+            surface = scipy.ndimage.gaussian_filter(np.minimum(surface + inc_map, channel_surface), sigma = 10 / dx)
 
             topo[:,:,i*L + 0] = surface
 
             # DEPOSITING SEDIMENT
-            surface = surface + levee3_surface
+            surface += gravel_surface
             topo[:,:,i*L + 1] = surface
-            surface = surface + levee2_surface
+            surface += sand_surface
             topo[:,:,i*L + 2] = surface
-            surface = surface + levee1_surface
+            surface += silt_surface
             topo[:,:,i*L + 3] = surface
             
         return ChannelBelt3D(topo, xmin, ymin, dx, dx)
@@ -708,3 +725,7 @@ class ChannelBelt3D():
             plotter.render()
 
         plotter.close()
+
+    def export(self, ve = 3):
+        zz = topostrat_evolution(self.topo)
+        np.save("terrain.npy", zz)

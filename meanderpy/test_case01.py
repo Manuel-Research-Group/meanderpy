@@ -1,10 +1,8 @@
-import cases
 import meanderpyp2 as mp
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
+import cases
 
-FOLDER = 'figures'
-dx = 25
 ONE_YEAR = 365*24*60*60.0
 
 L = 20000
@@ -34,22 +32,24 @@ axis.autoscale_view(True,True,True)
 line, = plt.plot([], []) # Plot blank data
 
 belt = mp.ChannelBelt(channel, basin)
-belt.simulate(event1)
-belt.simulate(event2)
-belt.simulate(event3)
-belt.simulate(event4)
-belt.simulate(event5)
-belt.simulate(event6)
-belt.simulate(event7)
-belt.simulate(event8)
+belt.simulate(event1, axis, line)
+belt.simulate(event2, axis, line)
+belt.simulate(event3, axis, line)
+belt.simulate(event4, axis, line)
+belt.simulate(event5, axis, line)
+belt.simulate(event6, axis, line)
+belt.simulate(event7, axis, line)
+belt.simulate(event8, axis, line)
+belt.plot();plt.show()
 
 model = belt.build_3d_model(25)
-for xsec in [0.15, 0.30, 0.45, 0.60, 0.75, 0.90]:
-    for ve in [3]:
-        fig = model.plot_xsection(xsec, ve)
-        fig.savefig('{}/section-{:d}m_ve-{}.png'.format(FOLDER, int(xsec * L), ve), transparent=True, bbox_inches='tight', pad_inches = 0, dpi = 300)
-        plt.close(fig)
-        fig = model.plot_xsection(xsec, ve, substrat=False)
-        fig.savefig('{}/section-{:d}m_ve-{}_no-sub.png'.format(FOLDER, int(xsec * L), ve), transparent=True, bbox_inches='tight', pad_inches = 0, dpi = 300)
-        plt.close(fig)
-    
+
+def plots():
+    for xsec in [0.1, 0.30, 0.50, 0.75, 0.8, 0.85, 0.9]:
+        model.plot_xsection(xsec, 3)
+        plt.show()
+
+plots()
+#model.plot()
+#model.render()
+model.export(ve = 3)
