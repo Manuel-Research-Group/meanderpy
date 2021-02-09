@@ -14,15 +14,11 @@ import time, sys
 import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
 from matplotlib import cm
-from io import BytesIO
-import base64
 
-D2, D1, D0 = 0.0014037355196363848, -0.8514792665395621, 120.08049908837464
-LH1, LH2, LH3, LH4 = 106626.10915626335, 8232.473083905528, -88.55157340056991, -0.5999325153044045
 OMEGA = -1.0 # constant in curvature calculation (Howard and Knutson, 1984)
 GAMMA = 2.5  # from Ikeda et al., 1981 and Howard and Knutson, 1984
 K = 4.0 # constant in HK equation
-ONE_YEAR = 365*24*60*60.0
+YEAR = 365*24*60*60.0
 
 def update_progress(progress):
     """progress bar from https://stackoverflow.com/questions/3160699/python-progress-bar
@@ -48,7 +44,6 @@ def update_progress(progress):
     sys.stdout.write(text)
     sys.stdout.flush()
 
-#@numba.jit(nopython=True) 
 def compute_migration_rate(r0, Cf, d, dl, L):
     """compute migration rate as weighted sum of upstream curvatures
     pad - padding (number of nodepoints along centerline)
@@ -87,17 +82,22 @@ def find_cutoffs(x, y, crdist, diag):
 
     return ind1, ind2 # return indices of cutoff points and cutoff coordinates
 
-def find_cutoffs_R(R, D = 5, T = 1):
+def find_cutoffs_R(R, W = 5, T = 1):
+    '''
+        R - curvature * width (dimensionless curvature)
+        W - window size (in elements) that will be cut
+        T - threshold for cut
+    '''
     indexes = np.where(np.abs(R) > T)[0][-1:]
 
     if len(indexes) == 0:
         return -1, -1
 
-    ind1, ind2 = indexes[0] - D, indexes[0] + D
+    ind1, ind2 = indexes[0] - W, indexes[0] + W
     
     for i in indexes:
         if i > ind1:
-            ind1 = i - D
+            ind1 = i - W
         
     return max(ind1, 0), min(ind2, len(R) -1)
 
@@ -115,10 +115,8 @@ class Basin:
     def fit_slope(self, x, ws = 2500):
         return scipy.interpolate.interp1d(self.x, self.slope(ws), kind='cubic', fill_value='extrapolate')(x)
 
-    def slope(self, ws = 2500):
+    def slope(self, ws = 2500, degrees = True):
         slope = np.gradient(self.z, self.x)
-        sigma = ws / np.mean(np.gradient(self.x))
-        #return scipy.ndimage.gaussian_filter1d(slope, sigma = sigma )
         NS = len(self.x)
         sl = np.zeros(NS)
 
@@ -127,30 +125,28 @@ class Basin:
             G = np.exp(-t ** 2) 
             sl[i] = np.sum(slope[i:] * G)/np.sum(G)
         
-        return sl
+        if not degrees:
+            return sl
+        else:
+            return np.arctan(sl) * 180 / np.pi
 
-    def aggregate(self, density, kv, dt, aggr_factor):
-        slope = self.slope()
+    def aggradate(self, density, kv, dt, aggr_factor):
+        slope = self.slope(degrees=False)
         K = kv * density * 9.81 * dt
         self.z += K *(slope - aggr_factor*np.mean(slope))
 
     def incise(self, density, kv, dt):
-        slope = self.slope()
+        slope = self.slope(degrees=False)
         K = kv * density * 9.81 * dt
         self.z += K *slope 
 
+    def plot(self, axis = plt, color=sns.xkcd_rgb["ocean blue"], points = False):
+        axis.plot(self.x, self.z)
+
+
 class Channel:
-    @classmethod
-    def slope2width(cls, slope):
-        W2, W1, W0 = 695.4154350661511, -45.231656699536124, 104.60941780103624
-        return W2 * np.exp(- W1 * slope) + W0
-
-    @classmethod
-    def slope2depth(cls, slope):
-        return slope * 100 / np.tan(-5 * np.pi / 180)
-
     """class for Channel objects"""
-    def __init__(self, x, y, z = None, d = None, w = None):
+    def __init__(self, x, y, z = [], d = [], w = []):
         """initialize Channel object
         x, y, z  - coordinates of centerline
         W - channel width
@@ -196,13 +192,12 @@ class Channel:
 
         return (dx*ddy-dy*ddx)/((dx**2+dy**2)**1.5)
         
-    def refit(self, basin):
+    def refit(self, basin, ch_width, ch_depth):
         slope = basin.fit_slope(self.x)
 
         self.z = basin.fit_elevation(self.x)
-        
-        self.w  = self.slope2width(slope)
-        self.d  = self.slope2depth(slope)
+        self.w  = ch_width(slope)
+        self.d  = ch_depth(slope)
 
     def resample(self, target_ds):
         _, _, _, _, s = self.derivatives()
@@ -221,7 +216,7 @@ class Channel:
         area = np.clip(self.d, a_min = 0, a_max = None) * self.w / 2
         R0 = kl * self.w * curv 
         R1 = compute_migration_rate(R0, Cf, self.d, ds, s[-1])
-        RN = sinuosity**(-2/3.0) * R1 * (area / np.max(area)) ** 2
+        RN = sinuosity**(-2/3.0) * R1 * (area / np.max(area))
 
         self.x += RN * (dy/ds) * dt 
         self.y -= RN * (dx/ds) * dt
@@ -278,7 +273,7 @@ class Channel:
 
     def cut_cutoffs_R(self, cut_window, ds):
         D = int(cut_window / (2 * ds))
-        ind1, ind2 = find_cutoffs_R(self.w * self.curvature(), D)
+        ind1, ind2 = find_cutoffs_R(self.w / 2 * self.curvature(), D)
         if ind1 != -1:
             self.x = np.hstack((self.x[:ind1+1],self.x[ind2:])) # x coordinates after cutoff
             self.y = np.hstack((self.y[:ind1+1],self.y[ind2:])) # y coordinates after cutoff
@@ -290,6 +285,10 @@ class Channel:
     def plot(self, axis = plt, color=sns.xkcd_rgb["ocean blue"], points = False):
         x = self.x
         y = self.y
+
+        if self.w == []:
+            axis.plot(x, y)
+            return
 
         xo, yo = self.margin_offset()
         
@@ -452,51 +451,152 @@ def topostrat_evolution(topo):
         strat[:,:,int((i+1)/N)] = np.amin(topo[:,:,i:i+N], axis=2)
     return strat
 
-def erosional_surface(cld_map, z_map, hw_map, sl_map):
-    d = Channel.slope2depth(sl_map)
-    return d * ((cld_map / hw_map) ** 2 - 1) + z_map
+def erosional_surface(cld_map, z_map, hw_map, cd_map):
+    return cd_map * ((cld_map / hw_map) ** 2 - 1) + z_map
 
-def deposicional_height_map(hw_map):
-    #return np.clip(LH1 * hw_map ** 3 + LH2 * hw_map ** 2 + LH3 * hw_map + LH4, 0, None)
-    return D2 * hw_map ** 2 + D1 * hw_map + D0
-
-def gausian_surface(S, cld_map, hw_map, norm = False):
-    if norm:
-        K = S * 2 * np.sqrt(np.pi)
-    else:
-        K  = 1
-    return K * stats.norm.pdf(cld_map / hw_map, scale = S)
+def gausian_surface(sigma_map, cld_map, hw_map):
+    return np.exp(- 1 / 2 * ((cld_map / hw_map) / sigma_map) ** 2)
 
 class ChannelEvent:
     '''
         mode: 'INCISION' | 'AGGRADATION' 
     '''
-    def __init__(self, mode = 'AGGRADATION', nit = 100, dt = 0.1 * ONE_YEAR, saved_ts = 10, \
-        cr_dist = 200, Cf = 0.01, kl = 60.0/ONE_YEAR, kv = 0.01/ONE_YEAR, \
-        silt_prop = 2, sand_prop = 5, gravel_prop = 3, silt_sigma = 2.0, sand_sigma = 0.5, gravel_sigma = 0.25, \
-        dens = 1000, dep_factor = 1/2, dep_offset = 10, aggr_factor = 2):
+    def __init__(self, mode = 'AGGRADATION', 
+        nit = 100, dt = 0.1, saved_ts = 10,
+        cr_dist = 200, cr_wind = 1500,
+        Cf = 0.01, kl = 60.0, kv = 0.01,
+
+        ch_depth = lambda slope: -20 * slope, ch_width = lambda slope: 700 * np.exp(0.80 * slope) + 95, 
+        dep_height = lambda slope: -20 * slope * 1/4 , dep_props = lambda slope: (0.3, 0.5, 0.2), dep_sigmas = lambda slope: (0.25, 0.5, 2),
+        aggr_props = lambda slope: (1, 1, 1), aggr_sigmas = lambda slope: (2, 5, 10), 
+
+        dens = 1000, aggr_factor = 2):
+
         self.mode = mode
         self.nit = nit
         self.dt = dt
         self.saved_ts = saved_ts
         self.cr_dist = cr_dist
+        self.cr_wind = cr_wind
         self.Cf = Cf
         self.kl = kl
         self.kv = kv
 
-        self.dep_factor = dep_factor
-        self.dep_offset = dep_offset #m
-
-        self.silt_prop = silt_prop
-        self.sand_prop = sand_prop
-        self.gravel_prop = gravel_prop
-
-        self.silt_sigma = silt_sigma
-        self.sand_sigma = sand_sigma
-        self.gravel_sigma = gravel_sigma
+        self.ch_depth = ch_depth
+        self.ch_width = ch_width
+        self.dep_height = dep_height
+        self.dep_props = dep_props
+        self.dep_sigmas = dep_sigmas
+        self.aggr_props = aggr_props
+        self.aggr_sigmas = aggr_sigmas
 
         self.dens = dens
         self.aggr_factor = aggr_factor
+        self.start_time = -1
+
+    def plot_ch_depth(self, slope = np.linspace(-5, 0, 20), axis = None):
+        if axis is None:
+            fig, axis = plt.subplots(1, 1)
+        else:
+            fig = None
+
+        axis.set_xlabel('Slope(°)')
+        axis.set_ylabel('Channel Depth')
+        axis.plot(slope, self.ch_depth(slope))
+        return fig
+
+    def plot_ch_width(self, slope = np.linspace(-5, 0, 20), axis = None):
+        if axis is None:
+            fig, axis = plt.subplots(1, 1)
+        else:
+            fig = None
+            
+        axis.set_xlabel('Slope(°)')
+        axis.set_ylabel('Channel Width')
+        axis.plot(slope, self.ch_width(slope))
+        return fig
+
+    def plot_dep_height(self, slope = np.linspace(-5, 0, 20), axis = None):
+        if axis is None:
+            fig, axis = plt.subplots(1, 1)
+        else:
+            fig = None
+            
+        axis.set_xlabel('Slope(°)')
+        axis.set_ylabel('Deposition Height')
+        axis.plot(slope, self.dep_height(slope))
+        return fig
+
+    def plot_dep_props(self, slope = np.linspace(-5, 0, 20), axis = None):
+        if axis is None:
+            fig, axis = plt.subplots(1, 1)
+        else:
+            fig = None
+        
+        L = len(slope)
+        gr_p, sa_p, si_p = self.dep_props(slope)
+        t_p = gr_p + sa_p + si_p
+        axis.set_xlabel('Slope(°)')
+        axis.set_ylabel('Deposition Proportions')
+        axis.plot(slope, gr_p / t_p * np.ones(L), slope, sa_p / t_p * np.ones(L), slope, si_p / t_p * np.ones(L))
+        axis.legend(['% gravel', '% sand', '% silt'])
+        return fig
+
+    def plot_dep_sigmas(self, slope = np.linspace(-5, 0, 20), axis = None):
+        if axis is None:
+            fig, axis = plt.subplots(1, 1)
+        else:
+            fig = None
+        
+        L = len(slope)
+        gr_s, sa_s, si_s = self.dep_sigmas(slope)
+        axis.set_xlabel('Slope(°)')
+        axis.set_ylabel('Deposition Sigmas')
+        axis.plot(slope, gr_s * np.ones(L), slope, sa_s* np.ones(L), slope, si_s* np.ones(L))
+        axis.legend(['gravel', ' sand', 'silt'])
+        return fig
+
+    def plot_aggr_props(self, slope = np.linspace(-5, 0, 20), axis = None):
+        if axis is None:
+            fig, axis = plt.subplots(1, 1)
+        else:
+            fig = None
+        
+        L = len(slope)
+        gr_p, sa_p, si_p = self.aggr_props(slope)
+        t_p = gr_p + sa_p + si_p
+        axis.set_xlabel('Slope(°)')
+        axis.set_ylabel('Aggradation Proportions')
+        axis.plot(slope, gr_p / t_p * np.ones(L), slope, sa_p / t_p * np.ones(L), slope, sa_p / t_p * np.ones(L))
+        axis.legend(['gravel', ' sand', 'silt'])
+        return fig
+
+    def plot_aggr_sigmas(self, slope = np.linspace(-5, 0, 20), axis = None):
+        if axis is None:
+            fig, axis = plt.subplots(1, 1)
+        else:
+            fig = None
+        
+        L = len(slope)
+        gr_s, sa_s, si_s = self.aggr_sigmas(slope)
+        axis.set_xlabel('Slope(°)')
+        axis.set_ylabel('Aggradation Sigmas')
+        axis.plot(slope, gr_s * np.ones(L), slope, sa_s * np.ones(L), slope, si_s * np.ones(L))
+        axis.legend(['gravel', ' sand', 'silt'])
+        return fig
+
+    def plot_all_relations(self):
+        fig, axes = plt.subplots(4, 2)
+
+        self.plot_ch_depth(axis = axes[0][0])
+        self.plot_ch_width(axis = axes[0][1])
+        self.plot_dep_height(axis = axes[1][0])
+        self.plot_dep_props(axis = axes[2][0])
+        self.plot_dep_sigmas(axis = axes[2][1])
+        self.plot_aggr_props(axis = axes[3][0])
+        self.plot_aggr_sigmas(axis = axes[3][1])
+
+        return fig
 
 class ChannelBelt:
     def __init__(self, channel, basin):
@@ -508,44 +608,62 @@ class ChannelBelt:
         self.times = [0.0]
         self.events = []
 
-        channel.refit(basin)
-        _, _, _, ds, _ = channel.derivatives()
-        self.ds = np.mean(ds)
+    def simulate(self, event):
+        last_time = self.times[-1]
+        event.start_time = last_time + event.dt
 
-    def simulate(self, event, axis = None, line = None):
+        if len(self.events) == 0:
+            channel = self.channels[0]
+            basin = self.basins[0]
+            self.events.append(event)
+            channel.refit(basin, event.ch_width, event.ch_depth)
+            _, _, _, ds, _ = channel.derivatives()
+            self.ds = np.mean(ds)
+            event.start_time = 0
+
         channel = self.channels[-1].copy()
         basin = self.basins[-1].copy()
         last_time = self.times[-1]
 
-        if len(self.events) == 0:
-            self.events.append(event)
 
         for itn in range(event.nit):
             update_progress(itn/event.nit)
 
-            channel.migrate(event.Cf, event.kl, event.dt)
+            channel.migrate(event.Cf, event.kl / YEAR, event.dt * YEAR)
             channel.cut_cutoffs(event.cr_dist, self.ds)
-            channel.cut_cutoffs_R(1500, self.ds)
+            channel.cut_cutoffs_R(event.cr_wind, self.ds)
             channel.resample(self.ds)
-            channel.refit(basin)
+            channel.refit(basin, event.ch_width, event.ch_depth)
             
             if event.mode == 'INCISION':
-                basin.incise(event.dens, event.kv, event.dt)
-            if event.mode == 'AGGREGATION':
-                basin.aggregate(event.dens, event.kv, event.dt, event.aggr_factor)
+                basin.incise(event.dens, event.kv / YEAR, event.dt * YEAR)
+            if event.mode == 'AGGRADATION':
+                basin.aggradate(event.dens, event.kv / YEAR, event.dt * YEAR, event.aggr_factor)
 
             if itn % event.saved_ts == 0:
-                #plt.plot(basin.x, basin.z);plt.show()
-                if axis:
-                    axis.plot(basin.x, basin.z)
-                    axis.relim()      
-                    axis.autoscale_view(True,True,True)
-                    plt.draw();plt.pause(0.05)
 
-                self.times.append(last_time + (itn+1) * event.dt / ONE_YEAR)
+                self.times.append(last_time + (itn+1) * event.dt)
                 self.channels.append(channel.copy())
                 self.basins.append(basin.copy())
                 self.events.append(event)
+
+    def plot_basin(self, evolution = True):
+        fig, axis = plt.subplots(1, 1)
+        if not evolution:
+            self.basins[-1].plot(axis)
+        else:
+            legends = []
+            uniques = set()
+            for i, evt in enumerate(self.events):
+                j = self.times.index(evt.start_time)
+                if not j in uniques:
+                    uniques.add(j)
+                    self.basins[j].plot(axis)
+                    legends.append('event-{}'.format(len(uniques)))
+            axis.legend(legends)
+        axis.set_xlabel('X (m)')
+        axis.set_ylabel('Elevation (m)')
+        return fig
 
     def plot(self, start_time=0, end_time = 0, points = False):
         start_index = 0
@@ -595,26 +713,40 @@ class ChannelBelt:
         for i in range(0, N):
             update_progress(i/N)
             event = self.events[i]
+            # channel, centerline distance, channel z, basin z, slope, half width
             ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map = mapper.create_maps(self.channels[i], self.basins[i])
+            # channel depth
+            dh_map = event.dep_height(sl_map)
+            cd_map = event.ch_depth(sl_map)
 
             delta_surface = bz_map - last_z_map
             last_z_map = bz_map
 
             inc_map = np.where(delta_surface < 0, delta_surface, 0)
             aggr_map = np.where(delta_surface > 0, delta_surface, 0)
-
-            dh_map = event.dep_factor * (Channel.slope2depth(sl_map) + event.dep_offset)
-
-            channel_surface = erosional_surface(cld_map, cz_map, hw_map, sl_map)
             
-            total_props = (event.gravel_prop + event.sand_prop + event.silt_prop)
-            gravel_surface = event.gravel_prop / total_props *  (dh_map * gausian_surface(event.gravel_sigma, cld_map, hw_map))
-            sand_surface = event.sand_prop / total_props * (dh_map * gausian_surface(event.sand_sigma, cld_map, hw_map))
-            silt_surface = event.silt_prop / total_props * (dh_map * gausian_surface(event.silt_sigma, cld_map, hw_map)) 
-            silt_surface += aggr_map * (gausian_surface(5, cld_map, hw_map, norm = True) )
+            channel_surface = erosional_surface(cld_map, cz_map, hw_map, cd_map)
+            
+            gr_p, sa_p, si_p = event.dep_props(sl_map)
+            gr_s, sa_s, si_s = event.dep_sigmas(sl_map)
+            t_p = gr_p + sa_p + si_p
 
+            gravel_surface = (gr_p / t_p * dh_map) * gausian_surface(gr_s, cld_map, hw_map)
+            sand_surface = (sa_p / t_p * dh_map) * gausian_surface(sa_s, cld_map, hw_map)
+            silt_surface = (si_p / t_p * dh_map) * gausian_surface(si_s, cld_map, hw_map)
+
+            gr_p, sa_p, si_p = event.aggr_props(sl_map)
+            gr_s, sa_s, si_s = event.aggr_sigmas(sl_map)
+            t_p = gr_p + sa_p + si_p
+
+            gravel_surface += (gr_p / t_p * aggr_map) * gausian_surface(gr_s, cld_map, hw_map)
+            sand_surface += (sa_p / t_p * aggr_map) * gausian_surface(sa_s, cld_map, hw_map)
+            silt_surface += (si_p / t_p * aggr_map) * gausian_surface(si_s, cld_map, hw_map)
+
+            # INCISION
+            surface += inc_map
             # CUTTING CHANNEL
-            surface = scipy.ndimage.gaussian_filter(np.minimum(surface + inc_map, channel_surface), sigma = 10 / dx)
+            surface = scipy.ndimage.gaussian_filter(np.minimum(surface, channel_surface), sigma = 10 / dx)
 
             topo[:,:,i*L + 0] = surface
 
@@ -665,7 +797,7 @@ class ChannelBelt3D():
             Y2 = np.concatenate((strat[:,xsec,i+1], strat[::-1,xsec,i+2]))
             Y3 = np.concatenate((strat[:,xsec,i+2], strat[::-1,xsec,i+3]))
 
-            ax1.fill(X1, Y1, facecolor=[255/255, 102/255, 0/255],linewidth=0.1, edgecolor='r') # oxbow mud
+            ax1.fill(X1, Y1, facecolor=[255/255, 102/255, 0/255]) # oxbow mud
             ax1.fill(X1, Y2, facecolor=[255/255, 204/255, 0/255]) # levee mud
             ax1.fill(X1, Y3, facecolor=[51/255, 51/255, 0]) # levee mud
         
