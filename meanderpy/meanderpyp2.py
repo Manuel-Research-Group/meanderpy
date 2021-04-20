@@ -14,6 +14,7 @@ import time, sys
 import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
 from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
 
 OMEGA = -1.0 # constant in curvature calculation (Howard and Knutson, 1984)
 GAMMA = 2.5  # from Ikeda et al., 1981 and Howard and Knutson, 1984
@@ -143,7 +144,6 @@ class Basin:
     def plot(self, axis = plt, color=sns.xkcd_rgb["ocean blue"], points = False):
         axis.plot(self.x, self.z)
 
-
 class Channel:
     """class for Channel objects"""
     def __init__(self, x, y, z = [], d = [], w = []):
@@ -214,10 +214,14 @@ class Channel:
         # Velocity is proportial to cross section area
         # Friction force is proportial to contact surface area
         area = np.clip(self.d, a_min = 0, a_max = None) * self.w / 2
+
         R0 = kl * self.w * curv 
         R1 = compute_migration_rate(R0, Cf, self.d, ds, s[-1])
-        RN = sinuosity**(-2/3.0) * R1 * (area / np.max(area))
 
+        RN = sinuosity**(-2/3.0) * R1 * (area / np.max(area))
+        #plt.plot(self.x, R0, self.x, R1, self.x, RN);plt.show()
+        #plt.plot(self.x, (area / np.max(area)));plt.show()
+        
         self.x += RN * (dy/ds) * dt 
         self.y -= RN * (dx/ds) * dt
  
@@ -451,6 +455,21 @@ def topostrat_evolution(topo):
         strat[:,:,int((i+1)/N)] = np.amin(topo[:,:,i:i+N], axis=2)
     return strat
 
+def plot3D(Z, grid_size = 1):
+    X, Y = np.meshgrid(np.linspace(0, Z.shape[1] * grid_size, Z.shape[1]), np.linspace(0, Z.shape[0] * grid_size, Z.shape[0]))
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    ax.plot_surface(X, Y, Z)
+
+    max_range = np.array([X.max()-X.min(), Y.max()-Y.min()]).max() / 2.0
+
+    mid_x = (X.max()+X.min()) * 0.5
+    mid_y = (Y.max()+Y.min()) * 0.5
+    ax.set_xlim(mid_x - max_range, mid_x + max_range)
+    ax.set_ylim(mid_y - max_range/4, mid_y + max_range/4)
+
+    return fig
+
 def erosional_surface(cld_map, z_map, hw_map, cd_map):
     return cd_map * ((cld_map / hw_map) ** 2 - 1) + z_map
 
@@ -464,7 +483,7 @@ class ChannelEvent:
     def __init__(self, mode = 'AGGRADATION', 
         nit = 100, dt = 0.1, saved_ts = 10,
         cr_dist = 200, cr_wind = 1500,
-        Cf = 0.01, kl = 60.0, kv = 0.01,
+        Cf = 0.02, kl = 60.0, kv = 0.01,
 
         ch_depth = lambda slope: -20 * slope, ch_width = lambda slope: 700 * np.exp(0.80 * slope) + 95, 
         dep_height = lambda slope: -20 * slope * 1/4 , dep_props = lambda slope: (0.3, 0.5, 0.2), dep_sigmas = lambda slope: (0.25, 0.5, 2),
@@ -512,7 +531,7 @@ class ChannelEvent:
             fig = None
             
         axis.set_xlabel('Slope(°)')
-        axis.set_ylabel('Channel Width')
+        axis.set_ylabel('Channel Width(m)')
         axis.plot(slope, self.ch_width(slope))
         return fig
 
@@ -523,7 +542,7 @@ class ChannelEvent:
             fig = None
             
         axis.set_xlabel('Slope(°)')
-        axis.set_ylabel('Deposition Height')
+        axis.set_ylabel('Deposition Height(m)')
         axis.plot(slope, self.dep_height(slope))
         return fig
 
@@ -536,6 +555,7 @@ class ChannelEvent:
         L = len(slope)
         gr_p, sa_p, si_p = self.dep_props(slope)
         t_p = gr_p + sa_p + si_p
+        axis.set_ylim(0, 1) 
         axis.set_xlabel('Slope(°)')
         axis.set_ylabel('Deposition Proportions')
         axis.plot(slope, gr_p / t_p * np.ones(L), slope, sa_p / t_p * np.ones(L), slope, si_p / t_p * np.ones(L))
@@ -552,7 +572,7 @@ class ChannelEvent:
         gr_s, sa_s, si_s = self.dep_sigmas(slope)
         axis.set_xlabel('Slope(°)')
         axis.set_ylabel('Deposition Sigmas')
-        axis.plot(slope, gr_s * np.ones(L), slope, sa_s* np.ones(L), slope, si_s* np.ones(L))
+        axis.plot(slope, gr_s * np.ones(L), slope, sa_s * np.ones(L), slope, si_s * np.ones(L))
         axis.legend(['gravel', ' sand', 'silt'])
         return fig
 
@@ -565,9 +585,10 @@ class ChannelEvent:
         L = len(slope)
         gr_p, sa_p, si_p = self.aggr_props(slope)
         t_p = gr_p + sa_p + si_p
+        axis.set_ylim(0, 1)
         axis.set_xlabel('Slope(°)')
         axis.set_ylabel('Aggradation Proportions')
-        axis.plot(slope, gr_p / t_p * np.ones(L), slope, sa_p / t_p * np.ones(L), slope, sa_p / t_p * np.ones(L))
+        axis.plot(slope, gr_p / t_p * np.ones(L), slope, sa_p / t_p * np.ones(L), slope, si_p / t_p * np.ones(L))
         axis.legend(['gravel', ' sand', 'silt'])
         return fig
 
@@ -603,8 +624,8 @@ class ChannelBelt:
         """
             Times in years.
         """
-        self.channels = [channel]
-        self.basins = [basin]
+        self.channels = [channel.copy()]
+        self.basins = [basin.copy()]
         self.times = [0.0]
         self.events = []
 
@@ -654,11 +675,13 @@ class ChannelBelt:
         else:
             legends = []
             uniques = set()
-            for i, evt in enumerate(self.events):
-                j = self.times.index(evt.start_time)
-                if not j in uniques:
-                    uniques.add(j)
-                    self.basins[j].plot(axis)
+            self.basins[0].plot(axis)
+            legends.append('initial')
+            for evt in self.events:
+                i = self.times.index(evt.start_time)
+                if not i in uniques:
+                    uniques.add(i)
+                    self.basins[i + int(evt.nit / evt.saved_ts) - 1].plot(axis)
                     legends.append('event-{}'.format(len(uniques)))
             axis.legend(legends)
         axis.set_xlabel('X (m)')
@@ -703,7 +726,6 @@ class ChannelBelt:
         ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map = mapper.create_maps(channel, basin)
 
         surface = bz_map
-        last_z_map = bz_map
 
         N = len(self.channels)
         L = 3 + 1
@@ -713,38 +735,35 @@ class ChannelBelt:
         for i in range(0, N):
             update_progress(i/N)
             event = self.events[i]
+            # Last iteration 
+            aggr_map = bz_map - surface
+            aggr_map[aggr_map < 0] = 0
+
+
             # channel, centerline distance, channel z, basin z, slope, half width
             ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map = mapper.create_maps(self.channels[i], self.basins[i])
             # channel depth
             dh_map = event.dep_height(sl_map)
             cd_map = event.ch_depth(sl_map)
 
-            delta_surface = bz_map - last_z_map
-            last_z_map = bz_map
-
-            inc_map = np.where(delta_surface < 0, delta_surface, 0)
-            aggr_map = np.where(delta_surface > 0, delta_surface, 0)
-            
             channel_surface = erosional_surface(cld_map, cz_map, hw_map, cd_map)
             
             gr_p, sa_p, si_p = event.dep_props(sl_map)
             gr_s, sa_s, si_s = event.dep_sigmas(sl_map)
             t_p = gr_p + sa_p + si_p
 
-            gravel_surface = (gr_p / t_p * dh_map) * gausian_surface(gr_s, cld_map, hw_map)
-            sand_surface = (sa_p / t_p * dh_map) * gausian_surface(sa_s, cld_map, hw_map)
-            silt_surface = (si_p / t_p * dh_map) * gausian_surface(si_s, cld_map, hw_map)
+            gravel_surface = (gr_p / t_p) * dh_map * gausian_surface(gr_s, cld_map, hw_map)
+            sand_surface = (sa_p / t_p) * dh_map * gausian_surface(sa_s, cld_map, hw_map)
+            silt_surface = (si_p / t_p) * dh_map * gausian_surface(si_s, cld_map, hw_map)
 
             gr_p, sa_p, si_p = event.aggr_props(sl_map)
             gr_s, sa_s, si_s = event.aggr_sigmas(sl_map)
             t_p = gr_p + sa_p + si_p
 
-            gravel_surface += (gr_p / t_p * aggr_map) * gausian_surface(gr_s, cld_map, hw_map)
-            sand_surface += (sa_p / t_p * aggr_map) * gausian_surface(sa_s, cld_map, hw_map)
-            silt_surface += (si_p / t_p * aggr_map) * gausian_surface(si_s, cld_map, hw_map)
+            gravel_surface += (gr_p / t_p) * aggr_map
+            sand_surface += (sa_p / t_p) * aggr_map
+            silt_surface += (si_p / t_p) * aggr_map
 
-            # INCISION
-            surface += inc_map
             # CUTTING CHANNEL
             surface = scipy.ndimage.gaussian_filter(np.minimum(surface, channel_surface), sigma = 10 / dx)
 
@@ -777,33 +796,36 @@ class ChannelBelt3D():
         self.dx = dx
         self.dy = dy
 
-    def plot_xsection(self, xsec, ve = 5, substrat = True):
+    def plot_xsection(self, xsec, ve = 5, substrat = True, silt_color = [51/255, 51/255, 0], sand_color = [255/255, 204/255, 0], gravel_color = [255/255, 102/255, 0]):
         strat = self.strat
         sy, sx, sz = np.shape(strat)
-        xsec = int(xsec * sx)
+        
+        xindex = int(xsec * sx)
 
         fig1 = plt.figure(figsize=(20,5))
         ax1 = fig1.add_subplot(111)
+        ax1.set_title('({:.3f}) - {:.3f} km'.format(xsec, xindex * self.dx + self.xmin))
 
         Xv = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
         X1 = np.concatenate((Xv, Xv[::-1]))
         
         if substrat:
             Yb = np.ones(sy) * self.zmin
-            ax1.fill(X1, np.concatenate((Yb, strat[::-1,xsec,0])), facecolor=[192/255, 192/255, 192/255])
+            ax1.fill(X1, np.concatenate((Yb, strat[::-1,xindex,0])), facecolor=[192/255, 192/255, 192/255])
         
         for i in range(0, sz, 4):
-            Y1 = np.concatenate((strat[:,xsec,i],   strat[::-1,xsec,i+1])) 
-            Y2 = np.concatenate((strat[:,xsec,i+1], strat[::-1,xsec,i+2]))
-            Y3 = np.concatenate((strat[:,xsec,i+2], strat[::-1,xsec,i+3]))
+            Y1 = np.concatenate((strat[:,xindex,i],   strat[::-1,xindex,i+1])) 
+            Y2 = np.concatenate((strat[:,xindex,i+1], strat[::-1,xindex,i+2]))
+            Y3 = np.concatenate((strat[:,xindex,i+2], strat[::-1,xindex,i+3]))
 
-            ax1.fill(X1, Y1, facecolor=[255/255, 102/255, 0/255]) # oxbow mud
-            ax1.fill(X1, Y2, facecolor=[255/255, 204/255, 0/255]) # levee mud
-            ax1.fill(X1, Y3, facecolor=[51/255, 51/255, 0]) # levee mud
+            ax1.fill(X1, Y1, facecolor=gravel_color)
+            ax1.fill(X1, Y2, facecolor=sand_color) 
+            ax1.fill(X1, Y3, facecolor=silt_color)
         
+        #ax1.set_aspect(ve, adjustable='datalim')
         ax1.set_xlim(self.ymin, self.ymin + sy * self.dy)
-        ax1.set_aspect(ve, adjustable='datalim')
-
+        ax1.set_ylim(-100, 800)
+        
         return fig1
 
     def plot(self, ve = 1, curvature = False, save = False):

@@ -4,13 +4,13 @@ import matplotlib.pyplot as plt
 import scipy.interpolate
 import cases
 
-L = 30000
+L = 20000
 ds = 100
 
-x_ = [0, 2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000, 22500, 25000, 27500, 30000]
-y_ = [0, 300,  0,    -600,   600,   0,     500,  -350,  -500, -100,      100,   0,     0]
-z_ = [1135, 920, 750, 570, 395, 315, 215, 129, 86, 43, 0, 0, 0]
+x = np.linspace(0, L, int(L/ds) + 1)
+y = 250 * np.exp(( 1.0 / L) * x) * np.cos((x / L) * 16 * np.pi) / (np.exp((x - 0.75 * L) / (0.025 * L)) + 1) / (np.exp((x - 0.75 * L) / (0.025 * L)) + 1)
 
+z = np.tan(5.0 * np.pi / 180) / (2 * L) * (x ** 2 + L * ( L - 2 * x ) )
 x = np.linspace(0, L, int(L/ds) + 1)
 
 def dep_props(slope):
@@ -23,19 +23,17 @@ def aggr_props(slope):
 
 events = [
   mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='INCISION', kv = 0.0033, dep_props = dep_props, aggr_props=aggr_props),
-  mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='AGGRADATION', aggr_factor=2, kv = 0.002, dep_props = dep_props, aggr_props=aggr_props),
+  mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='AGGRADATION', aggr_factor=1, kv = 0.0033, dep_props = dep_props, aggr_props=aggr_props),
   mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='INCISION', kv = 0.0033, dep_props = dep_props, aggr_props=aggr_props),
-  mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='AGGRADATION', aggr_factor=2, kv = 0.002, dep_props = dep_props, aggr_props=aggr_props),
-  mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='INCISION', kv = 0.002, dep_props = dep_props, aggr_props=aggr_props),
-  mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='AGGRADATION', aggr_factor=2, kv = 0.0033, dep_props = dep_props, aggr_props=aggr_props),
-  mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='INCISION', kv = 0.002, dep_props = dep_props, aggr_props=aggr_props),
-  mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='AGGRADATION', aggr_factor=2, kv = 0.0033, dep_props = dep_props, aggr_props=aggr_props)
+  mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='AGGRADATION', aggr_factor=1, kv = 0.0033, dep_props = dep_props, aggr_props=aggr_props),
+  mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='INCISION', kv = 0.0033, dep_props = dep_props, aggr_props=aggr_props),
+  mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='AGGRADATION', aggr_factor=1, kv = 0.0033, dep_props = dep_props, aggr_props=aggr_props),
+  mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='INCISION', kv = 0.0033, dep_props = dep_props, aggr_props=aggr_props),
+  mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='AGGRADATION', aggr_factor=1, kv = 0.0033, dep_props = dep_props, aggr_props=aggr_props)
 ]
 
-channel = mp.Channel(x, scipy.interpolate.interp1d(x_, y_, kind = 'cubic')(x))
-channel.plot();plt.show()
-basin = mp.Basin(x, scipy.interpolate.interp1d(x_, z_)(x))
-basin.plot();plt.show()
+channel = mp.Channel(x, y)
+basin = mp.Basin(x, z)
 belt = mp.ChannelBelt(channel, basin)
 
 for evt in events:
@@ -48,7 +46,7 @@ belt.plot_basin();plt.show()
 model = belt.build_3d_model(25)
 
 def plots():
-  for xsec in [0.1, 0.30, 0.50, 0.75, 0.8, 0.85, 0.9]:
+  for xsec in [0.1, 0.2, 0.3, 0.40, 0.5, 0.60, 0.70, 0.8]:
     model.plot_xsection(xsec, 3)
     plt.show()
 

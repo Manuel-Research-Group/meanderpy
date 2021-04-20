@@ -13,6 +13,7 @@ import time, sys
 import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
 from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
 
 def update_progress(progress):
     """progress bar from https://stackoverflow.com/questions/3160699/python-progress-bar
@@ -130,6 +131,54 @@ class ChannelBelt3D:
         ax3.tick_params(bottom=False,top=False,left=False,right=False,labelbottom=False,labelleft=False)
         return fig1,fig2,fig3
 
+    def plot_xsection_topo(self, xsec, colors, ve):
+        """method for plotting a cross section through a 3D model; also plots map of 
+        basal erosional surface and map of final geomorphic surface
+        xsec - location of cross section along the x-axis (in pixel/ voxel coordinates) 
+        colors - list of RGB values that define the colors for different facies
+        ve - vertical exaggeration"""
+        strat = self.topo
+        dx = self.dx
+        fig1 = plt.figure(figsize=(20,5))
+        ax1 = fig1.add_subplot(111)
+        r,c,ts = np.shape(strat)
+        Xv = dx * np.arange(0,r)
+        for xloc in range(xsec,xsec+1,1):
+            for i in range(0,ts-1,3):
+                X1 = np.concatenate((Xv, Xv[::-1]))  
+                Y1 = np.concatenate((strat[:,xloc,i], strat[::-1,xloc,i+1])) 
+                Y2 = np.concatenate((strat[:,xloc,i+1], strat[::-1,xloc,i+2]))
+                Y3 = np.concatenate((strat[:,xloc,i+2], strat[::-1,xloc,i+3]))
+                if self.model_type == 'submarine':
+                    ax1.fill(X1, Y1, facecolor=colors[2], linewidth=0.5, edgecolor=[0,0,0]) # oxbow mud
+                    ax1.fill(X1, Y2, facecolor=colors[0], linewidth=0.5, edgecolor=[0,0,0]) # point bar sand
+                    ax1.fill(X1, Y3, facecolor=colors[1], linewidth=0.5) # levee mud
+                if self.model_type == 'fluvial':
+                    ax1.fill(X1, Y1, facecolor=colors[0], linewidth=0.5, edgecolor=[0,0,0]) # levee mud
+                    ax1.fill(X1, Y2, facecolor=colors[1], linewidth=0.5, edgecolor=[0,0,0]) # oxbow mud
+                    ax1.fill(X1, Y3, facecolor=colors[2], linewidth=0.5) # channel sand
+            ax1.set_xlim(0,dx*(r-1))
+            ax1.set_aspect(ve, adjustable='datalim')
+        fig2 = plt.figure()
+        ax2 = fig2.add_subplot(111)
+        ax2.contourf(strat[:,:,ts-1],100,cmap='viridis')
+        ax2.contour(strat[:,:,ts-1],100,colors='k',linestyles='solid',linewidths=0.1,alpha=0.4)
+        ax2.plot([xloc, xloc],[0,r],'k',linewidth=2)
+        ax2.axis([0,c,0,r])
+        ax2.set_aspect('equal', adjustable='box')        
+        ax2.set_title('final geomorphic surface')
+        ax2.tick_params(bottom=False,top=False,left=False,right=False,labelbottom=False,labelleft=False)
+        fig3 = plt.figure()
+        ax3 = fig3.add_subplot(111)
+        ax3.contourf(strat[:,:,0],100,cmap='viridis')
+        ax3.contour(strat[:,:,0],100,colors='k',linestyles='solid',linewidths=0.1,alpha=0.4)
+        ax3.plot([xloc, xloc],[0,r],'k',linewidth=2)
+        ax3.axis([0,c,0,r])
+        ax3.set_aspect('equal', adjustable='box')
+        ax3.set_title('basal erosional surface')
+        ax3.tick_params(bottom=False,top=False,left=False,right=False,labelbottom=False,labelleft=False)
+        return fig1,fig2,fig3
+
 class ChannelBelt:
     """class for ChannelBelt objects"""
     def __init__(self, channels, cutoffs, cl_times, cutoff_times):
@@ -187,9 +236,13 @@ class ChannelBelt:
             # x, y = migrate_one_step_w_bias(x,y,z,W,kl,dt,k,Cf,D,pad,pad1,omega,gamma)
             x,y,z,xc,yc,zc = cut_off_cutoffs(x,y,z,s,crdist,deltas) # find and execute cutoffs
             x,y,z,dx,dy,dz,ds,s = resample_centerline(x,y,z,deltas) # resample centerline
-            slope = np.gradient(z)/ds
+            slope = np.gradient(z)/dx
             # for itn<t1, z is unchanged
+            if itn == 0:
+                plt.plot(x, z)
             if (itn>t1) & (itn<=t2): # incision
+                if itn == t2:
+                    plt.plot(x, z)
                 if np.min(np.abs(slope))!=0: # if slope is not zero
                     z = z + kv*dens*9.81*D*slope*dt
                 else:
@@ -213,6 +266,10 @@ class ChannelBelt:
                 self.cl_times.append(last_cl_time+(itn+1)*dt/(365*24*60*60.0))
                 channel = Channel(x,y,z,W,D) # create channel object
                 self.channels.append(channel)
+        plt.plot(x, z)
+        plt.legend(['Initial', 'Incision', 'Aggradation'])
+        plt.xlabel('Course (m)')
+        plt.ylabel('Elevation (m)')
         plt.show()
 
     def plot(self, plot_type, pb_age, ob_age, end_time = -1, n_channels = 60):
@@ -425,7 +482,18 @@ class ChannelBelt:
             if i == 0:
                 cl_dist_prev = cl_dist
             # erosion:
-            surf = np.minimum(surf,erosion_surface(h,w/dx,cl_dist,z_map))
+            #plt.matshow(surf)
+            plt.xlabel('Pixel')
+            plt.ylabel('Pixel')
+            #plt.colorbar()
+            #surf = np.minimum(surf,erosion_surface(h,w/dx,cl_dist,z_map))
+            plt.matshow(surf)
+            plt.xlabel('Pixel')
+            plt.ylabel('Pixel')
+            #plt.colorbar()
+            #plt.show()
+
+            
             topo[:,:,4*i] = surf # erosional surface
             facies[4*i] = np.NaN
 
@@ -450,6 +518,7 @@ class ChannelBelt:
                 surf = surf+th # update topographic surface with sand thickness
                 topo[:,:,4*i+2] = surf # top of sand
                 facies[4*i+2] = 1
+
                 surf = surf + mud_surface(h_mud,levee_width/dx,cl_dist,w/dx,z_map,surf) # mud/levee deposition
                 topo[:,:,4*i+3] = surf # top of levee
                 facies[4*i+3] = 2
@@ -457,6 +526,15 @@ class ChannelBelt:
 
             if model_type == 'submarine':
                 surf = surf + mud_surface(h_mud[i],levee_width/dx,cl_dist,w/dx,z_map,surf) # mud/levee deposition
+                
+                #plt.matshow(mud_surface(h_mud[i],levee_width/dx,cl_dist,w/dx,z_map,surf))
+                plt.xlabel('Pixel')
+                plt.ylabel('Pixel')
+                #plt.colorbar()
+                plt.show()
+
+               
+
                 topo[:,:,4*i+1] = surf # top of levee
                 facies[4*i+1] = 2
                 # sand thickness:
@@ -483,6 +561,13 @@ class ChannelBelt:
                 topo[:,:,4*i+3] = surf # top of sand
                 facies[4*i+3] = 1
                 channels3D.append(Channel(x1-xmin,y1-ymin,z1,w,h))
+
+                x, y = np.meshgrid(range(surf.shape[1]), range(surf.shape[0]))
+                print(x.shape, y.shape, surf.shape)
+                fig = plt.figure()
+                ax = fig.add_subplot(111, projection='3d')
+                ax.plot_surface(x * dx, y * dx, surf)
+                #plt.show()
 
             cl_dist_prev = cl_dist.copy()
         topo = np.concatenate((np.reshape(topoinit,(iheight,iwidth,1)),topo),axis=2) # add initial topography to array
@@ -515,10 +600,8 @@ def migrate_one_step(x,y,z,W,kl,dt,k,Cf,D,pad,pad1,omega,gamma):
     curv = W*curv # dimensionless curvature
     R0 = kl*curv # simple linear relationship between curvature and nominal migration rate
     alpha = k*2*Cf/D # exponent for convolution function G
-    print(alpha)
     R1 = compute_migration_rate(pad,ns,ds,alpha,omega,gamma,R0)
     R1 = sinuosity**(-2/3.0)*R1
-    plt.plot(R1)
     # calculate new centerline coordinates:
     dy_ds = dy[pad1:ns-pad+1]/ds[pad1:ns-pad+1]
     dx_ds = dx[pad1:ns-pad+1]/ds[pad1:ns-pad+1]
@@ -756,6 +839,7 @@ def dist_map(x,y,z,xmin,xmax,ymin,ymax,dx,delta_s):
     img = Image.new("RGB", (iwidth, iheight), "white")
     draw = ImageDraw.Draw(img)
     draw.line(pixels, fill="rgb(0, 0, 0)") # draw centerline as black line
+    img.save("centerline.png")
     pix = np.array(img)
     cl = pix[:,:,0]
     cl[cl==255] = 1 # set background to 1 (centerline is 0)
@@ -799,6 +883,30 @@ def dist_map(x,y,z,xmin,xmax,ymin,ymax,dx,delta_s):
     yinds=inds[0,:,:]
     for i in range(0,len(x_pix)):
         z_map[(xinds==x_pix[i]) & (yinds==y_pix[i])] = z_pix[i]
+
+    plt.matshow(cl_dist)
+    plt.xlabel('Pixel')
+    plt.ylabel('Pixel')
+    #plt.colorbar()
+    #plt.show()
+
+    #plt.matshow(z_map)
+    plt.xlabel('Pixel')
+    plt.ylabel('Pixel')
+    #plt.colorbar()
+    #plt.show()
+
+    #plt.matshow(z_map)
+    plt.xlabel('Pixel')
+    plt.ylabel('Pixel')
+    #plt.colorbar()
+    #plt.show()
+
+    #plt.matshow(erosion_surface(12, 200/10, cl_dist, z_map))
+    plt.xlabel('Pixel')
+    plt.ylabel('Pixel')
+    #plt.colorbar()
+    #plt.show()
 
     return cl_dist, x_pix, y_pix, z_pix, s_pix, z_map, x, y, z
 
@@ -1032,10 +1140,10 @@ def plot_chb(chb, plot_type, pb_age, ob_age, end_time, n_channels, ax, cmap_name
 if __name__ == '__main__':
     W = 200.0                    # channel width (m)
     D = 12.0                     # channel depth (m)
-    pad = 50                    # padding (number of nodepoints along centerline)
+    pad = 0                    # padding (number of nodepoints along centerline)
     deltas = 100.0                # sampling distance along centerline
-    nit = 1500                   # number of iterations
-    Cf = 0.00                    # dimensionless Chezy friction factor (0.005 > 0.01)
+    nit = 150                   # number of iterations
+    Cf = 0.02                    # dimensionless Chezy friction factor (0.005 > 0.01)
     crdist = 1.5*W               # threshold distance at which cutoffs occur
     kl = 60.0/(365*24*60*60.0)   # migration rate constant (m/s)
     kv =  1.0E-11               # vertical slope-dependent erosion rate constant (m/s)
@@ -1044,23 +1152,38 @@ if __name__ == '__main__':
     saved_ts = 20                # which time steps will be saved
     n_bends = 5                 # approximate number of bends you want to model
     Sl = 0.01                     # initial slope (matters more for submarine channels than rivers)
-    t1 = 500                    # time step when incision starts
-    t2 = 700                    # time step when lateral migration starts
-    t3 = 1000                    # time step when aggradation starts
-    aggr_factor = 4.0          # aggradation factor (it kicks in after t3)
+    t1 = 50                    # time step when incision starts
+    t2 = 70                    # time step when lateral migration starts
+    t3 = 100                    # time step when aggradation starts
+    aggr_factor = 2.0          # aggradation factor (it kicks in after t3)
 
     L = 20000
     ds = 100
 
     x = np.linspace(0, L, int(L/ds) + 1)
-    y = 500 * np.exp(( 1.0 / L) * x) * np.cos((x / L) * 16 * np.pi) / (np.exp((x - 0.75 * L) / (0.025 * L)) + 1)
+    y = 250 * np.exp(( 1.0 / L) * x) * np.cos((x / L) * 16 * np.pi) / (np.exp((x - 0.75 * L) / (0.025 * L)) + 1)
 
-    z = np.tan(5.0 * np.pi / 180) / (2 * L) * (x ** 2 + L * ( L - 2 * x ) )
-
+    #z = np.tan(5.0 * np.pi / 180) / (2 * L) * (x ** 2 + L * ( L - 2 * x ) )
+    z = -np.tan(1 * np.pi / 180) * x 
+    #z = np.zeros(len(x))
+    #plt.plot(x, z);plt.show()
 
     ch = Channel(x, y, z, W, D) # initialize channel
     chb = ChannelBelt(channels=[ch],cutoffs=[],cl_times=[0.0],cutoff_times=[]) # create channel belt object
 
     chb.migrate(nit,saved_ts,deltas,pad,crdist,Cf,kl,kv,dt,dens,t1,t2,t3,aggr_factor) # channel migration
+    plt.show()
     fig = chb.plot('strat',20,60, ) # plotting
+    plt.show()
+    
+    h_mud = 3.0*np.ones((len(chb.cl_times),))
+    dx = 15.0
+
+    chb_3d, xmin, xmax, ymin, ymax = chb.build_3d_model('submarine',h_mud=h_mud,levee_width=5000.0,h=12.0,w=W,bth=6.0,
+                                dcr=7.0,dx=dx,delta_s=deltas,starttime=chb.cl_times[0],endtime=chb.cl_times[-1],
+                                xmin=L/2 - 2000,xmax=L/2 + 2000,ymin=-750,ymax=750)
+
+    plt.cla()
+    chb_3d.plot_xsection(55, [[0.5,0.25,0],[0.9,0.9,0],[0.5,0.25,0]], ve = 3)
+    chb_3d.plot_xsection_topo(55, [[0.5,0.25,0],[0.9,0.9,0],[0.5,0.25,0]], ve = 3)
     plt.show()
