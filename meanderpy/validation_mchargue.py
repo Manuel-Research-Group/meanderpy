@@ -1,4 +1,4 @@
-import meanderpyp2 as mp
+import meanderpy as mp
 import numpy as np
 import matplotlib.pyplot as plt
 import cases

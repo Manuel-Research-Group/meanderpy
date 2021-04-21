@@ -1,4 +1,4 @@
-import meanderpyp2 as mp
+import meanderpy as mp
 import numpy as np
 import matplotlib.pyplot as plt
 import cases
@@ -20,7 +20,6 @@ def aggr_props(slope):
     return (0.1, (2 - p) * 0.2, (p)* 0.7)
 
 events = [
-  
   mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='INCISION', kv = 0.002 * 10, dep_height=lambda x: 0),
   mp.ChannelEvent(nit = 500, saved_ts = 25, Cf = 0.02, mode='AGGRADATION', kv = 0, dep_props = dep_props, aggr_props=aggr_props),
   mp.ChannelEvent(nit = 200, saved_ts = 25, Cf = 0.02, mode='AGGRADATION', aggr_factor=4, kv = 0.002 * 2, dep_props = dep_props, aggr_props=aggr_props),

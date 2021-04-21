@@ -1,4 +1,4 @@
-import meanderpyp2 as mp
+import meanderpy as mp
 import numpy as np
 import matplotlib.pyplot as plt
 import cases
@@ -26,9 +26,9 @@ belt = mp.ChannelBelt(channel, basin)
 for evt in events:
   belt.simulate(evt)
 
-belt.channels[0].plot();plt.ylim(-5000, 5000);plt.show()
-belt.plot();plt.show()
-belt.plot_basin();plt.show()
+#belt.channels[0].plot();plt.ylim(-5000, 5000);plt.show()
+#belt.plot();plt.show()
+#belt.plot_basin();plt.show()
 
 model = belt.build_3d_model(25, margin=500)
 
@@ -37,7 +37,8 @@ def plots():
         model.plot_xsection(xsec, 3)
         plt.show()
 
-plots()
+#plots()
 #model.plot()
 #model.render()
+model.export_obj()
 model.export(ve = 3)
