@@ -480,6 +480,7 @@ def gausian_surface(sigma_map, cld_map, hw_map):
 class ChannelEvent:
     '''
         mode: 'INCISION' | 'AGGRADATION' 
+        material-order: GRAVEL, SAND, SILT
     '''
     def __init__(self, mode = 'AGGRADATION', 
         nit = 100, dt = 0.1, saved_ts = 10,
@@ -487,7 +488,7 @@ class ChannelEvent:
         Cf = 0.02, kl = 60.0, kv = 0.01,
 
         ch_depth = lambda slope: -20 * slope, ch_width = lambda slope: 700 * np.exp(0.80 * slope) + 95, 
-        dep_height = lambda slope: -20 * slope * 1/4 , dep_props = lambda slope: (0.3, 0.5, 0.2), dep_sigmas = lambda slope: (0.25, 0.5, 2),
+        dep_height = lambda slope: -20 * slope * 1/4, dep_props = lambda slope: (0.3, 0.5, 0.2), dep_sigmas = lambda slope: (0.25, 0.5, 2),
         aggr_props = lambda slope: (1, 1, 1), aggr_sigmas = lambda slope: (2, 5, 10), 
 
         dens = 1000, aggr_factor = 2):

@@ -5,7 +5,7 @@ library(magick)
 np <- import("numpy")
 
 grid <- 25
-terrain <- np$load("C:/Users/beure/Desktop/TCC/meanderpy/meanderpy/terrain.npy")
+terrain <- np$load("/home/beuren-bechlin/Projects/meanderpy/meanderpy/terrain.npy")
 shape <- dim(terrain)
 z <- shape[3]
 
@@ -30,6 +30,6 @@ for (i in seq_len(z)) {
 
 image_write_gif(
   image_read(img_frames), 
-  path = "C:/Users/beure/Desktop/TCC/meanderpy/meanderpy/evolution15.gif", 
+  path = "/home/beuren-bechlin/Projects/meanderpy/meanderpy/evolution15.gif", 
   delay = 10/z
 )
