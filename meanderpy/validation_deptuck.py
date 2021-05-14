@@ -11,18 +11,10 @@ y = 250 * np.exp(( 1.0 / L) * x) * np.cos((x / L) * 16 * np.pi) / (np.exp((x - 0
 z = np.tan(2.0 * np.pi / 180) * (L - x)
 
 events = [
-  mp.ChannelEvent(
-    nit = 100, saved_ts = 25, Cf = 0.02, mode='INCISION', kv = 0.0033 * 10, 
-    dep_props= lambda x: (0.9, 0, 0.1), aggr_props= lambda x: (0, 1, 0)),
-  mp.ChannelEvent(
-    nit = 150, saved_ts = 25, Cf = 0.02, mode='AGGRADATION', kv = 0, 
-    dep_props= lambda x: (0.9, 0, 0.1), aggr_props= lambda x: (0, 1, 0)),
-  mp.ChannelEvent(
-    nit = 150, saved_ts = 15, Cf = 0.02, mode='AGGRADATION', aggr_factor=2, 
-    kv = 0.0033 * 5, dep_props= lambda x: (0.9, 0, 0.1), aggr_props= lambda x: (0, 1, 0)),
-  mp.ChannelEvent(
-    nit = 150, saved_ts = 15, Cf = 0.02, mode='AGGRADATION', kv = 0, 
-    dep_props= lambda x: (0.9, 0, 0.1), aggr_props= lambda x: (0, 1, 0)),
+  mp.ChannelEvent(nit = 100, saved_ts = 25, Cf = 0.02, mode='INCISION', kv = 0.0033 * 10, dep_props= lambda x: (0.9, 0, 0.1), aggr_props= lambda x: (0, 1, 0)),
+  mp.ChannelEvent(nit = 150, saved_ts = 25, Cf = 0.02, mode='AGGRADATION', kv = 0, dep_props= lambda x: (0.9, 0, 0.1), aggr_props= lambda x: (0, 1, 0)),
+  mp.ChannelEvent(nit = 150, saved_ts = 15, Cf = 0.02, mode='AGGRADATION', aggr_factor=2, kv = 0.0033 * 5, dep_props= lambda x: (0.9, 0, 0.1), aggr_props= lambda x: (0, 1, 0)),
+  mp.ChannelEvent(nit = 150, saved_ts = 15, Cf = 0.02, mode='AGGRADATION', kv = 0, dep_props= lambda x: (0.9, 0, 0.1), aggr_props= lambda x: (0, 1, 0)),
 ]
 
 channel = mp.Channel(x, y)
