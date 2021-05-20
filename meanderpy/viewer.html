@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - PLY</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.6.0/jszip.min.js" 
+      integrity="sha512-uVSVjE7zYsGz4ag0HEzfugJ78oHCI1KhdkivjQro8ABL/PRiEO4ROwvrolYAcZnky0Fl/baWKYilQfWvESliRA==" 
+      crossorigin="anonymous" 
+      referrerpolicy="no-referrer">
+    </script>
+    <script
+      src="https://code.jquery.com/jquery-3.6.0.min.js"
+      integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+      crossorigin="anonymous">
+    </script>
+	</head>
+	<body>
+    <style>
+      body {
+        width: 100vw;
+        height: 100vh;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      #root {
+        position: relative;
+      }
+
+      #canvas, #root {
+        width: 100%;
+        height: 100%;
+      }
+
+      #controls {
+        position: absolute;
+        bottom: 50px;
+      }
+    </style>
+    <div id="root">
+      <div id="canvas"></div>
+      <div id="controls" class="w-full p-6">
+        
+        <div class="bg-white rounded-md p-6">
+          <div class="mb-2">
+            <input id="selector" class="w-full" type="range" min="1" max="1" value="1" class="slider"/>
+          </div>
+          <div class="flex">
+            <input id="file" class="" type="file"/>
+            <div id="progress-bar" class="w-full" hidden>
+              <div class="flex mb-2 items-center justify-between">
+                <div id="progress-creating">
+                  <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-teal-600 bg-teal-200">
+                    Models were loaded sucessfully!
+                  </span>
+                </div>
+                <div class="text-right">
+                  <span id="progress-percentage" class="text-xs font-semibold inline-block text-teal-600">100%</span>
+                </div>
+              </div>
+              <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-teal-200">
+                <div id="progress-bar" style="width:100%;" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+		<script type="module">
+
+			import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r119/build/three.module.js';
+
+			import Stats from 'https://threejsfundamentals.org/threejs/resources/threejs/r115/examples/jsm/libs/stats.module.js';
+
+			import { PLYLoader } from 'https://threejsfundamentals.org/threejs/resources/threejs/r115/examples/jsm/loaders/PLYLoader.js';
+      import { OrbitControls } from 'https://threejsfundamentals.org/threejs/resources/threejs/r115/examples/jsm/controls/OrbitControls.js';
+
+			let container, stats;
+
+			let camera, cameraTarget, controls, scene, renderer, meshes;
+
+      const material = new THREE.MeshStandardMaterial( { color: 0x8A8173, flatShading: true } );
+  
+			init();
+			animate();
+
+			function init() {
+
+				container = document.getElementById( 'canvas' );
+
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 10, 15000 );
+				camera.position.set( 1000, 1, 1000 );
+        
+				cameraTarget = new THREE.Vector3( 0, 0, 0 );
+
+				scene = new THREE.Scene();
+			
+				// Lights
+
+				scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
+        const directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
+        directionalLight.position.set(0, 100, 0);
+        scene.add( directionalLight );
+
+				// renderer
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+
+        controls = new OrbitControls( camera, renderer.domElement );
+        controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+				controls.dampingFactor = 0.05;
+
+				controls.screenSpacePanning = false;
+
+				controls.minDistance = 100;
+				controls.maxDistance = 100000;
+
+				controls.maxPolarAngle = Math.PI / 2;
+
+				container.appendChild( renderer.domElement );
+
+				// stats
+
+				stats = new Stats();
+				container.appendChild( stats.dom );
+
+				// resize
+        const gridHelper = new THREE.GridHelper( 1000, 100 );
+        const axesHelper = new THREE.AxesHelper( 100 );
+
+        //scene.add( axesHelper );
+        scene.add( gridHelper );
+				window.addEventListener( 'resize', onWindowResize );
+
+			}
+
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+        
+        controls.update();
+				render();
+				stats.update();
+
+			}
+
+			function render() {
+
+				const timer = Date.now() * 0.0005;
+
+				//camera.position.x = Math.sin( timer ) * 2.5;
+				//camera.position.z = Math.cos( timer ) * 2.5;
+
+				//camera.lookAt( cameraTarget );
+
+				renderer.render( scene, camera );
+
+			}
+
+      $('#selector').on("change", (evt) => {
+        const index = Number(evt.originalEvent.target.value) - 1;
+        meshes.forEach(mesh => scene.remove(mesh));
+        scene.add(meshes[index]);
+      });
+
+      $("#file").on("change", function(evt) {
+        if (!evt.target.files || evt.target.files.length === 0) {
+          return;
+        }
+
+        $("#progress-bar").removeAttr("hidden");
+        console.log('Start');
+        const file = evt.target.files[0];
+        JSZip.loadAsync(file)                                   // 1) read the Blob
+          .then(function(zip) {
+          
+            console.log(zip.files);
+            meshes = Object.keys(zip.files).map(_ => null);
+            const N = meshes.length - 1; // -1 = folder!
+
+            $('#selector').attr('max', N);
+            
+            zip.forEach(function (relativePath, zipEntry) {  // 2) print entries
+              const name = zipEntry.name.split('/').reverse()[0]
+              const index = Number(name.split('.')[0]) - 1
+              console.log(relativePath, zipEntry)
+              var reader = new FileReader();
+              reader.onload = function ()
+              {
+                  var loader = new PLYLoader();
+                  var geometry = loader.parse(this.result);
+                  geometry.computeBoundingSphere();
+                  geometry.computeVertexNormals();
+                  var scale = 50 / geometry.boundingSphere.radius;
+                  console.log(geometry.boundingSphere)
+                  var mesh = new THREE.Mesh(geometry, material);
+                  mesh.scale.set(scale, scale, scale);
+                  mesh.rotateX(-Math.PI / 2);
+                  //mesh.position.addScaledVector(geometry.boundingSphere.center, -scale);
+                  mesh.matrixWorldNeedsUpdate = true;
+
+                  //scene.add(mesh);
+                  console.log(index);
+                  meshes[index] = mesh;
+                  
+              };
+              zipEntry.async("blob").then(function (content) { reader.readAsArrayBuffer(content); });
+            });
+
+            
+          }, function (e) {
+            $result.append($("<div>", {
+              "class" : "alert alert-danger",
+              text : "Error reading " + f.name + ": " + e.message
+            }));
+          });
+    });
+		</script>
+	</body>
+</html>

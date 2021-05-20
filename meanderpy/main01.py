@@ -38,7 +38,7 @@ def plots():
         model.plot_xsection(xsec, 3)
         plt.show()
 
-plots()
+#plots()
 #model.plot()
 #model.render()
-model.export(ve = 3)
+model.export_objs(ve = 3)

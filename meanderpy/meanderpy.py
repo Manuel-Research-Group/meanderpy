@@ -1,9 +1,15 @@
+from zipfile import ZipFile
+import tempfile
+from os import path, walk
+from shutil import copyfile
+import trimesh
 import bisect
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.interpolate
 import pyvista as pv
+import vtk
 from scipy.spatial import distance
 from scipy import ndimage, stats
 from scipy.signal import savgol_filter
@@ -102,6 +108,15 @@ def find_cutoffs_R(R, W = 5, T = 1):
             ind1 = i - W
         
     return max(ind1, 0), min(ind2, len(R) -1)
+
+def zipFilesInDir(dirName, zipFileName, filter):
+    with ZipFile(zipFileName, 'w') as zipObj:
+        for (folderName, _, filenames) in walk(dirName):
+            for filename in filenames:
+                if filter(filename):
+                    filePath = path.join(folderName, filename)
+                    zipObj.write(filePath, filename)
+
 
 class Basin:    
     def __init__(self, x, z):
@@ -882,22 +897,49 @@ class ChannelBelt3D():
 
         plotter.close()
 
-    def export_obj(self, file_name = 'test.obj', ve = 3):
-        sy, sx, sz = np.shape(self.strat)
+    def export_objs(self, zipname = 'layers.zip', reduction = None, ve = 3):
+        dir = tempfile.mkdtemp()
+
+        zz = topostrat_evolution(self.topo)
+        sy, sx, sz = np.shape(zz)
         x = np.linspace(self.xmin, self.xmin + sx * self.dx, sx)
         y = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
         
         xx, yy = np.meshgrid(x, y)
 
-        zz = self.topo[:,:,0] * ve
+        for i in range(0, sz, 3):
+            filename = path.join(dir, '{}'.format(int(i/3) + 1))
+            
+            grid = pv.StructuredGrid(xx, yy, zz[:,:,i] * ve)
 
-        grid = pv.StructuredGrid(xx, yy, zz)
+            top = grid.points.copy()
+            bottom = grid.points.copy()
+            bottom[:,-1] = self.zmin
 
-        plotter = pv.Plotter()
-        plotter.add_mesh(grid)
-        plotter.show(auto_close=False)
+            grid.points = np.vstack((top, bottom))
 
-        plotter.export_obj(file_name)
+            grid.points = np.vstack((top, bottom))
+            grid.dimensions = [*grid.dimensions[0:2], 2]
+
+            plotter = pv.Plotter()
+            plotter.add_mesh(grid)
+            plotter.export_obj(filename)
+
+            data = trimesh.load(filename + '.obj', force='mesh')
+
+            vertices = data.vertices
+            faces = np.ones((data.faces.shape[0], data.faces.shape[1]+1)) * data.faces.shape[1]
+            faces[:,1:] = data.faces
+            faces = np.hstack(faces).astype(int)
+
+            mesh = pv.PolyData(vertices, faces)
+            if reduction is not None:
+                mesh.decimate(reduction)
+            mesh.save(filename + '.ply')
+
+        zipfile = path.join(dir, zipname)
+        zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
+        copyfile(zipfile, zipname)
 
     def export(self, ve = 3):
         zz = topostrat_evolution(self.topo)

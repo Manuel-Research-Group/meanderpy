@@ -21,7 +21,7 @@ def dep_props(slope):
 
 def aggr_props(slope):
     f = np.abs(slope) / np.max(np.abs(slope))
-    return (0.2 * f ** 2, 0.2, 0.4 * (1 - f) ** 2,)
+    return (0.2 * f ** 2, 0.2, 0.4 * (1 - f) ** 2)
 
 events = [
     mp.ChannelEvent(nit = 100, saved_ts = 25, mode='INCISION', ch_depth = ch_depth, dep_height = dep_height, dep_props = dep_props, aggr_props = aggr_props, kv = 0.0033 / ONE_YEAR),
