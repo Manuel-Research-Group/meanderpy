@@ -504,7 +504,7 @@ class ChannelEvent:
 
         ch_depth = lambda slope: -20 * slope, ch_width = lambda slope: 700 * np.exp(0.80 * slope) + 95, 
         dep_height = lambda slope: -20 * slope * 1/4, dep_props = lambda slope: (0.3, 0.5, 0.2), dep_sigmas = lambda slope: (0.25, 0.5, 2),
-        aggr_props = lambda slope: (1, 1, 1), aggr_sigmas = lambda slope: (2, 5, 10), 
+        aggr_props = lambda slope: (0.333, 0.333, 0.333), aggr_sigmas = lambda slope: (2, 5, 10), 
 
         dens = 1000, aggr_factor = 2):
 
