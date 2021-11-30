@@ -40,5 +40,5 @@ def plots():
 
 #plots()
 #model.plot()
-#model.render()
-model.export_objs(ve = 3)
+model.render()
+#model.export_objs(ve = 3)

@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.interpolate
 import pyvista as pv
-import vtk
 from scipy.spatial import distance
 from scipy import ndimage, stats
 from scipy.signal import savgol_filter
@@ -17,6 +16,7 @@ from PIL import Image, ImageDraw, ImageFilter
 from skimage import measure
 from skimage import morphology
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.lines import Line2D
 import time, sys
 import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
@@ -685,6 +685,8 @@ class ChannelBelt:
                 self.basins.append(basin.copy())
                 self.events.append(event)
 
+        print('')
+
     def plot_basin(self, evolution = True):
         fig, axis = plt.subplots(1, 1)
         if not evolution:
@@ -794,6 +796,7 @@ class ChannelBelt:
             surface += silt_surface
             topo[:,:,i*L + 3] = surface
             
+        print('')
         return ChannelBelt3D(topo, xmin, ymin, dx, dx)
 
 class ChannelBelt3D():
@@ -813,22 +816,34 @@ class ChannelBelt3D():
         self.dx = dx
         self.dy = dy
 
-    def plot_xsection(self, xsec, ve = 5, substrat = True, silt_color = [51/255, 51/255, 0], sand_color = [255/255, 204/255, 0], gravel_color = [255/255, 102/255, 0]):
+    def plot_xsection(self, xsec, ve = 1, substrat = True, title = '', silt_color = [51/255, 51/255, 0], sand_color = [255/255, 204/255, 0], gravel_color = [255/255, 102/255, 0]):
         strat = self.strat
         sy, sx, sz = np.shape(strat)
+        if title != '': 
+            title += '\n'
         
         xindex = int(xsec * sx)
 
+        legend_elements = [
+            Line2D([0], [0], color=silt_color, lw=4, label='Silt'),
+            Line2D([0], [0], color=sand_color, lw=4, label='Sand'),
+            Line2D([0], [0], color=gravel_color, lw=4, label='Gravel'),
+        ]
+
         fig1 = plt.figure(figsize=(20,5))
         ax1 = fig1.add_subplot(111)
-        ax1.set_title('({:.3f}) - {:.3f} km'.format(xsec, xindex * self.dx + self.xmin))
+        ax1.set_title('{}Cross section at ({:.3f}) - {:.3f} km'.format(title, xsec, xindex * self.dx + self.xmin))
 
         Xv = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
         X1 = np.concatenate((Xv, Xv[::-1]))
         
         if substrat:
+            substract_color = [192/255, 192/255, 192/255]
             Yb = np.ones(sy) * self.zmin
-            ax1.fill(X1, np.concatenate((Yb, strat[::-1,xindex,0])), facecolor=[192/255, 192/255, 192/255])
+            ax1.fill(X1, np.concatenate((Yb, strat[::-1,xindex,0])), facecolor=substract_color)
+            legend_elements.append(
+                Line2D([0], [0], color=substract_color, lw=4, label='Substract') 
+            )
         
         for i in range(0, sz, 4):
             Y1 = np.concatenate((strat[:,xindex,i],   strat[::-1,xindex,i+1])) 
@@ -839,10 +854,14 @@ class ChannelBelt3D():
             ax1.fill(X1, Y2, facecolor=sand_color) 
             ax1.fill(X1, Y3, facecolor=silt_color)
         
-        #ax1.set_aspect(ve, adjustable='datalim')
+        if ve != 1: 
+            ax1.set_aspect(ve, adjustable='datalim')
         ax1.set_xlim(self.ymin, self.ymin + sy * self.dy)
-        ax1.set_ylim(-100, 800)
+        ax1.set_ylim(self.zmin, self.zmax)
+        ax1.set_xlabel('Length (m)')
+        ax1.set_ylabel('Elevation (m)')
         
+        ax1.legend(handles=legend_elements, loc='upper right')
         return fig1
 
     def plot(self, ve = 1, curvature = False, save = False):
@@ -866,7 +885,7 @@ class ChannelBelt3D():
 
             plotter.show(screenshot='airplane.png')
 
-    def render(self, ve = 3, name = 'TEST.gif'):
+    def render(self, ve = 3):
         sy, sx, sz = np.shape(self.strat)
         x = np.linspace(self.xmin, self.xmin + sx * self.dx, sx)
         y = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
@@ -880,22 +899,7 @@ class ChannelBelt3D():
         plotter = pv.Plotter()
         plotter.add_mesh(grid)
 
-        plotter.show(auto_close=False)
-        plotter.open_gif(name)
-
-        pts = grid.points.copy()
-        
-        for i in range(4, sz-1, 4):
-            strat = topostrat(self.topo[:,:,0:i+1])
-            zz = strat[:,:,i] * ve
-            pts[:, -1] = zz.T.ravel()
-
-            plotter.update_coordinates(pts, render=False)
-
-            plotter.write_frame()  # this will trigger the render
-            plotter.render()
-
-        plotter.close()
+        plotter.show()
 
     def export_objs(self, zipname = 'layers.zip', reduction = None, ve = 3):
         dir = tempfile.mkdtemp()
@@ -908,6 +912,7 @@ class ChannelBelt3D():
         xx, yy = np.meshgrid(x, y)
 
         for i in range(0, sz, 3):
+            update_progress(i/sz)
             filename = path.join(dir, '{}'.format(int(i/3) + 1))
             
             grid = pv.StructuredGrid(xx, yy, zz[:,:,i] * ve)
