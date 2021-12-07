@@ -1,4 +1,6 @@
 from scipy.interpolate import interp1d, splrep, splev
+import scipy.interpolate as si
+
 import matplotlib.pyplot as plt
 import meanderpy as mp
 import numpy as np
@@ -13,7 +15,7 @@ CONFIG_FILE = './config.json'
 ### DEFAULTS
 
 ###  -CHANNELS
-DEFAULT_SAMPLE_RATE = 250
+DEFAULT_SAMPLE_RATE = 50
 
 DEFAULT_CHANNEL_WIDTH = 0
 DEFAULT_CHANNEL_LENGTH = 0
@@ -95,6 +97,7 @@ DEFAULT_EVENT_AGGR_SIGMAS = [
 
 DEFAULT_CONFIG_VE = 3
 DEFAULT_CONFIG_GRID = 25
+DEFAULT_CONFIG_MARGIN = 500
 DEFAULT_CONFIG_CROSS_SECTIONS = []
 DEFAULT_CONFIG_TITLE = ''
 DEFAULT_CONFIG_RENDER = False
@@ -112,23 +115,51 @@ def create_tabular_param(param):
       value.append(
         [value[i] for value in values]
       )
-    return interp1d(slope, value, fill_value="extrapolate")
+    return si.interp1d(slope, value, fill_value="extrapolate")
   else:
     value = [p['value'] for p in param]
-    return interp1d(slope, value, fill_value="extrapolate")
+    return si.interp1d(slope, value, fill_value="extrapolate")
 
 # Code adapted from Dennis:
 # https://stackoverflow.com/questions/55808363/how-can-i-give-specific-x-values-to-scipy-interpolate-splev
 # https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.splrep.html#scipy.interpolate.splrep
 
-def b_spline_eval(param, L, N):
+def b_spline_eval(param, l, dx, degree=3):
   x_control = [value[0] for value in param]
   y_control = [value[1] for value in param]
-  print(x_control, y_control)
 
-  spl = splrep(x_control, y_control)
-  x = np.linspace(0, L, N)
-  y = splev(x, spl)
+  # Check whether list has at least two elements
+  for i in range(1, len(x_control)):
+    if x_control[i] < x_control[i-1]:            
+      raise Exception('Error: system needs at least two control points.')
+
+  # Check whether the list elements are in ascending order
+  for i in range(1, len(x_control)):
+    if x_control[i] < x_control[i-1]:            
+      raise Exception('Error: x axis control point values must be in crescent order.')
+
+  length = len(x_control)
+
+  t = np.linspace(0., x_control[-1], length - (degree-1), endpoint=True)
+  t = np.append([0, 0, 0], t)
+  t = np.append(t, [x_control[-1], x_control[-1], x_control[-1]])    
+
+  tck = [t, [x_control, y_control], degree]
+  u = np.linspace(0, l, 1000, endpoint=True)
+  curvePoints = si.splev(u, tck)
+
+  sx = si.BSpline(t, x_control, degree)
+  sy = si.BSpline(t, y_control, degree)
+
+  x = []
+  y = []    
+
+  for i in range(0, l, int(dx)):        
+    x0 = i
+    u0 = si.PPoly.from_spline((sx.t, sx.c - x0, degree)).roots()
+    nRoot = len(sx(u0))
+    x.append(sx(u0)[nRoot-1])
+    y.append(sy(u0)[nRoot-1])
 
   return x, y
 
@@ -207,13 +238,14 @@ for i, event in enumerate(events):
 ### CONFIG
 ve = config_json.get('ve', DEFAULT_CONFIG_VE)
 grid = config_json.get('dxdy', DEFAULT_CONFIG_GRID)
+margin = config_json.get('margin', DEFAULT_CONFIG_MARGIN)
 cross_sections = config_json.get('cross_sections', DEFAULT_CONFIG_CROSS_SECTIONS)
 title = config_json.get('title', DEFAULT_CONFIG_TITLE)
 render = config_json.get('render', DEFAULT_CONFIG_RENDER)
 export = config_json.get('export', DEFAULT_CONFIG_EXPORT)
 
 print('Building 3D model using {} meters grid'.format(grid))
-model = belt.build_3d_model(grid)
+model = belt.build_3d_model(grid, margin)
 
 if len(cross_sections) > 0:
   print('Rendering {} cross-section images'.format(len(cross_sections)))

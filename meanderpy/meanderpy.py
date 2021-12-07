@@ -858,7 +858,7 @@ class ChannelBelt3D():
             ax1.set_aspect(ve, adjustable='datalim')
         ax1.set_xlim(self.ymin, self.ymin + sy * self.dy)
         ax1.set_ylim(self.zmin, self.zmax)
-        ax1.set_xlabel('Length (m)')
+        ax1.set_xlabel('Width (m)')
         ax1.set_ylabel('Elevation (m)')
         
         ax1.legend(handles=legend_elements, loc='upper right')
