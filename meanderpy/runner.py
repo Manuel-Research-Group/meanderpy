@@ -127,26 +127,13 @@ def create_tabular_param(param):
 def b_spline_eval(param, l, dx, degree=3):
   x_control = [value[0] for value in param]
   y_control = [value[1] for value in param]
-
-  # Check whether list has at least two elements
-  for i in range(1, len(x_control)):
-    if x_control[i] < x_control[i-1]:            
-      raise Exception('Error: system needs at least two control points.')
-
-  # Check whether the list elements are in ascending order
-  for i in range(1, len(x_control)):
-    if x_control[i] < x_control[i-1]:            
-      raise Exception('Error: x axis control point values must be in crescent order.')
+  print(x_control, y_control, dx, degree)
 
   length = len(x_control)
 
   t = np.linspace(0., x_control[-1], length - (degree-1), endpoint=True)
   t = np.append([0, 0, 0], t)
   t = np.append(t, [x_control[-1], x_control[-1], x_control[-1]])    
-
-  tck = [t, [x_control, y_control], degree]
-  u = np.linspace(0, l, 1000, endpoint=True)
-  curvePoints = si.splev(u, tck)
 
   sx = si.BSpline(t, x_control, degree)
   sy = si.BSpline(t, y_control, degree)
@@ -157,9 +144,8 @@ def b_spline_eval(param, l, dx, degree=3):
   for i in range(0, l, int(dx)):        
     x0 = i
     u0 = si.PPoly.from_spline((sx.t, sx.c - x0, degree)).roots()
-    nRoot = len(sx(u0))
-    x.append(sx(u0)[nRoot-1])
-    y.append(sy(u0)[nRoot-1])
+    x.append(sx(u0)[0])
+    y.append(sy(u0)[0])
 
   return x, y
 
@@ -182,6 +168,9 @@ slope = channels_json.get('slope', DEFAULT_CHANNEL_SLOPE)
 
 channel_x, channel_y = b_spline_eval(sinuosity, length, DEFAULT_SAMPLE_RATE)
 basin_x, basin_z = b_spline_eval(slope, length, DEFAULT_SAMPLE_RATE)
+
+plt.plot(channel_x, channel_y); plt.show();
+plt.plot(basin_x, basin_z); plt.show();
 
 channel = mp.Channel(channel_x, channel_y)
 basin = mp.Basin(basin_x, basin_z)
