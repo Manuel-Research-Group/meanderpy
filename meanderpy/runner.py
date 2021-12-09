@@ -100,6 +100,7 @@ DEFAULT_CONFIG_GRID = 25
 DEFAULT_CONFIG_MARGIN = 500
 DEFAULT_CONFIG_CROSS_SECTIONS = []
 DEFAULT_CONFIG_TITLE = ''
+DEFAULT_CONFIG_PREVIEW = False
 DEFAULT_CONFIG_RENDER = False
 DEFAULT_CONFIG_EXPORT = False
 
@@ -125,29 +126,46 @@ def create_tabular_param(param):
 # https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.splrep.html#scipy.interpolate.splrep
 
 def b_spline_eval(param, l, dx, degree=3):
-  x_control = [value[0] for value in param]
-  y_control = [value[1] for value in param]
-  print(x_control, y_control, dx, degree)
+  xCtrlPoints = [value[0] for value in param]
+  yCtrlPoints = [value[1] for value in param]
+  xp = xCtrlPoints
+  yp = yCtrlPoints    
 
-  length = len(x_control)
+  length = len(xp)  
 
-  t = np.linspace(0., x_control[-1], length - (degree-1), endpoint=True)
+  minY = min(yp)  
+  maxY = max(yp)      
+
+  t = np.linspace(0., xp[-1], length - (degree-1), endpoint=True)
   t = np.append([0, 0, 0], t)
-  t = np.append(t, [x_control[-1], x_control[-1], x_control[-1]])    
+  t = np.append(t, [xp[-1], xp[-1], xp[-1]])    
 
-  sx = si.BSpline(t, x_control, degree)
-  sy = si.BSpline(t, y_control, degree)
+  sx = si.BSpline(t, xp, degree)    
+  sy = si.BSpline(t, yp, degree)
 
-  x = []
-  y = []    
+  xEval = []
+  yEval = []    
 
   for i in range(0, l, int(dx)):        
     x0 = i
-    u0 = si.PPoly.from_spline((sx.t, sx.c - x0, degree)).roots()
-    x.append(sx(u0)[0])
-    y.append(sy(u0)[0])
+    u0 = si.PPoly.from_spline((sx.t, sx.c - x0, degree)).roots()        
+    nRoot = len(sx(u0))
 
-  return x, y
+    xEval.append(sx(u0)[0])
+
+    # Select the correct roots from sy(u0)
+    for i in range(nRoot):
+      if sy(u0)[i] >= minY and sy(u0)[i] <= maxY:
+        yEval.append(sy(u0)[i])
+  
+  return xEval, yEval
+
+def plot2D(x, y, title, ylabel):
+  plt.plot(x, y)
+  plt.title(title)
+  plt.xlabel('Length (m)')
+  plt.ylabel(ylabel)
+  plt.show()
 
 channels_file = open(CHANNELS_FILE, 'r')
 events_file = open(EVENTS_FILE, 'r')
@@ -169,8 +187,11 @@ slope = channels_json.get('slope', DEFAULT_CHANNEL_SLOPE)
 channel_x, channel_y = b_spline_eval(sinuosity, length, DEFAULT_SAMPLE_RATE)
 basin_x, basin_z = b_spline_eval(slope, length, DEFAULT_SAMPLE_RATE)
 
-plt.plot(channel_x, channel_y); plt.show();
-plt.plot(basin_x, basin_z); plt.show();
+preview = config_json.get('preview', DEFAULT_CONFIG_PREVIEW)
+
+if(preview):
+  plot2D(channel_x, channel_y, 'Initial Channel Preview', 'Width (m)')
+  plot2D(basin_x, basin_z, 'Initial Channel Preview', 'Elevation (m)')
 
 channel = mp.Channel(channel_x, channel_y)
 basin = mp.Basin(basin_x, basin_z)

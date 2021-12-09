@@ -4,6 +4,7 @@
   "margin": 500,
   "cross_sections": [0.2, 0.4, 0.6, 0.8],
   "render": true,
+  "preview": true,
   "title": "TITLE",
   "export": true
 }
