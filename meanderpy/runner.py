@@ -121,6 +121,33 @@ def create_tabular_param(param):
     value = [p['value'] for p in param]
     return si.interp1d(slope, value, fill_value="extrapolate")
 
+# Auxiliary function for b_spline_eval - decides the correct root values from sy(u0) given by si.PPoly.from_spline function
+def correctRoots(rootsX, rootsY, yMin, yMax):
+  if(len(rootsX) != len(rootsY) or len(rootsX[0]) != len(rootsY[0])):    
+    raise Exception("[ERROR] [function verifyCorrectRootIndex]: rootsX and rootsY have different sizes.")  
+
+  validRootX = []
+  validRootY = []
+  for i in range(len(rootsY[0])):
+    correctOne = True
+    for j in range(len(rootsY)):
+      if rootsY[j][i] >= yMin and rootsY[j][i] <= yMax:
+        validRootX.append(rootsX[j][i])        
+        validRootY.append(rootsY[j][i])
+      else:
+        validRootX = []
+        validRootY = []
+        correctOne = False
+        break
+
+    if correctOne == True:
+      break
+
+  if correctOne == False:
+    raise Exception("[ERROR] [function verifyCorrectRootIndex]: no valid root set found.")  
+  
+  return validRootX, validRootY  
+
 # Code adapted from Dennis:
 # https://stackoverflow.com/questions/55808363/how-can-i-give-specific-x-values-to-scipy-interpolate-splev
 # https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.splrep.html#scipy.interpolate.splrep
@@ -133,8 +160,8 @@ def b_spline_eval(param, l, dx, degree=3):
 
   length = len(xp)  
 
-  minY = min(yp)  
-  maxY = max(yp)      
+  yMin = min(yp)  
+  yMax = max(yp)      
 
   t = np.linspace(0., xp[-1], length - (degree-1), endpoint=True)
   t = np.append([0, 0, 0], t)
@@ -148,17 +175,14 @@ def b_spline_eval(param, l, dx, degree=3):
 
   for i in range(0, l, int(dx)):        
     x0 = i
-    u0 = si.PPoly.from_spline((sx.t, sx.c - x0, degree)).roots()        
-    nRoot = len(sx(u0))
+    u0 = si.PPoly.from_spline((sx.t, sx.c - x0, degree)).roots()    
 
-    xEval.append(sx(u0)[0])
+    xEval.append(sx(u0))
+    yEval.append(sy(u0))
 
-    # Select the correct roots from sy(u0)
-    for i in range(nRoot):
-      if sy(u0)[i] >= minY and sy(u0)[i] <= maxY:
-        yEval.append(sy(u0)[i])
+  xEvalNew, yEvalNew = correctRoots(xEval, yEval, yMin, yMax)  
   
-  return xEval, yEval
+  return xEvalNew, yEvalNew
 
 def plot2D(x, y, title, ylabel):
   plt.plot(x, y)
