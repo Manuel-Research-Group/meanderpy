@@ -685,8 +685,6 @@ class ChannelBelt:
                 self.basins.append(basin.copy())
                 self.events.append(event)
 
-        print('')
-
     def plot_basin(self, evolution = True):
         fig, axis = plt.subplots(1, 1)
         if not evolution:
@@ -748,7 +746,6 @@ class ChannelBelt:
 
         N = len(self.channels)
         L = 3 + 1
-
         topo = np.zeros((mapper.rheight, mapper.rwidth, N*L))
 
         for i in range(0, N):
@@ -796,7 +793,6 @@ class ChannelBelt:
             surface += silt_surface
             topo[:,:,i*L + 3] = surface
             
-        print('')
         return ChannelBelt3D(topo, xmin, ymin, dx, dx)
 
 class ChannelBelt3D():
@@ -910,8 +906,7 @@ class ChannelBelt3D():
         y = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
         
         xx, yy = np.meshgrid(x, y)
-
-        for i in range(0, sz, 3):
+        for i in range(0, sz):
             update_progress(i/sz)
             filename = path.join(dir, '{}'.format(int(i/3) + 1))
             

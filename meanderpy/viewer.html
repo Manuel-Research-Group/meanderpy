@@ -192,7 +192,7 @@
           
             console.log(zip.files);
             meshes = Object.keys(zip.files).map(_ => null);
-            const N = meshes.length - 1; // -1 = folder!
+            const N = meshes.length; // -1 = folder!
 
             $('#selector').attr('max', N);
             
