@@ -28,7 +28,7 @@ DEFAULT_CHANNEL_SLOPE = []
 DEFAULT_EVENT_NIT = 100       # Number of iterations
 DEFAULT_EVENT_SAVED_TS = 25   # Saved 
 DEFAULT_EVENT_DT = 0.1
-DEFAULT_EVENT_MODE = 'AGGREGATION'
+DEFAULT_EVENT_MODE = 'AGGRADATION'
 DEFAULT_EVENT_KV = 0.01
 DEFAULT_EVENT_KL = 60.0
 DEFAULT_EVENT_CR_DIST = 200
@@ -99,10 +99,12 @@ DEFAULT_CONFIG_VE = 3
 DEFAULT_CONFIG_GRID = 25
 DEFAULT_CONFIG_MARGIN = 500
 DEFAULT_CONFIG_CROSS_SECTIONS = []
+DEFAULT_CONFIG_SHOW_SECTIONS = False
 DEFAULT_CONFIG_TITLE = ''
 DEFAULT_CONFIG_PREVIEW = False
 DEFAULT_CONFIG_RENDER = False
 DEFAULT_CONFIG_EXPORT = False
+DEFAULT_CONFIG_COLORED_MESH = False
 
 ### AUXILIAR FUNCTIONS
 def create_tabular_param(param):
@@ -191,6 +193,8 @@ def plot2D(x, y, title, ylabel):
   plt.ylabel(ylabel)
   plt.show()
 
+# MAIN
+
 channels_file = open(CHANNELS_FILE, 'r')
 events_file = open(EVENTS_FILE, 'r')
 config_file = open(CONFIG_FILE, 'r')
@@ -267,6 +271,7 @@ for evt in events_json:
 belt = mp.ChannelBelt(channel, basin)
 for i, event in enumerate(events):
   print('Simulating event {} of {}'.format(i, len(events)))
+  print('len(channels) [0]: ', len(belt.channels))
   belt.simulate(event)
 
 ### CONFIG
@@ -274,9 +279,11 @@ ve = config_json.get('ve', DEFAULT_CONFIG_VE)
 grid = config_json.get('dxdy', DEFAULT_CONFIG_GRID)
 margin = config_json.get('margin', DEFAULT_CONFIG_MARGIN)
 cross_sections = config_json.get('cross_sections', DEFAULT_CONFIG_CROSS_SECTIONS)
+show_sections = config_json.get('show_sections', DEFAULT_CONFIG_SHOW_SECTIONS)
 title = config_json.get('title', DEFAULT_CONFIG_TITLE)
 render = config_json.get('render', DEFAULT_CONFIG_RENDER)
 export = config_json.get('export', DEFAULT_CONFIG_EXPORT)
+colored_mesh = config_json.get('colored_mesh', DEFAULT_CONFIG_COLORED_MESH)
 
 print('Building 3D model using {} meters grid'.format(grid))
 model = belt.build_3d_model(grid, margin)
@@ -284,18 +291,20 @@ model = belt.build_3d_model(grid, margin)
 if len(cross_sections) > 0:
   print('Rendering {} cross-section images'.format(len(cross_sections)))
 
-for xsec in cross_sections:
-  print('- Cross-section @ {}'.format(xsec))
-  model.plot_xsection(
-    xsec = xsec, 
-    ve = ve, 
-    title = title
-  )
-  plt.show()
+# Variable introduced to show the cross sections
+if show_sections:
+  for xsec in cross_sections:
+    print('- Cross-section @ {}'.format(xsec))
+    model.plot_xsection(
+      xsec = xsec, 
+      ve = ve, 
+      title = title
+    )
+    plt.show()
 
 if export:
   print('Exporting 3D model')
-  model.export_objs(ve = ve)
+  model.export_objs(ve = ve, colored_mesh = colored_mesh)
 
 if render:
   print('Rendering 3D model')

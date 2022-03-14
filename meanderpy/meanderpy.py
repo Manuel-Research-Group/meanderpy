@@ -22,6 +22,8 @@ import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
+import open3d as o3d
+import math
 
 OMEGA = -1.0 # constant in curvature calculation (Howard and Knutson, 1984)
 GAMMA = 2.5  # from Ikeda et al., 1981 and Howard and Knutson, 1984
@@ -320,6 +322,10 @@ class Channel:
         else:
             axis.fill(xm, ym, color=color, edgecolor='k', linewidth=0.25)
 
+# xmin, xmax: min e max do grid
+# xsize, ysize: dimensões
+# mapas 2D que serão transformados em 3D (usado depois para as gaussian surfaces)
+# downscale para geração dos mapas
 class ChannelMapper:
     def __init__(self, xmin, xmax, ymin, ymax, xsize, ysize, downscale = 4, sigma = 2):
         self.xmin = xmin
@@ -453,9 +459,9 @@ def topostrat(topo):
     """
     r,c,ts = np.shape(topo)
     strat = np.copy(topo)
-    for i in (range(0,ts)):
+    for i in (range(0,ts)): #camada 0 é a inferior
         strat[:,:,i] = np.amin(topo[:,:,i:], axis=2)
-    return strat
+    return strat # matriz com todos os pontos (armazenado valor do z mínimo)
 
 def topostrat_evolution(topo):
     """function for converting a stack of geomorphic surfaces into stratigraphic surfaces
@@ -640,8 +646,8 @@ class ChannelBelt:
     def __init__(self, channel, basin):
         """
             Times in years.
-        """
-        self.channels = [channel.copy()]
+        """        
+        self.channels = [channel.copy()]        
         self.basins = [basin.copy()]
         self.times = [0.0]
         self.events = []
@@ -649,6 +655,8 @@ class ChannelBelt:
     def simulate(self, event):
         last_time = self.times[-1]
         event.start_time = last_time + event.dt
+
+        print('len(channels) [1]: ', len(self.channels))
 
         if len(self.events) == 0:
             channel = self.channels[0]
@@ -663,8 +671,9 @@ class ChannelBelt:
         basin = self.basins[-1].copy()
         last_time = self.times[-1]
 
-
-        for itn in range(event.nit):
+        #print(event.nit)
+        print('len(channels) [2]: ', len(self.channels))
+        for itn in range(1, event.nit+1):
             update_progress(itn/event.nit)
 
             channel.migrate(event.Cf, event.kl / YEAR, event.dt * YEAR)
@@ -674,16 +683,30 @@ class ChannelBelt:
             channel.refit(basin, event.ch_width, event.ch_depth)
             
             if event.mode == 'INCISION':
+                #print('entrou no INCISION')
                 basin.incise(event.dens, event.kv / YEAR, event.dt * YEAR)
             if event.mode == 'AGGRADATION':
+                #print('entrou no AGGRADATION')
                 basin.aggradate(event.dens, event.kv / YEAR, event.dt * YEAR, event.aggr_factor)
 
-            if itn % event.saved_ts == 0:
-
+            # número de canais = time stamp
+            if itn % event.saved_ts == 0:                
+                print("ITN: ", itn, " <space>.")
                 self.times.append(last_time + (itn+1) * event.dt)
                 self.channels.append(channel.copy())
                 self.basins.append(basin.copy())
                 self.events.append(event)
+
+        # dgb: Save the final mesh
+        '''
+        print("\nFinal mesh: ", itn, " <space>.")
+        self.times.append(last_time + (itn+1) * event.dt)
+        self.channels.append(channel.copy())
+        self.basins.append(basin.copy())
+        self.events.append(event)        
+        '''        
+        
+        print("\n#times: ", len(self.times), " <space>.")
 
     def plot_basin(self, evolution = True):
         fig, axis = plt.subplots(1, 1)
@@ -748,6 +771,8 @@ class ChannelBelt:
         L = 3 + 1
         topo = np.zeros((mapper.rheight, mapper.rwidth, N*L))
 
+        print("numero canais (N): ", N)
+
         for i in range(0, N):
             update_progress(i/N)
             event = self.events[i]
@@ -757,13 +782,18 @@ class ChannelBelt:
 
 
             # channel, centerline distance, channel z, basin z, slope, half width
+            # ch_map: 
             ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map = mapper.create_maps(self.channels[i], self.basins[i])
             # channel depth
             dh_map = event.dep_height(sl_map)
             cd_map = event.ch_depth(sl_map)
 
             channel_surface = erosional_surface(cld_map, cz_map, hw_map, cd_map)
-            
+                        
+            # gr_p: proporção de gravel. gr_s: gravel sigma.
+            # sa_p: propoção de sand. sa_s: sand sigma.
+            # si_p: propoção de silt. si_s: silt sigma.
+            # t_p: soma das proporções total (não precisa dar 100%) = gr_p + sa_p + si_p
             gr_p, sa_p, si_p = event.dep_props(sl_map)
             gr_s, sa_s, si_s = event.dep_sigmas(sl_map)
             t_p = gr_p + sa_p + si_p
@@ -813,7 +843,7 @@ class ChannelBelt3D():
         self.dy = dy
 
     def plot_xsection(self, xsec, ve = 1, substrat = True, title = '', silt_color = [51/255, 51/255, 0], sand_color = [255/255, 204/255, 0], gravel_color = [255/255, 102/255, 0]):
-        strat = self.strat
+        strat = self.strat # aqui apenas strat final
         sy, sx, sz = np.shape(strat)
         if title != '': 
             title += '\n'
@@ -895,52 +925,280 @@ class ChannelBelt3D():
         plotter = pv.Plotter()
         plotter.add_mesh(grid)
 
-        plotter.show()
+        plotter.show()  
 
-    def export_objs(self, zipname = 'layers.zip', reduction = None, ve = 3):
-        dir = tempfile.mkdtemp()
+    '''
+    Merge two lists intercalating their elements    
+    '''
+    def merge_xyzrgb(xyz,rgb):
+        silt_color = [51/255, 51/255, 0] # DARK GREEN
+        sand_color = [255/255, 204/255, 0] # YELLOW
+        gravel_color = [255/255, 102/255, 0] # ORANGE
+        substract_color = [0/255, 192/255, 192/255] # TEAL
+        stratColors = np.array([silt_color, sand_color, gravel_color, substract_color])
 
-        zz = topostrat_evolution(self.topo)
-        sy, sx, sz = np.shape(zz)
-        x = np.linspace(self.xmin, self.xmin + sx * self.dx, sx)
-        y = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
+        merge_result = []
+
+        for i in range(len(xyz)):
+            merge_result.append(xyz[i])
+            merge_result.append(stratColors[rgb[i]])
+
+        return merge_result
+
+    '''
+    Convert a point cloud and its colors to a 3D mesh
+    Inputs: points: list of points in 3D, colors: list of colors as RGB values in [0,1]
+    Output: mesh file in the ply format as specified in 'filename'
+    '''
+    def point_cloud_to_3d_mesh(self, points, colors, filename='point_to_mesh.ply'):
+        cloud = pv.PolyData(np.asarray(points))        
+        surf = cloud.delaunay_2d()
+        colors = np.asarray(colors*255)
+        colorsInt = colors.astype(np.uint8)
+        surf.save('my_mesh.ply', texture=colorsInt)
+
+    # Function to compute the bounding box of a 3D np array adapted from https://stackoverflow.com/questions/31400769/bounding-box-of-numpy-array
+    # NEED TO OPTIMIZE THIS USING NP ARRAY
+    def bbox3D(self, points):
+        xmin, ymin, zmin = math.inf, math.inf, math.inf
+        xmax, ymax, zmax = -math.inf, -math.inf, -math.inf
+        for p in points:
+            if xmin > p[0]: xmin = p[0]
+            if xmax < p[0]: xmax = p[0]
+            if ymin > p[1]: ymin = p[1]
+            if ymax < p[1]: ymax = p[1]
+            if zmin > p[2]: zmin = p[2]
+            if zmax < p[2]: zmax = p[2]
+
+        return xmin, xmax, ymin, ymax, zmin, zmax
+
+    # bottomBBoxPoints must contain the bottom bounding box limits as a list in the following order: xmin, xmax, ymin, ymax, zmin, zmax
+    def generateBoxPoints(self, points, boundingBox, subdivNumX, subdivNumY, color):
+        boxPointList = []
+        boxColorList = []
+
+        xmin, xmax = boundingBox[0], boundingBox[1]
+        ymin, ymax = boundingBox[2], boundingBox[3]
+        zmin, zmax = boundingBox[4], boundingBox[5]
         
-        xx, yy = np.meshgrid(x, y)
-        for i in range(0, sz):
-            update_progress(i/sz)
-            filename = path.join(dir, '{}'.format(int(i/3) + 1))
+        # Produce a list of interpolated values from a given range
+        linearXValues = np.linspace(xmin, xmax, subdivNumX)
+        linearYValues = np.linspace(ymin, ymax, subdivNumY)
+        
+        # Generate points in the laterals on the ground  
+        
+        '''
+        for x in linearXValues:            
+            boxPointList.append([x,ymin-1,zmin])
+            boxColorList.append(color)
+        
+        for y in linearYValues:            
+            boxPointList.append([(xmax+xmin)/2,y,zmin])            
+            boxColorList.append(color)
+        '''
+
+        # Close the borders
+        for p in points:            
+            if p[0] == xmin or p[0] == xmax or p[1] == ymin or p[1] == ymax:
+                boxPointList.append([p[0],p[1],zmin])
+                boxColorList.append(color)
+                #if p[1] == ymin or p[1] == ymax:
+                    #boxPointList.append([p[0],p[1]+1,(p[2]-zmin)/2])
+                    #boxColorList.append(color)
             
-            grid = pv.StructuredGrid(xx, yy, zz[:,:,i] * ve)
+        return boxPointList, boxColorList
 
+    def generateTriangleMesh(self, vertices, faces, colors, fileNameOut='out.ply'):
+        mesh = o3d.geometry.TriangleMesh()
+        
+        mesh.vertices = o3d.utility.Vector3dVector(vertices)
+        mesh.triangles = o3d.utility.Vector3iVector(faces)
+        mesh.vertex_colors = o3d.utility.Vector3dVector(colors)
+        
+        o3d.io.write_triangle_mesh(fileNameOut, mesh)
+
+    # Function to compare a float with a list of floats in numpy
+    # Extracted from https://stackoverflow.com/questions/55239065/checking-if-a-specific-float-value-is-in-list-array-in-python-numpy
+    def close_to_any(self, a, floats, **kwargs):
+        return np.any(np.isclose(a, floats, **kwargs))
+
+    '''
+    Function to export the 3D meshes for each layer. Meshes are compressed as PLY files and compacted into a ZIP.    
+    Inputs: self, zipname, reduction, colored_meshes: whether the mesh should be exported with their material colors, ve(vertical exaggeration)
+    Output: ZIP file containing the models for each layer (names as model1.ply, model2.ply, etc)
+    '''   
+    def export_objs(self, zipname = 'layers.zip', reduction = None, colored_mesh = True, ve = 3):
+        # Constants
+        NUMBER_OF_LAYERS_PER_EVENT = 4
+        LAYER_THICKNESS_THRESHOLD = 0.9 #1e-2
+        FLOAT_TO_INT_FACTOR = 1
+
+        SILT_COLOR = [51/255, 51/255, 0] # DARK GREEN - [0.2, 0.2, 0.0]
+        SAND_COLOR = [255/255, 204/255, 0] # YELLOW - [1.0, 0.8, 0.0]
+        GRAVEL_COLOR = [255/255, 102/255, 0] # ORANGE - [1.0, 0.4, 0.0]
+        SUBSTRACT_COLOR = [192/255, 192/255, 192/255] # GRAY - [0.7529, 0.7529, 0.7529]
+        
+        # dir contains the path of the temp directory, used to store the intermediate meshes
+        dir = tempfile.mkdtemp()
+        
+        # strat: 3D numpy array of statigraphic surfaces (previously was named zz)
+        strat = topostrat(self.topo)        
+
+        sy, sx, sz = np.shape(strat) # sz contains the number of layers from strat
+
+        # Produce a list of 'sx' and 'sy' interpolated values from a given range
+        x = np.linspace(self.xmin, self.xmin + sx * self.dx, sx) 
+        y = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
+
+        # Array containing the possible colors from strat
+        strat_colors = np.array([SILT_COLOR, SAND_COLOR, GRAVEL_COLOR, SUBSTRACT_COLOR])
+        colorCpInt = np.zeros([sy,sx])        
+
+        # xx and yy form a grid (2D plane) according to x and y values
+        xx, yy = np.meshgrid(x, y)        
+        
+        # For each adjacent strat layer compares their thickness, setting to 0 if they are very close and 1 otherwise
+        stratCp = strat.copy()
+        for xIndex in range(0, sx):
+            for yIndex in range(0, sy):
+                for zIndex in range(sz-1, 1, -1):
+                    if stratCp[yIndex,xIndex,zIndex-1] - stratCp[yIndex,xIndex,zIndex-2] < LAYER_THICKNESS_THRESHOLD:
+                        stratCp[yIndex,xIndex,zIndex-1] = 0
+                    else:
+                        stratCp[yIndex,xIndex,zIndex-1] = 1   
+
+                    #break
+                stratCp[yIndex,xIndex,sz-1] = 0
+
+        # Set the strat material colors to an array
+        strat_colors = np.array([SILT_COLOR, SAND_COLOR, GRAVEL_COLOR, SUBSTRACT_COLOR])
+        
+        # Initializes the plant view of the channel for each of the layers.
+        plant_view = np.uint8(np.zeros((sy,sx,3)))
+        mesh_iterator = 0
+
+        # Main loop to generate a mesh for each layer. The meshes are available in a zip file names i.ply.
+        # For now, we have 4 layers in the following order: silt, sand, gravel and substract
+        # Layer 0 corresponds to the initialized layer in the constructor of the channel belt
+        for event_top_layer in range(0, sz, NUMBER_OF_LAYERS_PER_EVENT):
+            update_progress(event_top_layer/sz)            
+            #filename = 'model{}'.format(int(i/3) + 1) # local folder
+            filename = path.join(dir, '{}'.format((int)(event_top_layer/NUMBER_OF_LAYERS_PER_EVENT) + 1)) # temp folder, all models
+            
+            # Produces a grid for the current z layer containing the points in grid.points
+            grid = pv.StructuredGrid(xx, yy, strat[:,:,event_top_layer] * ve)
+
+            # top contains all the surface points for each layer
             top = grid.points.copy()
-            bottom = grid.points.copy()
+
+
+
+            # TODO: check whether the color layers are correct
+            
+            # Stores information of the points and their colors of the first layer (top)
+            colorCpInt = np.zeros((sy,sx, 3))
+            for xIndex in range(0, sx):
+                for yIndex in range(0, sy):
+                    #for zIndex in range(sz-1, 1, -1): # 0 is the bottom layer
+                    for zIndex in range(event_top_layer, 0, -1): # 0 is the bottom layer
+                        if stratCp[yIndex,xIndex,zIndex] == 1:
+                            # Computes in colorIndex the correct layer color according to the following formula
+                            colorIndex = abs((zIndex % NUMBER_OF_LAYERS_PER_EVENT) - (NUMBER_OF_LAYERS_PER_EVENT-1))
+                            colorCpInt[yIndex,xIndex] = strat_colors[colorIndex]
+                            break
+
+            # Stores the data structure from points, colors and plant view
+            surfacePointList = []
+            colorPointList = []
+            cols, rows, channel = np.shape(colorCpInt)
+            topCp = top.copy()
+            topCp = np.reshape(topCp, (rows,cols,channel))                                    
+            for col in range(cols):
+                for row in range(rows):    
+                    surfacePointList.append([topCp[row][col][0], topCp[row][col][1], topCp[row][col][2]])
+                    colorPointList.append([colorCpInt[col][row][0], colorCpInt[col][row][1], colorCpInt[col][row][2]])
+                    plant_view[col,row] = np.uint8(colorCpInt[col,row] * 255)
+            
+            im = Image.fromarray(plant_view)
+            im.save("plantView" + str(mesh_iterator+1) + ".png")
+
+            # DEBUG
+            #np.savetxt("surfacePointList.txt", np.asarray(surfacePointList), fmt="%.5f")
+            #np.savetxt("colorPointList.txt", np.asarray(colorPointList), fmt="%.5f")
+            
+            # Produce an PLY file with it's box already triangulated
+            bottom = grid.points.copy()                
             bottom[:,-1] = self.zmin
-
-            grid.points = np.vstack((top, bottom))
-
             grid.points = np.vstack((top, bottom))
             grid.dimensions = [*grid.dimensions[0:2], 2]
-
             plotter = pv.Plotter()
-            plotter.add_mesh(grid)
-            plotter.export_obj(filename)
-
-            data = trimesh.load(filename + '.obj', force='mesh')
-
+            plotter.add_mesh(grid)#, scalars="colors", rgb=True) # add to scene                
+            plotter.export_obj(filename) # export two independent meshes: top and bottom            
+            data = trimesh.load(filename + '.obj', force='mesh') # load two triangle meshes: top and bottom                
             vertices = data.vertices
-            faces = np.ones((data.faces.shape[0], data.faces.shape[1]+1)) * data.faces.shape[1]
+            faces = np.ones((data.faces.shape[0], data.faces.shape[1]+1)) * data.faces.shape[1]                
             faces[:,1:] = data.faces
             faces = np.hstack(faces).astype(int)
-
-            mesh = pv.PolyData(vertices, faces)
+            mesh = pv.PolyData(vertices, faces)            
             if reduction is not None:
                 mesh.decimate(reduction)
             mesh.save(filename + '.ply')
 
+            # Map the surface points (and their respective surface color points) to the block points, which have doubled the amount of points
+            # with a projection on XY axis. The idea is to associate each color from the surface with the new ordered block points. Due to the
+            # performance, instead of comparing both lists we converted the surface points (each point as [x,y,z]) to a dictionary composed by
+            # their math.ceil values. This may lead to some precision errors
+            surface_points = np.asarray(surfacePointList)
+            surface_colors = np.asarray(colorPointList)
+
+            mesh = o3d.io.read_triangle_mesh(filename + ".ply")
+            block_vertices = np.asarray(mesh.vertices)
+            block_triangles = np.asarray(mesh.triangles)
+
+            # Code to export the obj and ply surface mesh as a block with ground and walls with color
+            if colored_mesh:
+                # DEBUG
+                np.savetxt("channel_block.txt", np.asarray(block_vertices), fmt="%.5f")
+                
+                # Create hash in surfaceDict
+                block_colors = np.zeros([len(block_vertices),3])
+                surfaceDict = {}
+                for event_top_layer in range(len(surface_points)):
+                    x_str = str(math.ceil((surface_points[event_top_layer][0]*FLOAT_TO_INT_FACTOR)//1))
+                    y_str = str(math.ceil((surface_points[event_top_layer][1]*FLOAT_TO_INT_FACTOR)//1))
+                    z_str = str(math.ceil((surface_points[event_top_layer][2]*FLOAT_TO_INT_FACTOR)//1))
+                    hash_aux = x_str + ',' + y_str + ',' + z_str
+                    surfaceDict[hash_aux] = surface_colors[event_top_layer]
+
+                cont = 0
+                for v in block_vertices:                    
+                    x_str = str(math.ceil((v[0]*FLOAT_TO_INT_FACTOR)//1))
+                    y_str = str(math.ceil((v[1]*FLOAT_TO_INT_FACTOR)//1))
+                    z_str = str(math.ceil((v[2]*FLOAT_TO_INT_FACTOR)//1))
+                    hash_aux = x_str + ',' + y_str + ',' + z_str
+                    if hash_aux in surfaceDict:
+                        block_colors[cont] = surfaceDict[hash_aux]
+                    cont = cont + 1                
+                
+                self.generateTriangleMesh(block_vertices, block_triangles, block_colors, filename + '.ply')
+
+
+            # Code to export the obj and ply surface mesh as a block with ground and walls (Beuren's original mesh)
+            else:              
+                block_colors = np.zeros([len(block_vertices),3])
+                self.generateTriangleMesh(block_vertices, block_triangles, block_colors, filename + '.ply')
+
+            mesh_iterator = mesh_iterator + 1
+
+            #break # TO BE REMOVED: included to execute only the first layer
+
+        # Compact in a zip file all the ply files in filename folder. Results in two ply per layer (gray block and colored surface)        
         zipfile = path.join(dir, zipname)
         zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
         copyfile(zipfile, zipname)
 
     def export(self, ve = 3):
-        zz = topostrat_evolution(self.topo)
+        #np.savetxt('shape.txt',[sy, sx, sz],fmt='%.4f') # DEBUG
+        #zz = topostrat_evolution(self.topo)
+        zz = topostrat(self.topo)
         np.save("terrain.npy", zz)

@@ -2,9 +2,11 @@
   "ve": 1,
   "dxdy": 25,
   "margin": 500,
-  "cross_sections": [0.2, 0.4, 0.6, 0.8],
-  "render": true,
-  "preview": true,
+  "cross_sections": [0.01, 0.2, 0.4, 0.6, 0.8],
+  "show_sections": false,
+  "render": false,
+  "preview": false,
   "title": "TITLE",
-  "export": true
+  "export": true,
+  "colored_mesh": true
 }

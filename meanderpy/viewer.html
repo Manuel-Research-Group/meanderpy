@@ -26,6 +26,22 @@
         overflow: hidden;
       }
 
+      .button {
+        background-color: #dddddd;
+        border: 1px solid #555555;
+        color: black;
+        padding: 2px 16px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        box-shadow: 0 8px 16px 0 rgba(0,0,0,0.1), 0 6px 20px 0 rgba(0,0,0,0.19);
+      }
+
+      .button:active {
+        background-color:#eeeeee; 
+      }
+
       #root {
         position: relative;
       }
@@ -49,7 +65,7 @@
             <input id="selector" class="w-full" type="range" min="1" max="1" value="1" class="slider"/>
           </div>
           <div class="flex">
-            <input id="file" class="" type="file"/>
+            <input id="file" class="" type="file"/>            
             <div id="progress-bar" class="w-full" hidden>
               <div class="flex mb-2 items-center justify-between">
                 <div id="progress-creating">
@@ -64,11 +80,15 @@
               <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-teal-200">
                 <div id="progress-bar" style="width:100%;" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"></div>
               </div>
-            </div>
-          </div>
+            </div>                                    
+          </div> 
+          <br>
+          <button id="change-color" class="button" type="button">Change Color</button>          
         </div>
-      </div>
+      </div>      
     </div>
+    
+    
 		<script type="module">
 
 			import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r119/build/three.module.js';
@@ -82,10 +102,17 @@
 
 			let camera, cameraTarget, controls, scene, renderer, meshes;
 
-      const material = new THREE.MeshStandardMaterial( { color: 0x8A8173, flatShading: true } );
-  
+      // CONSTANTS
+      const MATERIAL_GREYSCALE = new THREE.MeshStandardMaterial( { color: 0x8A8173, flatShading: true } );
+      const MATERIAL_COLORED = new THREE.MeshPhongMaterial( {vertexColors: THREE.VertexColors, side:THREE.DoubleSide} );
+      
+      var sliderIndex = 0;
+
+      // GLOBALS
+      var material = MATERIAL_COLORED;
+        
 			init();
-			animate();
+			animate();      
 
 			function init() {
 
@@ -97,19 +124,50 @@
 				cameraTarget = new THREE.Vector3( 0, 0, 0 );
 
 				scene = new THREE.Scene();
+
+        //const POINT_LIGHT_POS = [50, 40, 100];
+        //const POINT_LIGHT_POS2 = [-50, 40, 100];
 			
-				// Lights
+				// Lights 
+				const ambientLight = new THREE.AmbientLight(0x888888);
+        //const hemisphereLight = new THREE.HemisphereLight(0xFFFFFF, 0xFFFFFF, 0.5);
+        //const directionalLight = new THREE.DirectionalLight( 0xffffff, 0.8 );
+        const pointLight = new THREE.PointLight(0xffffff, 1, 0);
+        const pointLight2 = new THREE.PointLight(0xffffff, 1, 0);
+        //const pointLight3 = new THREE.PointLight(0xffffff, 1, 0);
+        //const pointLight4 = new THREE.PointLight(0xffffff, 1, 0);
+        //const spotLight = new THREE.SpotLight(0xffffff, 1, 0, Math.PI)
+        //directionalLight.position.set(50, 30, 50);
+        pointLight.position.set(50, 40, 100);
+        pointLight2.position.set(-50, 40, 100);
+        //pointLight3.position.set(-50, 10, -50);
+        //pointLight4.position.set(50, 10, -50);
+        //spotLight.position.set(50, 30, 50);
+        //scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
+        scene.add(ambientLight);
+        //scene.add(hemisphereLight);
+        //scene.add(directionalLight);        
+        scene.add(pointLight);
+        scene.add(pointLight2);
+        //scene.add(pointLight3);
+        //scene.add(pointLight4);
+        //scene.add(spotLight);        
 
-				scene.add( new THREE.HemisphereLight( 0x443333, 0x111122 ) );
-        const directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
-        directionalLight.position.set(0, 100, 0);
-        scene.add( directionalLight );
+        // Lights mesh (DEBUG purposes):
+        //const geometry = new THREE.SphereGeometry( 3, 16, 8 );
+        //const material = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+        //const sphere = new THREE.Mesh( geometry, material );
+        //const sphere2 = new THREE.Mesh( geometry, material );
+        //sphere.position.set(50, 40, 100);
+        //sphere2.position.set(-50, 40, 100);
+        //scene.add(sphere);
+        //scene.add(sphere2);
 
-				// renderer
+		// renderer
 
-				renderer = new THREE.WebGLRenderer( { antialias: true } );
-				renderer.setPixelRatio( window.devicePixelRatio );
-				renderer.setSize( window.innerWidth, window.innerHeight );
+		renderer = new THREE.WebGLRenderer( { antialias: true } );
+		renderer.setPixelRatio( window.devicePixelRatio );
+		renderer.setSize( window.innerWidth, window.innerHeight );
 
 
         controls = new OrbitControls( camera, renderer.domElement );
@@ -167,17 +225,30 @@
 				//camera.position.x = Math.sin( timer ) * 2.5;
 				//camera.position.z = Math.cos( timer ) * 2.5;
 
-				//camera.lookAt( cameraTarget );
+				//camera.lookAt( cameraTarget );     
 
 				renderer.render( scene, camera );
-
 			}
 
+      // barra 'selector', quando há modificação troca no array
       $('#selector').on("change", (evt) => {
-        const index = Number(evt.originalEvent.target.value) - 1;
+        sliderIndex = Number(evt.originalEvent.target.value) - 1;
         meshes.forEach(mesh => scene.remove(mesh));
-        scene.add(meshes[index]);
+        meshes[sliderIndex].material = material
+        scene.add(meshes[sliderIndex]);
       });
+
+      // modifica a variavel global de iluminacao quando clica no botao
+      $('#change-color').click(function(){
+        if(material == MATERIAL_COLORED)
+          material = MATERIAL_GREYSCALE;
+        else
+          material = MATERIAL_COLORED;
+                
+        meshes.forEach(mesh => scene.remove(mesh));
+        meshes[sliderIndex].material = material
+        scene.add(meshes[sliderIndex]);
+      })
 
       $("#file").on("change", function(evt) {
         if (!evt.target.files || evt.target.files.length === 0) {
@@ -192,6 +263,7 @@
           
             console.log(zip.files);
             meshes = Object.keys(zip.files).map(_ => null);
+            //meshes_greyscale = Object.keys(zip.files).map(_ => null);
             const N = meshes.length; // -1 = folder!
 
             $('#selector').attr('max', N);
@@ -207,17 +279,28 @@
                   var geometry = loader.parse(this.result);
                   geometry.computeBoundingSphere();
                   geometry.computeVertexNormals();
-                  var scale = 50 / geometry.boundingSphere.radius;
-                  console.log(geometry.boundingSphere)
-                  var mesh = new THREE.Mesh(geometry, material);
-                  mesh.scale.set(scale, scale, scale);
-                  mesh.rotateX(-Math.PI / 2);
-                  //mesh.position.addScaledVector(geometry.boundingSphere.center, -scale);
+                  var scale = 50 / geometry.boundingSphere.radius; 
+                  var mesh = new THREE.Mesh(geometry, MATERIAL_COLORED);                                    
+                  mesh.scale.set(scale*5, scale*5, scale*5);                  
+                  mesh.translateX(-200);
+                  mesh.translateY(1);
+                  mesh.rotateX(-Math.PI / 2);                  
                   mesh.matrixWorldNeedsUpdate = true;
+
+                  var mesh_greyscale = new THREE.Mesh(geometry, MATERIAL_GREYSCALE);
+                  mesh_greyscale.scale.set(scale*5, scale*5, scale*5);                  
+                  mesh_greyscale.translateX(-200);
+                  mesh_greyscale.translateY(1);
+                  mesh_greyscale.rotateX(-Math.PI / 2);                  
+                  mesh_greyscale.matrixWorldNeedsUpdate = true;
 
                   //scene.add(mesh);
                   console.log(index);
                   meshes[index] = mesh;
+
+                  meshes.forEach(mesh => scene.remove(mesh));
+                  meshes[sliderIndex].material = material
+                  scene.add(meshes[sliderIndex]);
                   
               };
               zipEntry.async("blob").then(function (content) { reader.readAsArrayBuffer(content); });
