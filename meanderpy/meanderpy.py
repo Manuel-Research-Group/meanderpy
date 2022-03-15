@@ -56,7 +56,7 @@ def update_progress(progress):
         progress = 1
         status = "Done...\r\n"
     block = int(round(barLength*progress))
-    text = "\rPercent: [{0}] {1}% {2}".format( "#"*block + "-"*(barLength-block), progress*100, status)
+    text = "\rPercent: [{}] {:.2f}% {}".format( "#"*block + "-"*(barLength-block), progress*100, status)
     sys.stdout.write(text)
     sys.stdout.flush()
 
@@ -370,9 +370,9 @@ class ChannelMapper:
 
     def create_maps(self, channel, basin):
         ch_map = self.create_ch_map(channel)
-        
-        cld_map = self.create_cld_map(channel)
-        md_map = self.create_md_map(channel)
+        # MANUEL's comments on these channel maps
+        cld_map = self.create_cld_map(channel)    # cld: centerline distance - distance from a point to the channel's centerline.
+        md_map = self.create_md_map(channel)      # md: margin distance - distance from a point to the channel's closest margin.
         cz_map = self.create_z_map(channel)
         bz_map = self.create_z_map(basin)
         sl_map = self.create_sl_map(basin)
@@ -382,7 +382,10 @@ class ChannelMapper:
 
         hw_inside[np.array(np.logical_not(ch_map).astype(bool))] = 0.0
         hw_outside[np.array(ch_map.astype(bool))] = 0.0
-        hw_map = hw_inside + hw_outside
+        hw_map = hw_inside + hw_outside            # hw: half width - half width of the channel (stored in all pixels, but it seems to stored 
+                                                   # values considering a cross section of the channel considering the closest point 
+                                                   # where the margin is perpendicular to the vector formed by that point and the pixel 
+                                                   # that stores the corresponding value)
 
         return (ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map)
 
@@ -811,6 +814,23 @@ class ChannelBelt:
             gr_s, sa_s, si_s = event.aggr_sigmas(sl_map)
             t_p = gr_p + sa_p + si_p
 
+            # MANUEL: modulate the aggradation mapps in the case of gravel and sand by Gaussians with standard 
+            #         deviations defined experimentally to avoid gravel and sand moving up walls of the channel.
+            #         This actually works as a way of implementing a smooth cutoff for the these material depositions.
+            #         The function gaussian_surface defines a Gaussian inside the channel, thus returning zero
+            #         only at the channels boarders. To force a quicker fall off (although only reaching zero at the channel's
+            #         boarder) we used these experimentally defined standard deviations when accumulating the results of aggradation. 
+            #         
+            STD_FOR_GRAVEL_FALL_OFF = 0.1   # EXPERIMENTALLY_DEFINED_STD_FOR_GRAVEL_FALL_OFF
+            STD_FOR_SAND_FALL_OFF   = 0.6   # EXPERIMENTALLY_DEFINED_STD_FOR_SAND_FALL_OFF       
+            gravel_surface += (gr_p / t_p) * aggr_map * gausian_surface(STD_FOR_GRAVEL_FALL_OFF, cld_map, hw_map)  # MANUEL
+            sand_surface   += (sa_p / t_p) * aggr_map * gausian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
+            silt_surface   += (si_p / t_p) * aggr_map
+            # ADDED by MANUEL to smooth the aggradation maps due to their low resolutions
+            gravel_surface = scipy.ndimage.gaussian_filter(gravel_surface, sigma = 10 / dx)
+            sand_surface   = scipy.ndimage.gaussian_filter(sand_surface, sigma = 10 / dx)
+            silt_surface   = scipy.ndimage.gaussian_filter(silt_surface, sigma = 10 / dx)
+
             gravel_surface += (gr_p / t_p) * aggr_map
             sand_surface += (sa_p / t_p) * aggr_map
             silt_surface += (si_p / t_p) * aggr_map
@@ -1159,7 +1179,7 @@ class ChannelBelt3D():
         for xIndex in range(0, sx):
             for yIndex in range(0, sy):
                 for zIndex in range(sz-1, 1, -1):
-                    if stratCp[yIndex,xIndex,zIndex-1] - stratCp[yIndex,xIndex,zIndex-2] < LAYER_THICKNESS_THRESHOLD:
+                    if (abs(stratCp[yIndex,xIndex,zIndex-1] - stratCp[yIndex,xIndex,zIndex-2]) < LAYER_THICKNESS_THRESHOLD):
                         stratCp[yIndex,xIndex,zIndex-1] = 0
                     else:
                         stratCp[yIndex,xIndex,zIndex-1] = 1
