@@ -30,6 +30,12 @@ GAMMA = 2.5  # from Ikeda et al., 1981 and Howard and Knutson, 1984
 K = 4.0 # constant in HK equation
 YEAR = 365*24*60*60.0
 
+# NUMBER_OF_LAYERS_PER_EVENT: number of materials plus 1. This extra 1 comes from the eroded surface before aggradation.
+# We then deposit (aggradate) a certain number of materials. For instance, when using gravel, sand and silt, the number of materials == 3.
+# When using gravel, gross sand, medium sand, fine sand, and silt, then number of materials == 5.
+# When using gravel, very gross sand, gross sand, medium sand, fine sand, very fine sand, and silt, then number of materials == 7.
+NUMBER_OF_LAYERS_PER_EVENT = 4
+
 def update_progress(progress):
     """progress bar from https://stackoverflow.com/questions/3160699/python-progress-bar
     update_progress() : Displays or updates a console progress bar
@@ -682,11 +688,9 @@ class ChannelBelt:
             channel.resample(self.ds)
             channel.refit(basin, event.ch_width, event.ch_depth)
             
-            if event.mode == 'INCISION':
-                #print('entrou no INCISION')
+            if event.mode == 'INCISION':                
                 basin.incise(event.dens, event.kv / YEAR, event.dt * YEAR)
-            if event.mode == 'AGGRADATION':
-                #print('entrou no AGGRADATION')
+            if event.mode == 'AGGRADATION':                
                 basin.aggradate(event.dens, event.kv / YEAR, event.dt * YEAR, event.aggr_factor)
 
             # número de canais = time stamp
@@ -767,8 +771,9 @@ class ChannelBelt:
 
         surface = bz_map
 
-        N = len(self.channels)
-        L = 3 + 1
+        N = len(self.channels) 
+        L = NUMBER_OF_LAYERS_PER_EVENT 
+
         topo = np.zeros((mapper.rheight, mapper.rwidth, N*L))
 
         print("numero canais (N): ", N)
@@ -1022,40 +1027,132 @@ class ChannelBelt3D():
     def close_to_any(self, a, floats, **kwargs):
         return np.any(np.isclose(a, floats, **kwargs))
 
+    def export_top_layer(self, structure, structure_colors, event_top_layer, number_layers_per_event, grid, top, filename, plant_view, \
+                        reduction = None, colored_mesh = True):
+
+        FLOAT_TO_INT_FACTOR = 1
+
+        sy, sx, sz = np.shape(structure) # sz contains the number of layers from strat
+        # Array containing the possible colors from strat        
+        colorCpInt = np.zeros([sy,sx])    
+            
+        # Stores information of the points and their colors of the first layer (top)
+        colorCpInt = np.zeros((sy,sx, 3))
+        for xIndex in range(0, sx):
+            for yIndex in range(0, sy):
+                #for zIndex in range(sz-1, 1, -1): # 0 is the bottom layer
+                for zIndex in range(event_top_layer, 0, -1): # 0 is the bottom layer
+                    if structure[yIndex,xIndex,zIndex] == 1:
+                        # Computes in colorIndex the correct layer color according to the following formula
+                        colorIndex = abs((zIndex % number_layers_per_event) - (number_layers_per_event-1))
+                        colorCpInt[yIndex,xIndex] = structure_colors[colorIndex]
+                        break
+
+        # Stores the data structure from points, colors and plant view
+        surfacePointList = []
+        colorPointList = []
+        cols, rows, channel = np.shape(colorCpInt)
+        topCp = top.copy()
+        topCp = np.reshape(topCp, (rows,cols,channel))                                    
+        for col in range(cols):
+            for row in range(rows):    
+                surfacePointList.append([topCp[row][col][0], topCp[row][col][1], topCp[row][col][2]])
+                colorPointList.append([colorCpInt[col][row][0], colorCpInt[col][row][1], colorCpInt[col][row][2]])
+                plant_view[col,row] = np.uint8(colorCpInt[col,row] * 255)
+        
+        im = Image.fromarray(plant_view)
+        im.save(filename + ".png")
+        
+        # Produce an PLY file with it's box already triangulated
+        bottom = grid.points.copy()                
+        bottom[:,-1] = self.zmin
+        grid.points = np.vstack((top, bottom))
+        grid.dimensions = [*grid.dimensions[0:2], 2]
+        plotter = pv.Plotter()
+        plotter.add_mesh(grid)#, scalars="colors", rgb=True) # add to scene                
+        plotter.export_obj(filename) # export two independent meshes: top and bottom            
+        data = trimesh.load(filename + '.obj', force='mesh') # load two triangle meshes: top and bottom                
+        vertices = data.vertices
+        faces = np.ones((data.faces.shape[0], data.faces.shape[1]+1)) * data.faces.shape[1]                
+        faces[:,1:] = data.faces
+        faces = np.hstack(faces).astype(int)
+        mesh = pv.PolyData(vertices, faces)            
+        if reduction is not None:
+            mesh.decimate(reduction)
+        mesh.save(filename + '.ply')
+
+        # Map the surface points (and their respective surface color points) to the block points, which have doubled the amount of points
+        # with a projection on XY axis. The idea is to associate each color from the surface with the new ordered block points. Due to the
+        # performance, instead of comparing both lists we converted the surface points (each point as [x,y,z]) to a dictionary composed by
+        # their math.ceil values. This may lead to some precision errors
+        surface_points = np.asarray(surfacePointList)
+        surface_colors = np.asarray(colorPointList)
+
+        mesh = o3d.io.read_triangle_mesh(filename + ".ply")
+        block_vertices = np.asarray(mesh.vertices)
+        block_triangles = np.asarray(mesh.triangles)
+
+        # Code to export the obj and ply surface mesh as a block with ground and walls with color
+        if colored_mesh:
+            # Create hash in surfaceDict to compare more efficiently "two lists" of elements
+            block_colors = np.zeros([len(block_vertices),3])
+            surfaceDict = {}
+            for event_top_layer in range(len(surface_points)):
+                x_str = str(math.ceil((surface_points[event_top_layer][0]*FLOAT_TO_INT_FACTOR)//1))
+                y_str = str(math.ceil((surface_points[event_top_layer][1]*FLOAT_TO_INT_FACTOR)//1))
+                z_str = str(math.ceil((surface_points[event_top_layer][2]*FLOAT_TO_INT_FACTOR)//1))
+                hash_aux = x_str + ',' + y_str + ',' + z_str
+                surfaceDict[hash_aux] = surface_colors[event_top_layer]
+
+            cont = 0
+            for v in block_vertices:                    
+                x_str = str(math.ceil((v[0]*FLOAT_TO_INT_FACTOR)//1))
+                y_str = str(math.ceil((v[1]*FLOAT_TO_INT_FACTOR)//1))
+                z_str = str(math.ceil((v[2]*FLOAT_TO_INT_FACTOR)//1))
+                hash_aux = x_str + ',' + y_str + ',' + z_str
+                if hash_aux in surfaceDict:
+                    block_colors[cont] = surfaceDict[hash_aux]
+                cont = cont + 1                
+            
+            self.generateTriangleMesh(block_vertices, block_triangles, block_colors, filename + '.ply')
+
+        # Code to export the obj and ply surface mesh as a block with ground and walls (Beuren's original mesh)
+        else:              
+            block_colors = np.zeros([len(block_vertices),3])
+            self.generateTriangleMesh(block_vertices, block_triangles, block_colors, filename + '.ply')
+
+
     '''
     Function to export the 3D meshes for each layer. Meshes are compressed as PLY files and compacted into a ZIP.    
     Inputs: self, zipname, reduction, colored_meshes: whether the mesh should be exported with their material colors, ve(vertical exaggeration)
     Output: ZIP file containing the models for each layer (names as model1.ply, model2.ply, etc)
     '''   
-    def export_objs(self, zipname = 'layers.zip', reduction = None, colored_mesh = True, ve = 3):
-        # Constants
-        NUMBER_OF_LAYERS_PER_EVENT = 4
-        LAYER_THICKNESS_THRESHOLD = 0.9 #1e-2
-        FLOAT_TO_INT_FACTOR = 1
+    def export_objs(self, top_event_layers_zipname = 'top_event_layers.zip', reduction = None, colored_mesh = True, ve = 3):
+        # Constants        
+        LAYER_THICKNESS_THRESHOLD = 0.9 #1e-2   
 
         SILT_COLOR = [51/255, 51/255, 0] # DARK GREEN - [0.2, 0.2, 0.0]
         SAND_COLOR = [255/255, 204/255, 0] # YELLOW - [1.0, 0.8, 0.0]
         GRAVEL_COLOR = [255/255, 102/255, 0] # ORANGE - [1.0, 0.4, 0.0]
         SUBSTRACT_COLOR = [192/255, 192/255, 192/255] # GRAY - [0.7529, 0.7529, 0.7529]
+
+        # Set the strat material colors to an array
+        strat_colors = np.array([SILT_COLOR, SAND_COLOR, GRAVEL_COLOR, SUBSTRACT_COLOR])     
         
         # dir contains the path of the temp directory, used to store the intermediate meshes
         dir = tempfile.mkdtemp()
         
         # strat: 3D numpy array of statigraphic surfaces (previously was named zz)
-        strat = topostrat(self.topo)        
+        strat = topostrat(self.topo)
 
         sy, sx, sz = np.shape(strat) # sz contains the number of layers from strat
 
         # Produce a list of 'sx' and 'sy' interpolated values from a given range
-        x = np.linspace(self.xmin, self.xmin + sx * self.dx, sx) 
+        x = np.linspace(self.xmin, self.xmin + sx * self.dx, sx)
         y = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
 
-        # Array containing the possible colors from strat
-        strat_colors = np.array([SILT_COLOR, SAND_COLOR, GRAVEL_COLOR, SUBSTRACT_COLOR])
-        colorCpInt = np.zeros([sy,sx])        
-
         # xx and yy form a grid (2D plane) according to x and y values
-        xx, yy = np.meshgrid(x, y)        
+        xx, yy = np.meshgrid(x, y)
         
         # For each adjacent strat layer compares their thickness, setting to 0 if they are very close and 1 otherwise
         stratCp = strat.copy()
@@ -1065,18 +1162,52 @@ class ChannelBelt3D():
                     if stratCp[yIndex,xIndex,zIndex-1] - stratCp[yIndex,xIndex,zIndex-2] < LAYER_THICKNESS_THRESHOLD:
                         stratCp[yIndex,xIndex,zIndex-1] = 0
                     else:
-                        stratCp[yIndex,xIndex,zIndex-1] = 1   
+                        stratCp[yIndex,xIndex,zIndex-1] = 1
 
                     #break
                 stratCp[yIndex,xIndex,sz-1] = 0
-
-        # Set the strat material colors to an array
-        strat_colors = np.array([SILT_COLOR, SAND_COLOR, GRAVEL_COLOR, SUBSTRACT_COLOR])
         
+        
+
+
+
+        ########################################################################
+        # Dennis: do the same with topo
+        tsy, tsx, tsz = np.shape(self.topo)
+        tx = np.linspace(self.xmin, self.xmin + tsx * self.dx, tsx) 
+        ty = np.linspace(self.ymin, self.ymin + tsy * self.dy, tsy)
+        txx, tyy = np.meshgrid(tx, ty)        
+        topoCp = self.topo.copy()
+
+        plant_view = np.uint8(np.zeros((sy,sx,3)))
+        mesh_iterator = 0
+        for event_top_layer in range(0, tsz):
+            update_progress(event_top_layer/tsz)            
+            #filename = 'model{}'.format(int(i/3) + 1) # local folder
+            filename = path.join(dir, '{}'.format((int)(event_top_layer) + 1)) # temp folder, all models
+            
+            # Produces a grid for the current z layer containing the points in grid.points
+            grid = pv.StructuredGrid(txx, tyy, topoCp[:,:,event_top_layer] * ve)
+
+            # top contains all the surface points for each layer
+            top = grid.points.copy()
+
+            # Export one mesh
+            self.export_top_layer(topoCp, strat_colors, event_top_layer, NUMBER_OF_LAYERS_PER_EVENT, grid, top, filename, plant_view, \
+                        reduction, colored_mesh=False)
+
+            mesh_iterator = mesh_iterator + 1
+
+        # Compact in a zip file all the ply files in filename folder
+        zipfile = path.join(dir, 'top_layers.zip')
+        zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
+        copyfile(zipfile, 'top_layers.zip')
+        ########################################################################
+
+        '''
         # Initializes the plant view of the channel for each of the layers.
         plant_view = np.uint8(np.zeros((sy,sx,3)))
         mesh_iterator = 0
-
         # Main loop to generate a mesh for each layer. The meshes are available in a zip file names i.ply.
         # For now, we have 4 layers in the following order: silt, sand, gravel and substract
         # Layer 0 corresponds to the initialized layer in the constructor of the channel belt
@@ -1091,111 +1222,47 @@ class ChannelBelt3D():
             # top contains all the surface points for each layer
             top = grid.points.copy()
 
-
-
-            # TODO: check whether the color layers are correct
-            
-            # Stores information of the points and their colors of the first layer (top)
-            colorCpInt = np.zeros((sy,sx, 3))
-            for xIndex in range(0, sx):
-                for yIndex in range(0, sy):
-                    #for zIndex in range(sz-1, 1, -1): # 0 is the bottom layer
-                    for zIndex in range(event_top_layer, 0, -1): # 0 is the bottom layer
-                        if stratCp[yIndex,xIndex,zIndex] == 1:
-                            # Computes in colorIndex the correct layer color according to the following formula
-                            colorIndex = abs((zIndex % NUMBER_OF_LAYERS_PER_EVENT) - (NUMBER_OF_LAYERS_PER_EVENT-1))
-                            colorCpInt[yIndex,xIndex] = strat_colors[colorIndex]
-                            break
-
-            # Stores the data structure from points, colors and plant view
-            surfacePointList = []
-            colorPointList = []
-            cols, rows, channel = np.shape(colorCpInt)
-            topCp = top.copy()
-            topCp = np.reshape(topCp, (rows,cols,channel))                                    
-            for col in range(cols):
-                for row in range(rows):    
-                    surfacePointList.append([topCp[row][col][0], topCp[row][col][1], topCp[row][col][2]])
-                    colorPointList.append([colorCpInt[col][row][0], colorCpInt[col][row][1], colorCpInt[col][row][2]])
-                    plant_view[col,row] = np.uint8(colorCpInt[col,row] * 255)
-            
-            im = Image.fromarray(plant_view)
-            im.save("plantView" + str(mesh_iterator+1) + ".png")
-
-            # DEBUG
-            #np.savetxt("surfacePointList.txt", np.asarray(surfacePointList), fmt="%.5f")
-            #np.savetxt("colorPointList.txt", np.asarray(colorPointList), fmt="%.5f")
-            
-            # Produce an PLY file with it's box already triangulated
-            bottom = grid.points.copy()                
-            bottom[:,-1] = self.zmin
-            grid.points = np.vstack((top, bottom))
-            grid.dimensions = [*grid.dimensions[0:2], 2]
-            plotter = pv.Plotter()
-            plotter.add_mesh(grid)#, scalars="colors", rgb=True) # add to scene                
-            plotter.export_obj(filename) # export two independent meshes: top and bottom            
-            data = trimesh.load(filename + '.obj', force='mesh') # load two triangle meshes: top and bottom                
-            vertices = data.vertices
-            faces = np.ones((data.faces.shape[0], data.faces.shape[1]+1)) * data.faces.shape[1]                
-            faces[:,1:] = data.faces
-            faces = np.hstack(faces).astype(int)
-            mesh = pv.PolyData(vertices, faces)            
-            if reduction is not None:
-                mesh.decimate(reduction)
-            mesh.save(filename + '.ply')
-
-            # Map the surface points (and their respective surface color points) to the block points, which have doubled the amount of points
-            # with a projection on XY axis. The idea is to associate each color from the surface with the new ordered block points. Due to the
-            # performance, instead of comparing both lists we converted the surface points (each point as [x,y,z]) to a dictionary composed by
-            # their math.ceil values. This may lead to some precision errors
-            surface_points = np.asarray(surfacePointList)
-            surface_colors = np.asarray(colorPointList)
-
-            mesh = o3d.io.read_triangle_mesh(filename + ".ply")
-            block_vertices = np.asarray(mesh.vertices)
-            block_triangles = np.asarray(mesh.triangles)
-
-            # Code to export the obj and ply surface mesh as a block with ground and walls with color
-            if colored_mesh:
-                # DEBUG
-                np.savetxt("channel_block.txt", np.asarray(block_vertices), fmt="%.5f")
-                
-                # Create hash in surfaceDict
-                block_colors = np.zeros([len(block_vertices),3])
-                surfaceDict = {}
-                for event_top_layer in range(len(surface_points)):
-                    x_str = str(math.ceil((surface_points[event_top_layer][0]*FLOAT_TO_INT_FACTOR)//1))
-                    y_str = str(math.ceil((surface_points[event_top_layer][1]*FLOAT_TO_INT_FACTOR)//1))
-                    z_str = str(math.ceil((surface_points[event_top_layer][2]*FLOAT_TO_INT_FACTOR)//1))
-                    hash_aux = x_str + ',' + y_str + ',' + z_str
-                    surfaceDict[hash_aux] = surface_colors[event_top_layer]
-
-                cont = 0
-                for v in block_vertices:                    
-                    x_str = str(math.ceil((v[0]*FLOAT_TO_INT_FACTOR)//1))
-                    y_str = str(math.ceil((v[1]*FLOAT_TO_INT_FACTOR)//1))
-                    z_str = str(math.ceil((v[2]*FLOAT_TO_INT_FACTOR)//1))
-                    hash_aux = x_str + ',' + y_str + ',' + z_str
-                    if hash_aux in surfaceDict:
-                        block_colors[cont] = surfaceDict[hash_aux]
-                    cont = cont + 1                
-                
-                self.generateTriangleMesh(block_vertices, block_triangles, block_colors, filename + '.ply')
-
-
-            # Code to export the obj and ply surface mesh as a block with ground and walls (Beuren's original mesh)
-            else:              
-                block_colors = np.zeros([len(block_vertices),3])
-                self.generateTriangleMesh(block_vertices, block_triangles, block_colors, filename + '.ply')
+            # Export one mesh
+            self.export_top_layer(stratCp, strat_colors, event_top_layer, NUMBER_OF_LAYERS_PER_EVENT, grid, top, filename, plant_view, \
+                        reduction, colored_mesh)            
 
             mesh_iterator = mesh_iterator + 1
 
-            #break # TO BE REMOVED: included to execute only the first layer
-
-        # Compact in a zip file all the ply files in filename folder. Results in two ply per layer (gray block and colored surface)        
-        zipfile = path.join(dir, zipname)
+        # Compact in a zip file all the ply files in filename folder
+        zipfile = path.join(dir, top_event_layers_zipname)
         zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
-        copyfile(zipfile, zipname)
+        copyfile(zipfile, top_event_layers_zipname)
+
+        # Compact in a zip file all the ply files in filename folder
+        zipfile = path.join(dir, 'plant_views.zip')
+        zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.png')
+        copyfile(zipfile, 'plant_views.zip')
+
+        # EXPORT ALL THE LAYERS OF THE FINAL MESH        
+        dir = tempfile.mkdtemp()
+        mesh_iterator = 0
+        for event_top_layer in range(sz-NUMBER_OF_LAYERS_PER_EVENT, sz):
+            update_progress(event_top_layer/sz)            
+            #filename = 'model{}'.format(int(i/3) + 1) # local folder
+            filename = path.join(dir, '{}'.format((int)(mesh_iterator) + 1)) # temp folder, all models
+            
+            # Produces a grid for the current z layer containing the points in grid.points
+            grid = pv.StructuredGrid(xx, yy, strat[:,:,event_top_layer] * ve)
+
+            # top contains all the surface points for each layer
+            top = grid.points.copy()
+
+            # Export one mesh
+            self.export_top_layer(stratCp, strat_colors, event_top_layer, NUMBER_OF_LAYERS_PER_EVENT, grid, top, filename, plant_view, \
+                        reduction, colored_mesh)
+
+            mesh_iterator = mesh_iterator + 1
+        
+        # Compact in a zip file all the ply files in filename folder
+        zipfile = path.join(dir, 'final_layers.zip')
+        zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
+        copyfile(zipfile, 'final_layers.zip')
+        '''
 
     def export(self, ve = 3):
         #np.savetxt('shape.txt',[sy, sx, sz],fmt='%.4f') # DEBUG
