@@ -5,6 +5,10 @@ import matplotlib.pyplot as plt
 import meanderpy as mp
 import numpy as np
 import json
+import tempfile # DENNIS
+from os import path, walk #DENNIS
+from zipfile import ZipFile # DENNIS
+from shutil import copyfile # DENNIS
 import sys
 
 ### FILES
@@ -193,6 +197,15 @@ def plot2D(x, y, title, ylabel):
   plt.ylabel(ylabel)
   plt.show()
 
+# DENNIS: function copied from meanderpy.py
+def zipFilesInDir(dirName, zipFileName, filter):
+    with ZipFile(zipFileName, 'w') as zipObj:
+        for (folderName, _, filenames) in walk(dirName):
+            for filename in filenames:
+                if filter(filename):
+                    filePath = path.join(folderName, filename)
+                    zipObj.write(filePath, filename)
+
 # MAIN
 
 channels_file = open(CHANNELS_FILE, 'r')
@@ -270,8 +283,7 @@ for evt in events_json:
 
 belt = mp.ChannelBelt(channel, basin)
 for i, event in enumerate(events):
-  print('Simulating event {} of {}'.format(i, len(events)))
-  print('len(channels) [0]: ', len(belt.channels))
+  print('Simulating event {} of {}'.format(i, len(events)))  
   belt.simulate(event)
 
 ### CONFIG
@@ -292,15 +304,30 @@ if len(cross_sections) > 0:
   print('Rendering {} cross-section images'.format(len(cross_sections)))
 
 # Variable introduced to show the cross sections
+# DENNIS: generate and organize the new matplotlib figures into a zip
+
 if show_sections:
+  cross_section_count = 0
+  temp_dir = tempfile.mkdtemp()
   for xsec in cross_sections:
+    #filename = path.join(temp_dir, '{}'.format((int)(cross_section_count)+1)) # temp folder, all models
+    filename = path.join(temp_dir, '{}'.format((int)(cross_section_count) + 1)) # temp folder, all models
+
     print('- Cross-section @ {}'.format(xsec))
     model.plot_xsection(
       xsec = xsec, 
       ve = ve, 
       title = title
     )
-    plt.show()
+    #plt.show()
+    # DENNIS: added to save the figures instead of just showing them in a separate window
+    plt.savefig(filename + '.pdf')
+    cross_section_count = cross_section_count + 1
+
+  # Compact in a zip file all the ply files in filename folder
+  zipfile = path.join(temp_dir, 'cross_sections.zip')
+  zipFilesInDir(temp_dir, zipfile, lambda fn: path.splitext(fn)[1] == '.pdf')
+  copyfile(zipfile, 'cross_sections.zip')
 
 if export:
   print('Exporting 3D model')

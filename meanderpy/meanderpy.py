@@ -665,8 +665,6 @@ class ChannelBelt:
         last_time = self.times[-1]
         event.start_time = last_time + event.dt
 
-        print('len(channels) [1]: ', len(self.channels))
-
         if len(self.events) == 0:
             channel = self.channels[0]
             basin = self.basins[0]
@@ -679,9 +677,7 @@ class ChannelBelt:
         channel = self.channels[-1].copy()
         basin = self.basins[-1].copy()
         last_time = self.times[-1]
-
-        #print(event.nit)
-        print('len(channels) [2]: ', len(self.channels))
+        
         for itn in range(1, event.nit+1):
             update_progress(itn/event.nit)
 
@@ -698,7 +694,7 @@ class ChannelBelt:
 
             # número de canais = time stamp
             if itn % event.saved_ts == 0:                
-                print("ITN: ", itn, " <space>.")
+                #print("ITN: ", itn, " <space>.")
                 self.times.append(last_time + (itn+1) * event.dt)
                 self.channels.append(channel.copy())
                 self.basins.append(basin.copy())
@@ -713,7 +709,7 @@ class ChannelBelt:
         self.events.append(event)        
         '''        
         
-        print("\n#times: ", len(self.times), " <space>.")
+        #print("\n#times: ", len(self.times), " <space>.")
 
     def plot_basin(self, evolution = True):
         fig, axis = plt.subplots(1, 1)
@@ -779,7 +775,7 @@ class ChannelBelt:
 
         topo = np.zeros((mapper.rheight, mapper.rwidth, N*L))
 
-        print("numero canais (N): ", N)
+        #print("numero canais (N): ", N)
 
         for i in range(0, N):
             update_progress(i/N)
@@ -1147,9 +1143,9 @@ class ChannelBelt3D():
     Inputs: self, zipname, reduction, colored_meshes: whether the mesh should be exported with their material colors, ve(vertical exaggeration)
     Output: ZIP file containing the models for each layer (names as model1.ply, model2.ply, etc)
     '''   
-    def export_objs(self, top_event_layers_zipname = 'top_event_layers.zip', reduction = None, colored_mesh = True, ve = 3):
+    def export_objs(self, top_event_layers_zipname = 'event_layers.zip', reduction = None, colored_mesh = True, ve = 3):
         # Constants        
-        LAYER_THICKNESS_THRESHOLD = 0.9 #1e-2   
+        LAYER_THICKNESS_THRESHOLD = 1e-1#0.9 #1e-2   
 
         SILT_COLOR = [51/255, 51/255, 0] # DARK GREEN - [0.2, 0.2, 0.0]
         SAND_COLOR = [255/255, 204/255, 0] # YELLOW - [1.0, 0.8, 0.0]
@@ -1186,13 +1182,10 @@ class ChannelBelt3D():
 
                     #break
                 stratCp[yIndex,xIndex,sz-1] = 0
-        
-        
-
-
 
         ########################################################################
-        # Dennis: do the same with topo
+        # Dennis: do the same with topo - deprecated
+        '''
         tsy, tsx, tsz = np.shape(self.topo)
         tx = np.linspace(self.xmin, self.xmin + tsx * self.dx, tsx) 
         ty = np.linspace(self.ymin, self.ymin + tsy * self.dy, tsy)
@@ -1219,12 +1212,12 @@ class ChannelBelt3D():
             mesh_iterator = mesh_iterator + 1
 
         # Compact in a zip file all the ply files in filename folder
-        zipfile = path.join(dir, 'top_layers.zip')
+        zipfile = path.join(dir, 'all_layer_final_simulation.zip')
         zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
-        copyfile(zipfile, 'top_layers.zip')
+        copyfile(zipfile, 'all_layer_final_simulation.zip')
         ########################################################################
-
         '''
+        
         # Initializes the plant view of the channel for each of the layers.
         plant_view = np.uint8(np.zeros((sy,sx,3)))
         mesh_iterator = 0
@@ -1282,7 +1275,7 @@ class ChannelBelt3D():
         zipfile = path.join(dir, 'final_layers.zip')
         zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
         copyfile(zipfile, 'final_layers.zip')
-        '''
+        
 
     def export(self, ve = 3):
         #np.savetxt('shape.txt',[sy, sx, sz],fmt='%.4f') # DEBUG
