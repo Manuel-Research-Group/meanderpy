@@ -768,7 +768,7 @@ class ChannelBelt:
         basin = self.basins[0]
         ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map = mapper.create_maps(channel, basin)
 
-        surface = bz_map
+        surface = bz_map # bz_map: altura do centro do canal explodido lateralmente
 
         N = len(self.channels) 
         L = NUMBER_OF_LAYERS_PER_EVENT 
@@ -781,8 +781,10 @@ class ChannelBelt:
             update_progress(i/N)
             event = self.events[i]
             # Last iteration 
-            aggr_map = bz_map - surface
-            aggr_map[aggr_map < 0] = 0
+            # aggr_map: qual parte do terreno está sofrendo aggradation
+            # surface: parte mais superior computada
+            aggr_map = bz_map - surface 
+            aggr_map[aggr_map < 0] = 0 
 
 
             # channel, centerline distance, channel z, basin z, slope, half width
@@ -827,16 +829,20 @@ class ChannelBelt:
             sand_surface   = scipy.ndimage.gaussian_filter(sand_surface, sigma = 10 / dx)
             silt_surface   = scipy.ndimage.gaussian_filter(silt_surface, sigma = 10 / dx)
 
+            '''
             gravel_surface += (gr_p / t_p) * aggr_map
             sand_surface += (sa_p / t_p) * aggr_map
             silt_surface += (si_p / t_p) * aggr_map
+            '''
 
             # CUTTING CHANNEL
             surface = scipy.ndimage.gaussian_filter(np.minimum(surface, channel_surface), sigma = 10 / dx)
 
             topo[:,:,i*L + 0] = surface
 
-            # DEPOSITING SEDIMENT
+            # DEPOSITING SEDIMENT - superfície acumula gravel + sand + silt
+            # Colocar isso com 7 camadas com condicionais (se proporção for zero não soma)
+            # TODO
             surface += gravel_surface
             topo[:,:,i*L + 1] = surface
             surface += sand_surface
@@ -1100,7 +1106,7 @@ class ChannelBelt3D():
         # Map the surface points (and their respective surface color points) to the block points, which have doubled the amount of points
         # with a projection on XY axis. The idea is to associate each color from the surface with the new ordered block points. Due to the
         # performance, instead of comparing both lists we converted the surface points (each point as [x,y,z]) to a dictionary composed by
-        # their math.ceil values. This may lead to some precision errors
+        # their math.ceil values. This may lead to some precision errors.
         surface_points = np.asarray(surfacePointList)
         surface_colors = np.asarray(colorPointList)
 
@@ -1251,7 +1257,7 @@ class ChannelBelt3D():
         zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.png')
         copyfile(zipfile, 'plant_views.zip')
 
-        # EXPORT ALL THE LAYERS OF THE FINAL MESH        
+        # EXPORT ALL THE LAYERS OF THE FINAL MESH
         dir = tempfile.mkdtemp()
         mesh_iterator = 0
         for event_top_layer in range(sz-NUMBER_OF_LAYERS_PER_EVENT, sz):
