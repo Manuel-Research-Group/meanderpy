@@ -108,7 +108,6 @@ DEFAULT_CONFIG_TITLE = ''
 DEFAULT_CONFIG_PREVIEW = False
 DEFAULT_CONFIG_RENDER = False
 DEFAULT_CONFIG_EXPORT = False
-DEFAULT_CONFIG_COLORED_MESH = False
 
 ### AUXILIAR FUNCTIONS
 def create_tabular_param(param):
@@ -295,7 +294,6 @@ show_sections = config_json.get('show_sections', DEFAULT_CONFIG_SHOW_SECTIONS)
 title = config_json.get('title', DEFAULT_CONFIG_TITLE)
 render = config_json.get('render', DEFAULT_CONFIG_RENDER)
 export = config_json.get('export', DEFAULT_CONFIG_EXPORT)
-colored_mesh = config_json.get('colored_mesh', DEFAULT_CONFIG_COLORED_MESH)
 
 print('Building 3D model using {} meters grid'.format(grid))
 model = belt.build_3d_model(grid, margin)
@@ -322,16 +320,22 @@ if show_sections:
     #plt.show()
     # DENNIS: added to save the figures instead of just showing them in a separate window
     plt.savefig(filename + '.pdf')
+    plt.savefig(filename + '.svg')
     cross_section_count = cross_section_count + 1
 
-  # Compact in a zip file all the ply files in filename folder
-  zipfile = path.join(temp_dir, 'cross_sections.zip')
+  # Compact in a zip file all the PDF files in filename folder
+  zipfile = path.join(temp_dir, 'cross_sections_PDF.zip')
   zipFilesInDir(temp_dir, zipfile, lambda fn: path.splitext(fn)[1] == '.pdf')
-  copyfile(zipfile, 'cross_sections.zip')
+  copyfile(zipfile, 'cross_sections_PDF.zip')
+
+  # Compact in a zip file all the SVG files in filename folder
+  zipfile = path.join(temp_dir, 'cross_sections_SVG.zip')
+  zipFilesInDir(temp_dir, zipfile, lambda fn: path.splitext(fn)[1] == '.svg')
+  copyfile(zipfile, 'cross_sections_SVG.zip')
 
 if export:
   print('Exporting 3D model')
-  model.export_objs(ve = ve, colored_mesh = colored_mesh)
+  model.export_objs(ve = ve)
 
 if render:
   print('Rendering 3D model')

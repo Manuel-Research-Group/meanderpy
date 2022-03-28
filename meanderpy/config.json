@@ -7,6 +7,5 @@
   "render": false,
   "preview": false,
   "title": "TITLE",
-  "export": true,
-  "colored_mesh": true
+  "export": true  
 }

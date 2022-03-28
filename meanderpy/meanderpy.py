@@ -1149,7 +1149,7 @@ class ChannelBelt3D():
     Inputs: self, zipname, reduction, colored_meshes: whether the mesh should be exported with their material colors, ve(vertical exaggeration)
     Output: ZIP file containing the models for each layer (names as model1.ply, model2.ply, etc)
     '''   
-    def export_objs(self, top_event_layers_zipname = 'event_layers.zip', reduction = None, colored_mesh = True, ve = 3):
+    def export_objs(self, top_event_layers_zipname = 'event_layers.zip', reduction = None, ve = 3):
         # Constants        
         LAYER_THICKNESS_THRESHOLD = 1e-1#0.9 #1e-2   
 
@@ -1188,41 +1188,6 @@ class ChannelBelt3D():
 
                     #break
                 stratCp[yIndex,xIndex,sz-1] = 0
-
-        ########################################################################
-        # Dennis: do the same with topo - deprecated
-        '''
-        tsy, tsx, tsz = np.shape(self.topo)
-        tx = np.linspace(self.xmin, self.xmin + tsx * self.dx, tsx) 
-        ty = np.linspace(self.ymin, self.ymin + tsy * self.dy, tsy)
-        txx, tyy = np.meshgrid(tx, ty)        
-        topoCp = self.topo.copy()
-
-        plant_view = np.uint8(np.zeros((sy,sx,3)))
-        mesh_iterator = 0
-        for event_top_layer in range(0, tsz):
-            update_progress(event_top_layer/tsz)            
-            #filename = 'model{}'.format(int(i/3) + 1) # local folder
-            filename = path.join(dir, '{}'.format((int)(event_top_layer) + 1)) # temp folder, all models
-            
-            # Produces a grid for the current z layer containing the points in grid.points
-            grid = pv.StructuredGrid(txx, tyy, topoCp[:,:,event_top_layer] * ve)
-
-            # top contains all the surface points for each layer
-            top = grid.points.copy()
-
-            # Export one mesh
-            self.export_top_layer(topoCp, strat_colors, event_top_layer, NUMBER_OF_LAYERS_PER_EVENT, grid, top, filename, plant_view, \
-                        reduction, colored_mesh=False)
-
-            mesh_iterator = mesh_iterator + 1
-
-        # Compact in a zip file all the ply files in filename folder
-        zipfile = path.join(dir, 'all_layer_final_simulation.zip')
-        zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
-        copyfile(zipfile, 'all_layer_final_simulation.zip')
-        ########################################################################
-        '''
         
         # Initializes the plant view of the channel for each of the layers.
         plant_view = np.uint8(np.zeros((sy,sx,3)))
@@ -1243,7 +1208,7 @@ class ChannelBelt3D():
 
             # Export one mesh
             self.export_top_layer(stratCp, strat_colors, event_top_layer, NUMBER_OF_LAYERS_PER_EVENT, grid, top, filename, plant_view, \
-                        reduction, colored_mesh)            
+                        reduction)            
 
             mesh_iterator = mesh_iterator + 1
 
@@ -1273,7 +1238,7 @@ class ChannelBelt3D():
 
             # Export one mesh
             self.export_top_layer(stratCp, strat_colors, event_top_layer, NUMBER_OF_LAYERS_PER_EVENT, grid, top, filename, plant_view, \
-                        reduction, colored_mesh)
+                        reduction)
 
             mesh_iterator = mesh_iterator + 1
         

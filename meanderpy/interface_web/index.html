@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<style>
+    body {
+        font: 18px arial;
+        position: relative;                
+    }
+
+    /* Tooltip container */
+    .tooltip {
+        position: relative;
+        display: inline-block;
+        border-bottom: 1px dotted black;        
+    }
+
+    /* Tooltip text */
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        padding: 5px 0;
+        border-radius: 6px;        
+        position: absolute;
+        z-index: 1;
+    }
+
+    /* Show the tooltip text when you mouse over the tooltip container */
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+    }    
+
+    .topnav {
+        overflow: hidden;
+        background-color: #333;
+    }
+
+    .topnav a {
+        float: left;
+        color: #f2f2f2;
+        text-align: center;
+        padding: 14px 16px;
+        text-decoration: none;
+        font-size: 17px;
+    }
+
+    .topnav a:hover {
+        background-color: #ddd;
+        color: black;
+    }
+
+    .topnav a.active {
+        background-color: #04AA6D;
+        color: white;
+    }
+
+</style> 
+
+<head>
+    <title>Turbidite Channel Customization - Home</title>
+    <script src="https://code.jquery.com/jquery-3.5.0.js"></script>
+</head>
+
+<body>
+    <div class="topnav">
+        <a class="active" href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/">Home</a>
+        <a href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/channels">Channel Profile</a>
+        <a href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/config">Channel Configuration</a>
+        <a href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/events">Channel Events</a>
+    </div>
+    <h1>Turbidite Channel Configuration</h1> 
+    <ul>
+        <li><b>Channel Profile:</b> customize the channel sinuosity and slope through a graphic interface.</li>
+        <li><b>Channel Configuration:</b> customize the general channel properties.</li>
+        <li><b>Channel Events:</b> customize the channel events.</li>        
+    </ul>  
+    <h2>Downloads:</h2> 
+    &emsp;&emsp;<a href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/turbiditeSimulator.zip">Turbidite Channel Simulator Installer</a>
+    &emsp;&emsp;&emsp;<a href="https://git-scm.com/download/win">Git Installer for Windows</a>
+    &emsp;&emsp;&emsp;<a href="https://www.python.org/downloads">Python Installer for Windows</a>
+    &emsp;&emsp;&emsp;<a href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/turbiditeChannel.zip">Interface for Turbidite Channel Configuration (for local use, optional)</a>
+</body>
+</html>
