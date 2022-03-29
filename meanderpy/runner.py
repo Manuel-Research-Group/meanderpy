@@ -105,7 +105,7 @@ DEFAULT_CONFIG_MARGIN = 500
 DEFAULT_CONFIG_CROSS_SECTIONS = []
 DEFAULT_CONFIG_SHOW_SECTIONS = False
 DEFAULT_CONFIG_TITLE = ''
-DEFAULT_CONFIG_PREVIEW = False
+DEFAULT_CONFIG_PREVIEW = True
 DEFAULT_CONFIG_RENDER = False
 DEFAULT_CONFIG_EXPORT = False
 
@@ -291,6 +291,7 @@ grid = config_json.get('dxdy', DEFAULT_CONFIG_GRID)
 margin = config_json.get('margin', DEFAULT_CONFIG_MARGIN)
 cross_sections = config_json.get('cross_sections', DEFAULT_CONFIG_CROSS_SECTIONS)
 show_sections = config_json.get('show_sections', DEFAULT_CONFIG_SHOW_SECTIONS)
+preview = config_json.get('preview', DEFAULT_CONFIG_PREVIEW)
 title = config_json.get('title', DEFAULT_CONFIG_TITLE)
 render = config_json.get('render', DEFAULT_CONFIG_RENDER)
 export = config_json.get('export', DEFAULT_CONFIG_EXPORT)
