@@ -1035,14 +1035,15 @@ class ChannelBelt3D():
             
         return boxPointList, boxColorList
 
-    def generateTriangleMesh(self, vertices, faces, colors, fileNameOut='out.ply'):
+    def generateTriangleMesh(self, vertices, faces, colors, fileNameOut='out.ply', coloredMesh=True):
         mesh = o3d.geometry.TriangleMesh()
         
         mesh.vertices = o3d.utility.Vector3dVector(vertices)
         mesh.triangles = o3d.utility.Vector3iVector(faces)
-        mesh.vertex_colors = o3d.utility.Vector3dVector(colors)
+        if coloredMesh:
+            mesh.vertex_colors = o3d.utility.Vector3dVector(colors)
         
-        o3d.io.write_triangle_mesh(fileNameOut, mesh)
+        o3d.io.write_triangle_mesh(fileNameOut, mesh, write_vertex_colors=coloredMesh, compressed=True)
 
     # Function to compare a float with a list of floats in numpy
     # Extracted from https://stackoverflow.com/questions/55239065/checking-if-a-specific-float-value-is-in-list-array-in-python-numpy
@@ -1050,7 +1051,7 @@ class ChannelBelt3D():
         return np.any(np.isclose(a, floats, **kwargs))
 
     def export_top_layer(self, structure, structure_colors, event_top_layer, number_layers_per_event, grid, top, filename, plant_view, \
-                        reduction = None, colored_mesh = True):
+                        reduction = None, colored_mesh = False):
 
         FLOAT_TO_INT_FACTOR = 1
 
@@ -1136,12 +1137,12 @@ class ChannelBelt3D():
                     block_colors[cont] = surfaceDict[hash_aux]
                 cont = cont + 1                
             
-            self.generateTriangleMesh(block_vertices, block_triangles, block_colors, filename + '.ply')
+            self.generateTriangleMesh(block_vertices, block_triangles, block_colors, filename + '.ply', coloredMesh=True)
 
         # Code to export the obj and ply surface mesh as a block with ground and walls (Beuren's original mesh)
         else:              
             block_colors = np.zeros([len(block_vertices),3])
-            self.generateTriangleMesh(block_vertices, block_triangles, block_colors, filename + '.ply')
+            self.generateTriangleMesh(block_vertices, block_triangles, block_colors, filename + '.ply', coloredMesh=False)
 
 
     '''
@@ -1208,7 +1209,7 @@ class ChannelBelt3D():
 
             # Export one mesh
             self.export_top_layer(stratCp, strat_colors, event_top_layer, NUMBER_OF_LAYERS_PER_EVENT, grid, top, filename, plant_view, \
-                        reduction)            
+                        reduction, colored_mesh=False)            
 
             mesh_iterator = mesh_iterator + 1
 
@@ -1238,7 +1239,7 @@ class ChannelBelt3D():
 
             # Export one mesh
             self.export_top_layer(stratCp, strat_colors, event_top_layer, NUMBER_OF_LAYERS_PER_EVENT, grid, top, filename, plant_view, \
-                        reduction)
+                        reduction, colored_mesh = False)
 
             mesh_iterator = mesh_iterator + 1
         

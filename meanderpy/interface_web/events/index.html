@@ -157,62 +157,12 @@
             <label for="number_layers"><b>Number of layers (G: Gravel, S: Sand, M: Mud):</b></label> <br /> <br />
             &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
             <input type="radio" id="number_layer_3" name="number_layers" checked />
-            <label for="number_layers">3 (Gr, MS, M)</label> <br /> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+            <label for="number_layers">3 (G, MS, M)</label> <br /> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
             <input type="radio" id="number_layer_5" name="number_layers" />
-            <label for="number_layers">5 (Gr, CS, MS, FS, M)</label> <br /> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+            <label for="number_layers">5 (G, CS, MS, FS, M)</label> <br /> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
             <input type="radio" id="number_layer_7" name="number_layers" />
-            <label for="number_layers">7 (Gr, VCS, CS, MS, FS, VFS, M)</label> <br /> <br />
+            <label for="number_layers">7 (G, VCS, CS, MS, FS, VFS, M)</label> <br /> <br />
 
-
-            <label for="dep_props"><b>Layer deposition (%):</b></label> <br />
-            <div class="number_layers_info"></div><br />
-            <div id="div_dep_props">
-                <label for="dep_props_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
-                <label for="dep_props_values">Values:</label>
-                <input type="text" id="dep_props_values0" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
-                <label for="dep_props_slope">Slope: -4º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
-                <label for="dep_props_values">Values:</label>
-                <input type="text" id="dep_props_values1" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
-                <label for="dep_props_slope">Slope: -3º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
-                <label for="dep_props_values">Values:</label>
-                <input type="text" id="dep_props_values2" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
-                <label for="dep_props_slope">Slope: -2º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
-                <label for="dep_props_values">Values:</label>
-                <input type="text" id="dep_props_values3" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
-                <label for="dep_props_slope">Slope: -1º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
-                <label for="dep_props_values">Values:</label>
-                <input type="text" id="dep_props_values4" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
-                <label for="dep_props_slope">Slope: 0º</label> &nbsp; &emsp; &emsp; &emsp; &emsp; &emsp; &nbsp; &nbsp;
-                <label for="dep_props_values">Values:</label>
-                <input type="text" id="dep_props_values5" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
-            </div> <br /> <br />
-
-            <label for="dep_sigmas"><b>Gaussian standard deviation of deposition per layer (%):</b></label> <br />
-            <div class="number_layers_info"></div> <br />
-            <div id="div_dep_sigmas">
-                <label for="dep_sigmas_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
-                <label for="dep_sigmas_values">Values:</label>
-                <input type="text" id="dep_sigmas_values0" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
-                <label for="dep_sigmas_slope">Slope: -4º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
-                <label for="dep_sigmas_values">Values:</label>
-                <input type="text" id="dep_sigmas_values1" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
-                <label for="dep_sigmas_slope">Slope: -3º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
-                <label for="dep_sigmas_values">Values:</label>
-                <input type="text" id="dep_sigmas_values2" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
-                <label for="dep_sigmas_slope">Slope: -2º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
-                <label for="dep_sigmas_values">Values:</label>
-                <input type="text" id="dep_sigmas_values3" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
-                <label for="dep_sigmas_slope">Slope: -1º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
-                <label for="dep_sigmas_values">Values:</label>
-                <input type="text" id="dep_sigmas_values4" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
-                <label for="dep_sigmas_slope">Slope: 0º</label> &nbsp; &emsp; &emsp; &emsp; &emsp; &emsp; &nbsp; &nbsp;
-                <label for="dep_sigmas_values">Values:</label>
-                <input type="text" id="dep_sigmas_values5" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
-            </div> <br /><br />
-        </div>
-
-        <div class="column2">
-            <br /><br /><br />
             <div class="aggr_properties">
                 <label for="aggr_props"><b>Aggradation per layer (%):</b></label> <br />
                 <div class="number_layers_info"></div> <br />
@@ -269,6 +219,57 @@
                 </div>
                 <br /><br />
             </div>
+            
+        </div>
+
+        <div class="column2">
+            <br /><br /><br />
+            
+            <label for="dep_props"><b>Layer deposition (%):</b></label> <br />
+            <div class="number_layers_info"></div><br />
+            <div id="div_dep_props">
+                <label for="dep_props_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                <label for="dep_props_values">Values:</label>
+                <input type="text" id="dep_props_values0" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
+                <label for="dep_props_slope">Slope: -4º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                <label for="dep_props_values">Values:</label>
+                <input type="text" id="dep_props_values1" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
+                <label for="dep_props_slope">Slope: -3º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                <label for="dep_props_values">Values:</label>
+                <input type="text" id="dep_props_values2" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
+                <label for="dep_props_slope">Slope: -2º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                <label for="dep_props_values">Values:</label>
+                <input type="text" id="dep_props_values3" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
+                <label for="dep_props_slope">Slope: -1º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                <label for="dep_props_values">Values:</label>
+                <input type="text" id="dep_props_values4" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
+                <label for="dep_props_slope">Slope: 0º</label> &nbsp; &emsp; &emsp; &emsp; &emsp; &emsp; &nbsp; &nbsp;
+                <label for="dep_props_values">Values:</label>
+                <input type="text" id="dep_props_values5" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
+            </div> <br /> <br />
+
+            <label for="dep_sigmas"><b>Gaussian standard deviation of deposition per layer (%):</b></label> <br />
+            <div class="number_layers_info"></div> <br />
+            <div id="div_dep_sigmas">
+                <label for="dep_sigmas_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                <label for="dep_sigmas_values">Values:</label>
+                <input type="text" id="dep_sigmas_values0" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                <label for="dep_sigmas_slope">Slope: -4º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                <label for="dep_sigmas_values">Values:</label>
+                <input type="text" id="dep_sigmas_values1" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                <label for="dep_sigmas_slope">Slope: -3º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                <label for="dep_sigmas_values">Values:</label>
+                <input type="text" id="dep_sigmas_values2" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                <label for="dep_sigmas_slope">Slope: -2º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                <label for="dep_sigmas_values">Values:</label>
+                <input type="text" id="dep_sigmas_values3" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                <label for="dep_sigmas_slope">Slope: -1º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                <label for="dep_sigmas_values">Values:</label>
+                <input type="text" id="dep_sigmas_values4" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                <label for="dep_sigmas_slope">Slope: 0º</label> &nbsp; &emsp; &emsp; &emsp; &emsp; &emsp; &nbsp; &nbsp;
+                <label for="dep_sigmas_values">Values:</label>
+                <input type="text" id="dep_sigmas_values5" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
+            </div> <br /><br />
 
             <button onclick="generateEvent(); ">Create Event</button> <button onclick="removeLastEvent(); ">Remove Last
                 Event</button> <button onclick="saveEvents(); ">Save Events</button><br /><br /><br />
