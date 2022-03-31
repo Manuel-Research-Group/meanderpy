@@ -24,6 +24,7 @@ from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
 import open3d as o3d
 import math
+import ply # Script to read and write PLY files
 
 OMEGA = -1.0 # constant in curvature calculation (Howard and Knutson, 1984)
 GAMMA = 2.5  # from Ikeda et al., 1981 and Howard and Knutson, 1984
@@ -1044,6 +1045,11 @@ class ChannelBelt3D():
             mesh.vertex_colors = o3d.utility.Vector3dVector(colors)
         
         o3d.io.write_triangle_mesh(fileNameOut, mesh, write_vertex_colors=coloredMesh, compressed=True)
+
+        # TODO: check if the colors are still working (are they being saved?) in the model
+        # New code for saving/overwriting a new PLY file with float32 instead of double (64)
+        model = ply.read_ply(fileNameOut)
+        ply.write_ply(fileNameOut, points=model["points"], mesh=model["mesh"])
 
     # Function to compare a float with a list of floats in numpy
     # Extracted from https://stackoverflow.com/questions/55239065/checking-if-a-specific-float-value-is-in-list-array-in-python-numpy
