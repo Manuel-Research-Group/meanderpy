@@ -3,9 +3,9 @@
   "dxdy": 25,
   "margin": 500,
   "cross_sections": [0.01, 0.2, 0.4, 0.6, 0.8],
-  "show_sections": true,
+  "show_sections": false,
   "render": false,
-  "preview": true,
+  "preview": false,
   "title": "TITLE",
   "export": true  
 }

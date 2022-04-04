@@ -1,6 +1,6 @@
 [
   { 
-    "nit": 75, 
+    "nit": 25, 
     "saved_ts": 25, 
     "dt": 0.1,
     "mode": "AGGRADATION", 
@@ -69,7 +69,7 @@
     ]
   },
   { 
-    "nit": 75, 
+    "nit": 50, 
     "saved_ts": 25, 
     "mode": "INCISION", 
     "kv": 0.002,
