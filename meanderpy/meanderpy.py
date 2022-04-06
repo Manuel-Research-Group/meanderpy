@@ -506,7 +506,8 @@ def erosional_surface(cld_map, z_map, hw_map, cd_map):
     return cd_map * ((cld_map / hw_map) ** 2 - 1) + z_map
 
 def gausian_surface(sigma_map, cld_map, hw_map):
-    return np.exp(- 1 / 2 * ((cld_map / hw_map) / sigma_map) ** 2)
+    epsilon = 1e-10
+    return np.exp(- 1 / 2 * ((cld_map / (hw_map+epsilon)) / (sigma_map)) ** 2)
 
 class ChannelEvent:
     '''
@@ -805,8 +806,9 @@ class ChannelBelt:
             gr_s, sa_s, si_s = event.dep_sigmas(sl_map)
             t_p = gr_p + sa_p + si_p
 
-            gravel_surface = (gr_p / t_p) * dh_map * gausian_surface(gr_s, cld_map, hw_map)
-            sand_surface = (sa_p / t_p) * dh_map * gausian_surface(sa_s, cld_map, hw_map)
+            #print('gr: ', gr_s)                        
+            gravel_surface = (gr_p / t_p) * dh_map * gausian_surface(gr_s, cld_map, hw_map)            
+            sand_surface = (sa_p / t_p) * dh_map * gausian_surface(sa_s, cld_map, hw_map)            
             silt_surface = (si_p / t_p) * dh_map * gausian_surface(si_s, cld_map, hw_map)
 
             gr_p, sa_p, si_p = event.aggr_props(sl_map)
@@ -1048,8 +1050,8 @@ class ChannelBelt3D():
 
         # TODO: check if the colors are still working (are they being saved?) in the model
         # New code for saving/overwriting a new PLY file with float32 instead of double (64)
-        model = ply.read_ply(fileNameOut)
-        ply.write_ply(fileNameOut, points=model["points"], mesh=model["mesh"])
+        #model = ply.read_ply(fileNameOut)
+        #ply.write_ply(fileNameOut, points=model["points"], mesh=model["mesh"])
 
     # Function to compare a float with a list of floats in numpy
     # Extracted from https://stackoverflow.com/questions/55239065/checking-if-a-specific-float-value-is-in-list-array-in-python-numpy

@@ -317,7 +317,7 @@ if show_sections:
       xsec = xsec, 
       ve = ve, 
       title = title
-    )
+    )    
     #plt.show()
     # DENNIS: added to save the figures instead of just showing them in a separate window
     plt.savefig(filename + '.pdf')
