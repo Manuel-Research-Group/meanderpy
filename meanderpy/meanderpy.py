@@ -1038,6 +1038,20 @@ class ChannelBelt3D():
             
         return boxPointList, boxColorList
 
+    # Generates a new PLY file containing the x,y,z coordinates in float instead of double
+    def reducePlySize(self, inFileName, outFileName):
+        try:
+            # First part: read (and write) the ply header as text file
+            with open(inFileName, "r") as inFile:
+                with open(outFileName, "w") as outFile:
+                    line = ''
+                    while(line != 'end_header\n'):
+                        if(line == 'property double x'):
+                            print('line')                        
+
+        except IOError:
+            print("Error. Could not read file ", inFileName)
+
     def generateTriangleMesh(self, vertices, faces, colors, fileNameOut='out.ply', coloredMesh=True):
         mesh = o3d.geometry.TriangleMesh()
         
@@ -1047,11 +1061,17 @@ class ChannelBelt3D():
             mesh.vertex_colors = o3d.utility.Vector3dVector(colors)
         
         o3d.io.write_triangle_mesh(fileNameOut, mesh, write_vertex_colors=coloredMesh, compressed=True)
-
-        # TODO: check if the colors are still working (are they being saved?) in the model
+        
         # New code for saving/overwriting a new PLY file with float32 instead of double (64)
+<<<<<<< HEAD
         #model = ply.read_ply(fileNameOut)
         #ply.write_ply(fileNameOut, points=model["points"], mesh=model["mesh"])
+=======
+        # PROBLEM: NOT WORKING WITH THE ORIGINAL COLORS
+        #model = ply.read_ply(fileNameOut)
+        #ply.write_ply(fileNameOut, points=model["points"], mesh=model["mesh"])
+        self.reducePlySize('4.ply', '4_OUT.ply')
+>>>>>>> 22b93f20218d0ad0c93cb645ed7404fbc7fb70fe
 
     # Function to compare a float with a list of floats in numpy
     # Extracted from https://stackoverflow.com/questions/55239065/checking-if-a-specific-float-value-is-in-list-array-in-python-numpy
