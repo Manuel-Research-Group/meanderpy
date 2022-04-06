@@ -1063,15 +1063,12 @@ class ChannelBelt3D():
         o3d.io.write_triangle_mesh(fileNameOut, mesh, write_vertex_colors=coloredMesh, compressed=True)
         
         # New code for saving/overwriting a new PLY file with float32 instead of double (64)
-<<<<<<< HEAD
         #model = ply.read_ply(fileNameOut)
         #ply.write_ply(fileNameOut, points=model["points"], mesh=model["mesh"])
-=======
         # PROBLEM: NOT WORKING WITH THE ORIGINAL COLORS
         #model = ply.read_ply(fileNameOut)
         #ply.write_ply(fileNameOut, points=model["points"], mesh=model["mesh"])
         self.reducePlySize('4.ply', '4_OUT.ply')
->>>>>>> 22b93f20218d0ad0c93cb645ed7404fbc7fb70fe
 
     # Function to compare a float with a list of floats in numpy
     # Extracted from https://stackoverflow.com/questions/55239065/checking-if-a-specific-float-value-is-in-list-array-in-python-numpy
@@ -1079,7 +1076,7 @@ class ChannelBelt3D():
         return np.any(np.isclose(a, floats, **kwargs))
 
     def export_top_layer(self, structure, structure_colors, event_top_layer, number_layers_per_event, grid, top, filename, plant_view, \
-                        reduction = None, colored_mesh = False):
+                        reduction = None, colored_mesh = True):
 
         FLOAT_TO_INT_FACTOR = 1
 
@@ -1237,7 +1234,7 @@ class ChannelBelt3D():
 
             # Export one mesh
             self.export_top_layer(stratCp, strat_colors, event_top_layer, NUMBER_OF_LAYERS_PER_EVENT, grid, top, filename, plant_view, \
-                        reduction, colored_mesh=False)            
+                        reduction, colored_mesh = True)            
 
             mesh_iterator = mesh_iterator + 1
 
@@ -1267,7 +1264,7 @@ class ChannelBelt3D():
 
             # Export one mesh
             self.export_top_layer(stratCp, strat_colors, event_top_layer, NUMBER_OF_LAYERS_PER_EVENT, grid, top, filename, plant_view, \
-                        reduction, colored_mesh = False)
+                        reduction, colored_mesh = True)
 
             mesh_iterator = mesh_iterator + 1
         

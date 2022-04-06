@@ -1,0 +1,14 @@
+{
+  "ve": 1,
+  "dxdy": 25,
+  "margin": 500,
+  "cross_sections": [
+    0.1,
+    0.4,
+    0.7
+  ],
+  "render": false,
+  "preview": false,
+  "title": "Title",
+  "export": true
+}
