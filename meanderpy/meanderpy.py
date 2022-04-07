@@ -25,6 +25,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import open3d as o3d
 import math
 import ply # Script to read and write PLY files
+import struct
+import os
 
 OMEGA = -1.0 # constant in curvature calculation (Howard and Knutson, 1984)
 GAMMA = 2.5  # from Ikeda et al., 1981 and Howard and Knutson, 1984
@@ -506,8 +508,7 @@ def erosional_surface(cld_map, z_map, hw_map, cd_map):
     return cd_map * ((cld_map / hw_map) ** 2 - 1) + z_map
 
 def gausian_surface(sigma_map, cld_map, hw_map):
-    epsilon = 1e-10
-    return np.exp(- 1 / 2 * ((cld_map / (hw_map+epsilon)) / (sigma_map)) ** 2)
+    return np.exp(- 1 / 2 * ((cld_map / hw_map) / sigma_map) ** 2)
 
 class ChannelEvent:
     '''
@@ -806,9 +807,8 @@ class ChannelBelt:
             gr_s, sa_s, si_s = event.dep_sigmas(sl_map)
             t_p = gr_p + sa_p + si_p
 
-            #print('gr: ', gr_s)                        
-            gravel_surface = (gr_p / t_p) * dh_map * gausian_surface(gr_s, cld_map, hw_map)            
-            sand_surface = (sa_p / t_p) * dh_map * gausian_surface(sa_s, cld_map, hw_map)            
+            gravel_surface = (gr_p / t_p) * dh_map * gausian_surface(gr_s, cld_map, hw_map)
+            sand_surface = (sa_p / t_p) * dh_map * gausian_surface(sa_s, cld_map, hw_map)
             silt_surface = (si_p / t_p) * dh_map * gausian_surface(si_s, cld_map, hw_map)
 
             gr_p, sa_p, si_p = event.aggr_props(sl_map)
@@ -1040,17 +1040,67 @@ class ChannelBelt3D():
 
     # Generates a new PLY file containing the x,y,z coordinates in float instead of double
     def reducePlySize(self, inFileName, outFileName):
-        try:
+        try:        
             # First part: read (and write) the ply header as text file
-            with open(inFileName, "r") as inFile:
-                with open(outFileName, "w") as outFile:
+            with open(inFileName, "rt", encoding="Latin-1") as inFile:
+                with open(outFileName, "wt") as outFile:
                     line = ''
-                    while(line != 'end_header\n'):
-                        if(line == 'property double x'):
-                            print('line')                        
+                    while line != 'end_header\n':
+                        line = inFile.readline()
+                        if line == 'property double x\n':
+                            outFile.write('property float x\n')
+                        elif line == 'property double y\n':
+                            outFile.write('property float y\n')
+                        elif line == 'property double z\n':
+                            outFile.write('property float z\n')
+                            
+                        else:                        
+                            if line[0:15] == 'element vertex ':
+                                nVertices = int(line[15:-1]) #gets que number of vertices
+                            #if line[0:13] == 'element face ':
+                            #    nFaces = int(line[13:-1]) #gets que number of faces                            
+
+                            outFile.write(line)
+                    
+                    currentPos = inFile.tell()
+            
+            # Second part: read (and write) the ply vertices colors and faces as text file
+            with open(inFileName, "rb") as inFile:                        
+                with open(outFileName, "ab") as outFile:
+                    inFile.seek(currentPos)                
+
+                    # Read and trasnform all the vertex values to float, maintaining their colors
+                    # Part 1: convert x, y, z from double to float... RGB keep the same as ubyte
+                    for i in range(nVertices):
+                        x = np.float32(struct.unpack('d',inFile.read(8))) # Read the x double value
+                        y = np.float32(struct.unpack('d',inFile.read(8)))
+                        z = np.float32(struct.unpack('d',inFile.read(8)))                    
+                        x = struct.pack('f',x[0])                    
+                        y = struct.pack('f',y[0])
+                        z = struct.pack('f',z[0])
+
+                        red = np.ubyte(struct.unpack('B',inFile.read(1)))                    
+                        green = np.ubyte(struct.unpack('B',inFile.read(1)))
+                        blue = np.ubyte(struct.unpack('B',inFile.read(1)))                      
+                        red = struct.pack('B',red[0])                                        
+                        green = struct.pack('B',green[0])
+                        blue = struct.pack('B',blue[0])
+
+                        outFile.write(x)
+                        outFile.write(y)
+                        outFile.write(z)
+                        outFile.write(red)
+                        outFile.write(green)
+                        outFile.write(blue)    
+
+                    # Read and trasnform all the vertex values to float, maintaining their colors
+                    buffer = inFile.read(1)
+                    while buffer != b"":                                     
+                        outFile.write(buffer)
+                        buffer = inFile.read(1)                
 
         except IOError:
-            print("Error. Could not read file ", inFileName)
+            print("Error. Could not read files ", inFileName, " and ", outFileName)    
 
     def generateTriangleMesh(self, vertices, faces, colors, fileNameOut='out.ply', coloredMesh=True):
         mesh = o3d.geometry.TriangleMesh()
@@ -1063,12 +1113,11 @@ class ChannelBelt3D():
         o3d.io.write_triangle_mesh(fileNameOut, mesh, write_vertex_colors=coloredMesh, compressed=True)
         
         # New code for saving/overwriting a new PLY file with float32 instead of double (64)
-        #model = ply.read_ply(fileNameOut)
-        #ply.write_ply(fileNameOut, points=model["points"], mesh=model["mesh"])
-        # PROBLEM: NOT WORKING WITH THE ORIGINAL COLORS
-        #model = ply.read_ply(fileNameOut)
-        #ply.write_ply(fileNameOut, points=model["points"], mesh=model["mesh"])
-        self.reducePlySize('4.ply', '4_OUT.ply')
+        self.reducePlySize(fileNameOut, fileNameOut[:-4]+'_'+'.ply')
+        if os.path.isfile(fileNameOut):
+            os.remove(fileNameOut)
+        if os.path.isfile(fileNameOut[:-4]+'_'+'.ply'):
+            os.rename(fileNameOut[:-4]+'_'+'.ply', fileNameOut)
 
     # Function to compare a float with a list of floats in numpy
     # Extracted from https://stackoverflow.com/questions/55239065/checking-if-a-specific-float-value-is-in-list-array-in-python-numpy
@@ -1234,7 +1283,7 @@ class ChannelBelt3D():
 
             # Export one mesh
             self.export_top_layer(stratCp, strat_colors, event_top_layer, NUMBER_OF_LAYERS_PER_EVENT, grid, top, filename, plant_view, \
-                        reduction, colored_mesh = True)            
+                        reduction, colored_mesh=True)            
 
             mesh_iterator = mesh_iterator + 1
 
