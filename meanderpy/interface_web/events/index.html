@@ -155,9 +155,9 @@
                 <label for="kv">Aggradation/incision modulation (m/years):</label>
                 <input type="text" id="kv" value=0.01 maxlength="6" size="4" /><br /><br />
                 <label for="kl">Meandering modulation (m/years):</label>
-                <input type="number" id="kl" value=60 maxlength="6" /><br /><br />    
+                <input type="number" id="kl" value=60 maxlength="6" />
             </div>
-            <div class="separator_properties">
+            <div class="separator_properties"> <br/>
                 <label for="sep_thick">Separator thickness:</label>
                 <input type="number" id="sep_thick" value=1 maxlength="10" /><br /><br />
             </div>
@@ -324,22 +324,25 @@
 
         // Hide aggradation interface when incision button is clicked. All the previous values are preserved.
         $('input[type=radio][name=mode]').change(function() {
-            if (this.value == 'incision'){
-                $(".general_properties").show()
-                $(".specifics_properties").show()
-                $(".aggr_properties").hide()                
-            }
-            else if (this.value == 'separator') {
-                $(".general_properties").hide()
-                $(".specifics_properties").hide()
-                $(".aggr_properties").hide()                
-            }
-            else if (this.value == 'aggradation')
+            if (this.value == 'aggradation')
             {                
                 $(".general_properties").show()
                 $(".specifics_properties").show()
                 $(".aggr_properties").show()
+                $(".separator_properties").hide()
             }
+            else if (this.value == 'incision'){
+                $(".general_properties").show()
+                $(".specifics_properties").show()
+                $(".aggr_properties").hide()                
+                $(".separator_properties").hide()
+            }
+            else if (this.value == 'separator') {
+                $(".general_properties").hide()
+                $(".specifics_properties").hide()
+                $(".aggr_properties").hide()     
+                $(".separator_properties").show()           
+            }            
         });
     }
 
@@ -356,7 +359,7 @@
         else if (eventName == 'separator')
             symbol = '[SEP]';
 
-        return eventSymbol;
+        return symbol;
     }
 
     var margin = { top: 40, right: 40, bottom: 50, left: 70 },
@@ -375,21 +378,15 @@
     // EVENTS
     function generateEvent() {
         if (contentEvents.length < 100) {
-            var validForm = true;
-            var contentEvent = {};
+            var validForm = true;            
             var is_valid_config = true;
-            var nit = Number(document.getElementById("nit").value);
-            contentEvent.nit = nit;
-            var saved_ts = Number(document.getElementById("saved_ts").value);
-            contentEvent.saved_ts = saved_ts;
-            var dt = Number(document.getElementById("dt").value);
-            contentEvent.dt = dt;
-            var mode = document.querySelector('input[name="mode"]:checked').value;
-            contentEvent.mode = mode;
-            var kv = Number(document.getElementById("kv").value);
-            contentEvent.kv = kv;
-            var kl = Number(document.getElementById("kl").value);
-            contentEvent.kl = kl;
+            var nit = Number(document.getElementById("nit").value);            
+            var saved_ts = Number(document.getElementById("saved_ts").value);            
+            var dt = Number(document.getElementById("dt").value);            
+            var mode = document.querySelector('input[name="mode"]:checked').value;            
+            var kv = Number(document.getElementById("kv").value);            
+            var kl = Number(document.getElementById("kl").value);            
+            var sep_thick = Number(document.getElementById("sep_thick").value);
 
             if (checkValue(nit, 0, 10000) == false || checkValue(saved_ts, 0, 10000) == false ||
                 checkValue(dt, 0, 10000) == false || isNaN(dt) == true || checkValue(kv, 0, 10000) == false || isNaN(kv) == true ||
@@ -397,32 +394,46 @@
                 validForm = false;
 
             var ch_depth_value = document.getElementById("ch_depth_value").value;
-            ch_depth_value_array = splitAppendValues(ch_depth_value, 0.0, 100000);
-            contentEvent.ch_depth = simpleEventJson(ch_depth_value_array);
+            ch_depth_value_array = splitAppendValues(ch_depth_value, 0.0, 100000);            
 
             var ch_width_value = document.getElementById("ch_width_value").value;
-            ch_width_value_array = splitAppendValues(ch_width_value, 0.0, 100000);
-            contentEvent.ch_width = simpleEventJson(ch_width_value_array);
+            ch_width_value_array = splitAppendValues(ch_width_value, 0.0, 100000);            
 
             var dep_height_value = document.getElementById("dep_height_value").value;
             dep_height_value_array = splitAppendValues(dep_height_value, 0.0, 100000);
-            contentEvent.dep_height = simpleEventJson(dep_height_value_array);
 
             if (ch_depth_value_array.length == 0 || ch_width_value.length == 0 ||
                 dep_height_value.length == 0)
                 validForm = false;
 
-            contentEvent.dep_props = listEventJson("dep_props_values", 0.0, 1.0);
+            var contentEvent = {};
 
-            contentEvent.dep_sigmas = listEventJson("dep_sigmas_values", 0.0, 100000);
+            // Group all the events into variable contentEvent
+            if(mode == 'separator'){
+                contentEvent.mode = mode;
+                contentEvent.sep_thick = sep_thick;
+            }                
+            else {
+                contentEvent.nit = nit;
+                contentEvent.saved_ts = saved_ts;
+                contentEvent.dt = dt;
+                contentEvent.mode = mode;
+                contentEvent.kv = kv;
+                contentEvent.kl = kl;            
+                contentEvent.ch_depth = simpleEventJson(ch_depth_value_array);
+                contentEvent.ch_width = simpleEventJson(ch_width_value_array);
+                contentEvent.dep_height = simpleEventJson(dep_height_value_array);
+                contentEvent.dep_props = listEventJson("dep_props_values", 0.0, 1.0);
+                contentEvent.dep_sigmas = listEventJson("dep_sigmas_values", 0.0, 100000);
+                if (mode == 'aggradation') {
+                    contentEvent.aggr_props = listEventJson("aggr_props_values", 0.0, 1.0);
+                    contentEvent.aggr_sigmas = listEventJson("aggr_sigmas_values", 0.0, 100000);
+                }
+            }            
 
-            contentEvent.aggr_props = listEventJson("aggr_props_values", 0.0, 1.0);
-
-            contentEvent.aggr_sigmas = listEventJson("aggr_sigmas_values", 0.0, 100000);
-
-            if (contentEvent.dep_props.length == 0 || contentEvent.dep_sigmas.length == 0 ||
-                contentEvent.aggr_props.length == 0 || contentEvent.aggr_sigmas.length == 0)
-                validForm = false;
+            if (((mode == 'incision' || mode == 'aggradation') && (contentEvent.dep_props.length == 0 || contentEvent.dep_sigmas.length == 0)) ||
+                (mode == 'aggradation' && (contentEvent.aggr_props.length == 0 || contentEvent.aggr_sigmas.length == 0)))
+                validForm = false;            
 
             if (validForm == true) {
                 contentEvents.push(contentEvent);
@@ -438,7 +449,6 @@
             }
             else
                 alert("Formulary items are incomplete or inconsistent. Please correct them and try again.");
-
         }
         else
             alert("Max number of events has been reached. Please remove at least one event to create more.")
@@ -456,7 +466,7 @@
             var divList = document.getElementById("mode_event");
             divList.innerHTML = "";
             for (var i = 0; i < contentEvents.length; i++)
-                divList.innerHTML += "<label for=\"mode\"> </label>" + eventModes[i] + " -> ";
+                divList.innerHTML += "<label for=\"mode\"> </label>" + eventSymbol(eventModes[i]) + " -> ";
         }
         else
             alert("There are no events to remove.")
