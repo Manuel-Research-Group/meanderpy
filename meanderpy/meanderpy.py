@@ -512,7 +512,7 @@ def gausian_surface(sigma_map, cld_map, hw_map):
 
 class ChannelEvent:
     '''
-        mode: 'INCISION' | 'AGGRADATION' 
+        mode: 'INCISION' | 'AGGRADATION' | 'SEPARATOR' # Dennis: extended to support INCISION mode
         material-order: GRAVEL, SAND, SILT
     '''
     def __init__(self, mode = 'AGGRADATION', 
@@ -694,6 +694,12 @@ class ChannelBelt:
                 basin.incise(event.dens, event.kv / YEAR, event.dt * YEAR)
             if event.mode == 'AGGRADATION':                
                 basin.aggradate(event.dens, event.kv / YEAR, event.dt * YEAR, event.aggr_factor)
+            # TODO Dennis: SEPARATE must be included as a function from basin
+            '''
+            if event.mode == 'SEPARATOR':
+                basin.separate(...)
+
+            '''
 
             # número de canais = time stamp
             if itn % event.saved_ts == 0:                
@@ -1112,12 +1118,13 @@ class ChannelBelt3D():
         
         o3d.io.write_triangle_mesh(fileNameOut, mesh, write_vertex_colors=coloredMesh, compressed=True)
         
-        # New code for saving/overwriting a new PLY file with float32 instead of double (64)
+        # New code for saving/overwriting a new PLY file with float32 instead of double (64)        
         self.reducePlySize(fileNameOut, fileNameOut[:-4]+'_'+'.ply')
         if os.path.isfile(fileNameOut):
             os.remove(fileNameOut)
         if os.path.isfile(fileNameOut[:-4]+'_'+'.ply'):
             os.rename(fileNameOut[:-4]+'_'+'.ply', fileNameOut)
+        
 
     # Function to compare a float with a list of floats in numpy
     # Extracted from https://stackoverflow.com/questions/55239065/checking-if-a-specific-float-value-is-in-list-array-in-python-numpy
