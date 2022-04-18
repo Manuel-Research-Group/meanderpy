@@ -158,8 +158,8 @@
                 <input type="number" id="kl" value=60 maxlength="6" />
             </div>
             <div class="separator_properties"> <br/>
-                <label for="sep_thick">Separator thickness:</label>
-                <input type="number" id="sep_thick" value=1 maxlength="10" /><br /><br />
+                <label for="sep_thickness">Separator thickness:</label>
+                <input type="number" id="sep_thickness" value=1 maxlength="10" /><br /><br />
             </div>
         </div>
         <div class="column2">
@@ -386,7 +386,7 @@
             var mode = document.querySelector('input[name="mode"]:checked').value;            
             var kv = Number(document.getElementById("kv").value);            
             var kl = Number(document.getElementById("kl").value);            
-            var sep_thick = Number(document.getElementById("sep_thick").value);
+            var sep_thickness = Number(document.getElementById("sep_thickness").value);
 
             if (checkValue(nit, 0, 10000) == false || checkValue(saved_ts, 0, 10000) == false ||
                 checkValue(dt, 0, 10000) == false || isNaN(dt) == true || checkValue(kv, 0, 10000) == false || isNaN(kv) == true ||
@@ -411,7 +411,7 @@
             // Group all the events into variable contentEvent
             if(mode == 'separator'){
                 contentEvent.mode = mode;
-                contentEvent.sep_thick = sep_thick;
+                contentEvent.sep_thickness = sep_thickness;
             }                
             else {
                 contentEvent.nit = nit;

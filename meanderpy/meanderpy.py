@@ -1,3 +1,4 @@
+from cmath import nan
 from zipfile import ZipFile
 import tempfile
 from os import path, walk
@@ -522,9 +523,24 @@ class ChannelEvent:
 
         ch_depth = lambda slope: -20 * slope, ch_width = lambda slope: 700 * np.exp(0.80 * slope) + 95, 
         dep_height = lambda slope: -20 * slope * 1/4, dep_props = lambda slope: (0.3, 0.5, 0.2), dep_sigmas = lambda slope: (0.25, 0.5, 2),
-        aggr_props = lambda slope: (0.333, 0.333, 0.333), aggr_sigmas = lambda slope: (2, 5, 10), 
+        aggr_props = lambda slope: (0.333, 0.333, 0.333), aggr_sigmas = lambda slope: (2, 5, 10),
+        
+        sep_thickness = 0, # Dennis: separator thickness from the SEPARADOR mode
 
-        dens = 1000, aggr_factor = 2):
+        dens = 1000, aggr_factor = 2):        
+        
+        # Dennis: Initialize unused variables for the events
+        if (mode == 'INCISION'):
+            aggr_props = lambda slope: (0, 0, 0)
+            aggr_sigmas = lambda slope: (0, 0, 0)
+            sep_thickness = 0
+        elif (mode == 'AGGRADATION'):
+            sep_thickness = 0
+        elif (mode == 'SEPARATOR'):
+            dep_props = lambda slope: (0, 0, 0)
+            dep_sigmas = lambda slope: (0, 0, 0)
+            aggr_props = lambda slope: (0, 0, 0)
+            aggr_sigmas = lambda slope: (0, 0, 0)        
 
         self.mode = mode
         self.nit = nit
@@ -541,12 +557,17 @@ class ChannelEvent:
         self.dep_height = dep_height
         self.dep_props = dep_props
         self.dep_sigmas = dep_sigmas
+
         self.aggr_props = aggr_props
         self.aggr_sigmas = aggr_sigmas
+        
+        self.sep_thickness = sep_thickness # Dennis: create new attribute called "separator thickness"
 
+        print('self.sep_thickness: ', self.sep_thickness)
+        
         self.dens = dens
         self.aggr_factor = aggr_factor
-        self.start_time = -1
+        self.start_time = -1        
 
     def plot_ch_depth(self, slope = np.linspace(-5, 0, 20), axis = None):
         if axis is None:
@@ -690,9 +711,9 @@ class ChannelBelt:
             channel.resample(self.ds)
             channel.refit(basin, event.ch_width, event.ch_depth)
             
-            if event.mode == 'INCISION':                
+            if event.mode == 'INCISION':
                 basin.incise(event.dens, event.kv / YEAR, event.dt * YEAR)
-            if event.mode == 'AGGRADATION':                
+            if event.mode == 'AGGRADATION':
                 basin.aggradate(event.dens, event.kv / YEAR, event.dt * YEAR, event.aggr_factor)
             # TODO Dennis: SEPARATE must be included as a function from basin
             '''
