@@ -245,7 +245,7 @@ for evt in events_json:
   saved_ts = evt.get('saved_ts', DEFAULT_EVENT_SAVED_TS)
   dt = evt.get('dt', DEFAULT_EVENT_DT)
   mode = evt.get('mode', DEFAULT_EVENT_MODE)
-  kv = evt.get('kv', DEFAULT_EVENT_KV)
+  kv = evt.get('kv', DEFAULT_EVENT_KV)  
   kl = evt.get('kl', DEFAULT_EVENT_KL)
   cr_dist = evt.get('cr_dist', DEFAULT_EVENT_CR_DIST)
   cr_wind = evt.get('cr_wind', DEFAULT_EVENT_CR_WIND)

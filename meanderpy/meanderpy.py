@@ -131,7 +131,7 @@ def zipFilesInDir(dirName, zipFileName, filter):
 
 
 class Basin:    
-    def __init__(self, x, z):
+    def __init__(self, x, z): #x,y: array
         self.x = x
         self.z = z
 
@@ -162,12 +162,12 @@ class Basin:
     def aggradate(self, density, kv, dt, aggr_factor):
         slope = self.slope(degrees=False)
         K = kv * density * 9.81 * dt
-        self.z += K *(slope - aggr_factor*np.mean(slope))
+        self.z += K *(slope - aggr_factor*np.mean(slope)) 
 
     def incise(self, density, kv, dt):
         slope = self.slope(degrees=False)
         K = kv * density * 9.81 * dt
-        self.z += K *slope 
+        self.z += K *slope  # z decresce
 
     def plot(self, axis = plt, color=sns.xkcd_rgb["ocean blue"], points = False):
         axis.plot(self.x, self.z)
@@ -253,7 +253,8 @@ class Channel:
         self.x += RN * (dy/ds) * dt 
         self.y -= RN * (dx/ds) * dt
  
-    def cut_cutoffs(self, crdist, ds):     
+    def cut_cutoffs(self, crdist, ds):  
+        print('inside cut_cutoffs')   
         cuts = []   
         
         diag_blank_width = int((crdist+20*ds)/ds)
@@ -261,7 +262,7 @@ class Channel:
         xo, yo = self.margin_offset()
         ind1, ind2 = find_cutoffs(self.x+xo, self.y+yo, crdist, diag_blank_width)
         while len(ind1)>0:
-
+            
             xc = self.x[ind1[0]:ind2[0]+1] # x coordinates of cutoff
             yc = self.y[ind1[0]:ind2[0]+1] # y coordinates of cutoff
             zc = self.z[ind1[0]:ind2[0]+1] # z coordinates of cutoff
@@ -283,7 +284,7 @@ class Channel:
         xo, yo = self.margin_offset()
         ind1, ind2 = find_cutoffs(self.x-xo, self.y-yo, crdist, diag_blank_width)
         while len(ind1)>0:
-
+            
             xc = self.x[ind1[0]:ind2[0]+1] # x coordinates of cutoff
             yc = self.y[ind1[0]:ind2[0]+1] # y coordinates of cutoff
             zc = self.z[ind1[0]:ind2[0]+1] # z coordinates of cutoff
@@ -561,13 +562,11 @@ class ChannelEvent:
         self.aggr_props = aggr_props
         self.aggr_sigmas = aggr_sigmas
         
-        self.sep_thickness = sep_thickness # Dennis: create new attribute called "separator thickness"
-
-        print('self.sep_thickness: ', self.sep_thickness)
+        self.sep_thickness = sep_thickness
         
         self.dens = dens
         self.aggr_factor = aggr_factor
-        self.start_time = -1        
+        self.start_time = -1
 
     def plot_ch_depth(self, slope = np.linspace(-5, 0, 20), axis = None):
         if axis is None:
@@ -679,15 +678,17 @@ class ChannelBelt:
     def __init__(self, channel, basin):
         """
             Times in years.
-        """        
+        """
         self.channels = [channel.copy()]        
         self.basins = [basin.copy()]
         self.times = [0.0]
         self.events = []
 
-    def simulate(self, event):
+    # 2 progress bars: meandering + modeling
+    # essa parte é simulação 2D
+    def simulate(self, event): # parte 2D
         last_time = self.times[-1]
-        event.start_time = last_time + event.dt
+        event.start_time = last_time + event.dt        
 
         if len(self.events) == 0:
             channel = self.channels[0]
@@ -702,24 +703,25 @@ class ChannelBelt:
         basin = self.basins[-1].copy()
         last_time = self.times[-1]
         
-        for itn in range(1, event.nit+1):
+        for itn in range(1, event.nit+1):            
             update_progress(itn/event.nit)
 
-            channel.migrate(event.Cf, event.kl / YEAR, event.dt * YEAR)
-            channel.cut_cutoffs(event.cr_dist, self.ds)
-            channel.cut_cutoffs_R(event.cr_wind, self.ds)
-            channel.resample(self.ds)
-            channel.refit(basin, event.ch_width, event.ch_depth)
+            channel.migrate(event.Cf, event.kl / YEAR, event.dt * YEAR)            
+            channel.cut_cutoffs(event.cr_dist, self.ds)            
+            channel.cut_cutoffs_R(event.cr_wind, self.ds)            
+            channel.resample(self.ds) # deixar curva smooth e deixa dl (comprimento de largura da curva) constante              
+            channel.refit(basin, event.ch_width, event.ch_depth) # avaliação da elevação (z) do canal a cada ponto com base na bacia              
             
             if event.mode == 'INCISION':
+                print('INCISION!!!')
                 basin.incise(event.dens, event.kv / YEAR, event.dt * YEAR)
             if event.mode == 'AGGRADATION':
+                print('AGGRADATION!!!')
                 basin.aggradate(event.dens, event.kv / YEAR, event.dt * YEAR, event.aggr_factor)
             # TODO Dennis: SEPARATE must be included as a function from basin
             '''
             if event.mode == 'SEPARATOR':
                 basin.separate(...)
-
             '''
 
             # número de canais = time stamp
@@ -779,9 +781,9 @@ class ChannelBelt:
 
         return fig
 
-    def build_3d_model(self, dx, margin = 500):
+    def build_3d_model(self, dx, margin = 500): # recebe lista de bacias e lista de canais
         xmax, xmin, ymax, ymin = [], [], [], []
-        for channel in self.channels:
+        for channel in self.channels: # um canal para cada snapshot. Cada passo gera 4 malhas
             xmax.append(max(channel.x))
             xmin.append(min(channel.x))
             ymax.append(max(channel.y))
@@ -792,12 +794,14 @@ class ChannelBelt:
         ymax = max(ymax)
         ymin = min(ymin)
 
+        # cria mapas
         mapper = ChannelMapper(xmin + margin, xmax - margin, ymin - margin, ymax + margin, dx, dx)
 
-        channel = self.channels[0]
-        basin = self.basins[0]
+        channel = self.channels[0] #canais 2D vista superior
+        basin = self.basins[0] # bacia 2D vista lateral
         ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map = mapper.create_maps(channel, basin)
 
+        # surface: resultado atual do processo de corte e deposição (cut and fill)
         surface = bz_map # bz_map: altura do centro do canal explodido lateralmente
 
         N = len(self.channels) 
@@ -819,7 +823,8 @@ class ChannelBelt:
 
             # channel, centerline distance, channel z, basin z, slope, half width
             # ch_map: 
-            ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map = mapper.create_maps(self.channels[i], self.basins[i])
+            ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map = mapper.create_maps(self.channels[i], self.basins[i])            
+
             # channel depth
             dh_map = event.dep_height(sl_map)
             cd_map = event.ch_depth(sl_map)
@@ -841,14 +846,19 @@ class ChannelBelt:
             gr_p, sa_p, si_p = event.aggr_props(sl_map)
             gr_s, sa_s, si_s = event.aggr_sigmas(sl_map)
             t_p = gr_p + sa_p + si_p
-
+            
             # MANUEL: modulate the aggradation mapps in the case of gravel and sand by Gaussians with standard 
             #         deviations defined experimentally to avoid gravel and sand moving up walls of the channel.
             #         This actually works as a way of implementing a smooth cutoff for the these material depositions.
             #         The function gaussian_surface defines a Gaussian inside the channel, thus returning zero
             #         only at the channels boarders. To force a quicker fall off (although only reaching zero at the channel's
             #         boarder) we used these experimentally defined standard deviations when accumulating the results of aggradation. 
-            #         
+            #    
+            # DENNIS: corrected the value of t_p to avoid division by zero. t_p can be either an array or an integer           
+
+            if isinstance(t_p, int) == True and t_p == 0:
+                t_p = 0.001
+
             STD_FOR_GRAVEL_FALL_OFF = 0.1   # EXPERIMENTALLY_DEFINED_STD_FOR_GRAVEL_FALL_OFF
             STD_FOR_SAND_FALL_OFF   = 0.6   # EXPERIMENTALLY_DEFINED_STD_FOR_SAND_FALL_OFF       
             gravel_surface += (gr_p / t_p) * aggr_map * gausian_surface(STD_FOR_GRAVEL_FALL_OFF, cld_map, hw_map)  # MANUEL
@@ -907,18 +917,20 @@ class ChannelBelt3D():
         
         xindex = int(xsec * sx)
 
+        # gera as legendas para o Matplotlib
         legend_elements = [
             Line2D([0], [0], color=silt_color, lw=4, label='Silt'),
             Line2D([0], [0], color=sand_color, lw=4, label='Sand'),
             Line2D([0], [0], color=gravel_color, lw=4, label='Gravel'),
         ]
 
+        # Matplotlib
         fig1 = plt.figure(figsize=(20,5))
         ax1 = fig1.add_subplot(111)
         ax1.set_title('{}Cross section at ({:.3f}) - {:.3f} km'.format(title, xsec, xindex * self.dx + self.xmin))
 
         Xv = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
-        X1 = np.concatenate((Xv, Xv[::-1]))
+        X1 = np.concatenate((Xv, Xv[::-1])) # faz array inverso
         
         if substrat:
             substract_color = [192/255, 192/255, 192/255]

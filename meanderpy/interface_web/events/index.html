@@ -128,11 +128,11 @@
             <div class="mode">
                 <label for="mode">Mode:</label>
                 <label for="mode">Aggradation</label>
-                <input type="radio" id="mode_aggradation" name="mode" value="aggradation" checked /> &emsp;
+                <input type="radio" id="mode_aggradation" name="mode" value="AGGRADATION" checked /> &emsp;
                 <label for="mode">Incision</label>
-                <input type="radio" id="mode_incision" name="mode" value="incision" /> &emsp;
+                <input type="radio" id="mode_incision" name="mode" value="INCISION" /> &emsp;
                 <label for="mode">Separator</label>
-                <input type="radio" id="mode_separator" name="mode" value="separator" /><br /><br />
+                <input type="radio" id="mode_separator" name="mode" value="SEPARATOR" /><br /><br />
             </div>
             <div id="generate_event">
                 <button onclick="generateEvent(); ">Create Event</button> <button onclick="removeLastEvent(); ">Remove Last
@@ -154,11 +154,11 @@
                 <input type="text" id="dt" value=0.1 maxlength="6" size="4" /><br /><br />
                 <label for="kv">Aggradation/incision modulation (m/years):</label>
                 <input type="text" id="kv" value=0.01 maxlength="6" size="4" /><br /><br />
-                <label for="kl">Meandering modulation (m/years):</label>
+                <label for="kl">Meandering modulation (m/years): </label>
                 <input type="number" id="kl" value=60 maxlength="6" />
             </div>
             <div class="separator_properties"> <br/>
-                <label for="sep_thickness">Separator thickness:</label>
+                <label for="sep_thickness">Separator thickness (m):</label>
                 <input type="number" id="sep_thickness" value=1 maxlength="10" /><br /><br />
             </div>
         </div>
@@ -324,20 +324,20 @@
 
         // Hide aggradation interface when incision button is clicked. All the previous values are preserved.
         $('input[type=radio][name=mode]').change(function() {
-            if (this.value == 'aggradation')
+            if (this.value == 'AGGRADATION')
             {                
                 $(".general_properties").show()
                 $(".specifics_properties").show()
                 $(".aggr_properties").show()
                 $(".separator_properties").hide()
             }
-            else if (this.value == 'incision'){
+            else if (this.value == 'INCISION'){
                 $(".general_properties").show()
                 $(".specifics_properties").show()
                 $(".aggr_properties").hide()                
                 $(".separator_properties").hide()
             }
-            else if (this.value == 'separator') {
+            else if (this.value == 'SEPARATOR') {
                 $(".general_properties").hide()
                 $(".specifics_properties").hide()
                 $(".aggr_properties").hide()     
@@ -352,11 +352,11 @@
 
     function eventSymbol(eventName) {
         var symbol;
-        if (eventName == 'aggradation')
+        if (eventName == 'AGGRADATION')
             symbol = '[AGR]';
-        else if (eventName == 'incision')
+        else if (eventName == 'INCISION')
             symbol = '[INC]';
-        else if (eventName == 'separator')
+        else if (eventName == 'SEPARATOR')
             symbol = '[SEP]';
 
         return symbol;
@@ -402,14 +402,14 @@
             var dep_height_value = document.getElementById("dep_height_value").value;
             dep_height_value_array = splitAppendValues(dep_height_value, 0.0, 100000);
 
-            if (ch_depth_value_array.length == 0 || ch_width_value.length == 0 ||
-                dep_height_value.length == 0)
+            // Guarantee the depth, width and height have exactly 6 elements
+            if (ch_depth_value_array.length != 6 || ch_width_value_array.length != 6 || dep_height_value_array.length != 6)
                 validForm = false;
 
             var contentEvent = {};
 
             // Group all the events into variable contentEvent
-            if(mode == 'separator'){
+            if(mode == 'SEPARATOR'){
                 contentEvent.mode = mode;
                 contentEvent.sep_thickness = sep_thickness;
             }                
@@ -425,14 +425,14 @@
                 contentEvent.dep_height = simpleEventJson(dep_height_value_array);
                 contentEvent.dep_props = listEventJson("dep_props_values", 0.0, 1.0);
                 contentEvent.dep_sigmas = listEventJson("dep_sigmas_values", 0.0, 100000);
-                if (mode == 'aggradation') {
+                if (mode == 'AGGRADATION') {
                     contentEvent.aggr_props = listEventJson("aggr_props_values", 0.0, 1.0);
                     contentEvent.aggr_sigmas = listEventJson("aggr_sigmas_values", 0.0, 100000);
                 }
             }            
 
-            if (((mode == 'incision' || mode == 'aggradation') && (contentEvent.dep_props.length == 0 || contentEvent.dep_sigmas.length == 0)) ||
-                (mode == 'aggradation' && (contentEvent.aggr_props.length == 0 || contentEvent.aggr_sigmas.length == 0)))
+            if (((mode == 'INCISION' || mode == 'AGGRADATION') && (contentEvent.dep_props.length == 0 || contentEvent.dep_sigmas.length == 0)) ||
+                (mode == 'AGGRADATION' && (contentEvent.aggr_props.length == 0 || contentEvent.aggr_sigmas.length == 0)))
                 validForm = false;            
 
             if (validForm == true) {
@@ -444,7 +444,7 @@
                 divList.innerHTML = "";
                 for (var i = 0; i < contentEvents.length; i++) {
                     var symbol = eventSymbol(eventModes[i])
-                    divList.innerHTML += "<label for=\"mode\"> </label>" + eventSymbol(eventModes[i]) + " -> "; // TODO: check here
+                    divList.innerHTML += "<label for=\"mode\">  </label>" + eventSymbol(eventModes[i]) + " &#8594; "; // TODO: check here
                 }
             }
             else
@@ -466,7 +466,7 @@
             var divList = document.getElementById("mode_event");
             divList.innerHTML = "";
             for (var i = 0; i < contentEvents.length; i++)
-                divList.innerHTML += "<label for=\"mode\"> </label>" + eventSymbol(eventModes[i]) + " -> ";
+                divList.innerHTML += "<label for=\"mode\"> </label>" + eventSymbol(eventModes[i]) + " &#8594; ";
         }
         else
             alert("There are no events to remove.")
