@@ -135,17 +135,20 @@
                 <input type="radio" id="mode_separator" name="mode" value="SEPARATOR" /><br /><br />
             </div>
             <div id="generate_event">
-                <button onclick="generateEvent(); ">Create Event</button> <button onclick="removeLastEvent(); ">Remove Last
-                    Event</button> <button onclick="saveEvents(); ">Save Events</button><br /><br />
+                <button onclick="generateEvent(); ">Create Event</button>
+                <button onclick="removeLastEvent(); ">Remove Last Event</button>
+                <button onclick="saveEvents(); ">Save Events</button>                
+                <br /><br />
     
                 <div id="mode_number">
                     <label for="mode">Number of events: 0</label>
                 </div> <br />
-                <div id="mode_event"> </div> <br /> <br />
+                <div id="mode_event"> </div> <br /> <br />                
             </div>
             <div class="general_properties"><br/>
+                <button onclick="restoreDefaultValues(); ">Restore Default Values</button> <br /> <br /><!-- TODO -->
                 <label for="nit">Number of iterations:</label>
-                <input type="number" id="nit" value=100 maxlength="6" /><br /><br /> <!-- min="0" max="100" -->
+                <input type="number" id="nit" maxlength="6" /><br /><br /> <!-- min="0" max="100" -->
                 <label for="saved_ts">Save mesh every </label>
                 <input type="number" id="saved_ts" value=25 maxlength="6" />
                 <label for="saved_ts"> iterations </label>
@@ -169,22 +172,22 @@
                 <div id="div_ch_depth">
                     <label for="ch_depth_slope">Slopes: -5º; -4º; -3º; -2º; -1º; 0º</label> &nbsp;
                     <label for="ch_depth_value">Values:</label>
-                    <input type="text" id="ch_depth_value" value="100; 80; 60; 40; 20; 0" />
+                    <input type="text" id="ch_depth_value"  />
                 </div> <br /> <br />
                 <label for="ch_width"><b>Channel width (m):</b></label> <br />
                 <div id="div_ch_width">
                     <label for="ch_width_slope">Slopes: -5º; -4º; -3º; -2º; -1º; 0º</label> &nbsp;
                     <label for="ch_width_value">Values:</label>
-                    <input type="text" id="ch_width_value" value="100; 125; 150; 250; 400; 800" />
+                    <input type="text" id="ch_width_value"  />
                 </div> <br /> <br />
                 <label for="dep_height"><b>Deposition height (m):</b></label> <br />
                 <div id="div_dep_height">
                     <label for="dep_height_slope">Slopes: -5º; -4º; -3º; -2º; -1º; 0º</label> &nbsp;
                     <label for="dep_height_value">Values:</label>
-                    <input type="text" id="dep_height_value" value="25; 20; 15; 10; 5; 0" /> <br /><br />
+                    <input type="text" id="dep_height_value"  /> <br /><br />
                 </div> <br />
 
-                <label for="number_layers"><b>Number of layers (G: Gravel, S: Sand, M: Mud):</b></label> <br /> <br />
+                <label for="number_layers"><b><div id="number_layers_explanation"> </div></b></label> <br /> <br /> <!--Number of layers (G: Gravel, S: Sand, M: Mud):-->
                 &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                 <input type="radio" id="number_layer_3" name="number_layers" checked />
                 <label for="number_layers">3 (G, MS, M)</label> <br /> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
@@ -199,28 +202,28 @@
                     <div id="div_aggr_props">
                         <label for="aggr_props_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="aggr_props_values">Values:</label>
-                        <input type="text" id="aggr_props_values0" value="33.3; 33.3; 33.3"
+                        <input type="text" id="aggr_props_values0"
                             placeholder="E.g. 33.3; 33.3; 33.3" /><br />
                         <label for="aggr_props_slope">Slope: -4º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="aggr_props_values">Values:</label>
-                        <input type="text" id="aggr_props_values1" value="33.3; 33.3; 33.3"
+                        <input type="text" id="aggr_props_values1"
                             placeholder="E.g. 33.3; 33.3; 33.3" /><br />
                         <label for="aggr_props_slope">Slope: -3º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="aggr_props_values">Values:</label>
-                        <input type="text" id="aggr_props_values2" value="33.3; 33.3; 33.3"
+                        <input type="text" id="aggr_props_values2" 
                             placeholder="E.g. 33.3; 33.3; 33.3" /><br />
                         <label for="aggr_props_slope">Slope: -2º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="aggr_props_values">Values:</label>
-                        <input type="text" id="aggr_props_values3" value="33.3; 33.3; 33.3"
+                        <input type="text" id="aggr_props_values3" 
                             placeholder="E.g. 33.3; 33.3; 33.3" /><br />
                         <label for="aggr_props_slope">Slope: -1º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="aggr_props_values">Values:</label>
-                        <input type="text" id="aggr_props_values4" value="33.3; 33.3; 33.3"
+                        <input type="text" id="aggr_props_values4" 
                             placeholder="E.g. 33.3; 33.3; 33.3" /><br />
                         <label for="aggr_props_slope">Slope: 0º</label> &nbsp; &emsp; &emsp; &emsp; &emsp; &emsp; &nbsp;
                         &nbsp;
                         <label for="aggr_props_values">Values:</label>
-                        <input type="text" id="aggr_props_values5" value="33.3; 33.3; 33.3"
+                        <input type="text" id="aggr_props_values5" 
                             placeholder="E.g. 33.3; 33.3; 33.3" /><br />
                     </div> <br /> <br />
 
@@ -229,28 +232,28 @@
                     <div id="div_aggr_sigmas">
                         <label for="aggr_sigmas_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="aggr_sigmas_values">Values:</label>
-                        <input type="text" id="aggr_sigmas_values0" value="2; 5; 10" placeholder="E.g. 2; 5; 10" /><br />
+                        <input type="text" id="aggr_sigmas_values0" placeholder="E.g. 2; 5; 10" /><br />
                         <label for="aggr_sigmas_slope">Slope: -4º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="aggr_sigmas_values">Values:</label>
-                        <input type="text" id="aggr_sigmas_values1" value="2; 5; 10" placeholder="E.g. 2; 5; 10" /><br />
+                        <input type="text" id="aggr_sigmas_values1" placeholder="E.g. 2; 5; 10" /><br />
                         <label for="aggr_sigmas_slope">Slope: -3º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="aggr_sigmas_values">Values:</label>
-                        <input type="text" id="aggr_sigmas_values2" value="2; 5; 10" placeholder="E.g. 2; 5; 10" /><br />
+                        <input type="text" id="aggr_sigmas_values2" placeholder="E.g. 2; 5; 10" /><br />
                         <label for="aggr_sigmas_slope">Slope: -2º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="aggr_sigmas_values">Values:</label>
-                        <input type="text" id="aggr_sigmas_values3" value="2; 5; 10" placeholder="E.g. 2; 5; 10" /><br />
+                        <input type="text" id="aggr_sigmas_values3" placeholder="E.g. 2; 5; 10" /><br />
                         <label for="aggr_sigmas_slope">Slope: -1º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="aggr_sigmas_values">Values:</label>
-                        <input type="text" id="aggr_sigmas_values4" value="2; 5; 10" placeholder="E.g. 2; 5; 10" /><br />
+                        <input type="text" id="aggr_sigmas_values4" placeholder="E.g. 2; 5; 10" /><br />
                         <label for="aggr_sigmas_slope">Slope: 0º</label> &nbsp; &emsp; &emsp; &emsp; &emsp; &emsp; &nbsp;
                         &nbsp;
                         <label for="aggr_sigmas_values">Values:</label>
-                        <input type="text" id="aggr_sigmas_values5" value="2; 5; 10" placeholder="E.g. 2; 5; 10" /><br />
+                        <input type="text" id="aggr_sigmas_values5" placeholder="E.g. 2; 5; 10" /><br />
                     </div>
                     <br /><br />
                 </div>
             </div>            
-        </div>
+        </div>        
         <div class="column3">            
             <div class="specifics_properties">
                 <label for="dep_props"><b>Layer deposition (%):</b></label> <br />
@@ -258,22 +261,22 @@
                     <div id="div_dep_props">
                         <label for="dep_props_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="dep_props_values">Values:</label>
-                        <input type="text" id="dep_props_values0" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
+                        <input type="text" id="dep_props_values0" placeholder="E.g. 30; 50; 20" /><br />
                         <label for="dep_props_slope">Slope: -4º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="dep_props_values">Values:</label>
-                        <input type="text" id="dep_props_values1" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
+                        <input type="text" id="dep_props_values1" placeholder="E.g. 30; 50; 20" /><br />
                         <label for="dep_props_slope">Slope: -3º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="dep_props_values">Values:</label>
-                        <input type="text" id="dep_props_values2" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
+                        <input type="text" id="dep_props_values2" placeholder="E.g. 30; 50; 20" /><br />
                         <label for="dep_props_slope">Slope: -2º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="dep_props_values">Values:</label>
-                        <input type="text" id="dep_props_values3" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
+                        <input type="text" id="dep_props_values3" placeholder="E.g. 30; 50; 20" /><br />
                         <label for="dep_props_slope">Slope: -1º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="dep_props_values">Values:</label>
-                        <input type="text" id="dep_props_values4" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
+                        <input type="text" id="dep_props_values4" placeholder="E.g. 30; 50; 20" /><br />
                         <label for="dep_props_slope">Slope: 0º</label> &nbsp; &emsp; &emsp; &emsp; &emsp; &emsp; &nbsp; &nbsp;
                         <label for="dep_props_values">Values:</label>
-                        <input type="text" id="dep_props_values5" value="30; 50; 20" placeholder="E.g. 30; 50; 20" /><br />
+                        <input type="text" id="dep_props_values5" placeholder="E.g. 30; 50; 20" /><br />
                     </div> <br /> <br />
 
                     <label for="dep_sigmas"><b>Gaussian standard deviation of deposition per layer (%):</b></label> <br />
@@ -281,24 +284,24 @@
                     <div id="div_dep_sigmas">
                         <label for="dep_sigmas_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="dep_sigmas_values">Values:</label>
-                        <input type="text" id="dep_sigmas_values0" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                        <input type="text" id="dep_sigmas_values0" placeholder="E.g. 0.25; 0.5; 2" /><br />
                         <label for="dep_sigmas_slope">Slope: -4º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="dep_sigmas_values">Values:</label>
-                        <input type="text" id="dep_sigmas_values1" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                        <input type="text" id="dep_sigmas_values1" placeholder="E.g. 0.25; 0.5; 2" /><br />
                         <label for="dep_sigmas_slope">Slope: -3º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="dep_sigmas_values">Values:</label>
-                        <input type="text" id="dep_sigmas_values2" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                        <input type="text" id="dep_sigmas_values2" placeholder="E.g. 0.25; 0.5; 2" /><br />
                         <label for="dep_sigmas_slope">Slope: -2º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="dep_sigmas_values">Values:</label>
-                        <input type="text" id="dep_sigmas_values3" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                        <input type="text" id="dep_sigmas_values3" placeholder="E.g. 0.25; 0.5; 2" /><br />
                         <label for="dep_sigmas_slope">Slope: -1º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
                         <label for="dep_sigmas_values">Values:</label>
-                        <input type="text" id="dep_sigmas_values4" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                        <input type="text" id="dep_sigmas_values4" placeholder="E.g. 0.25; 0.5; 2" /><br />
                         <label for="dep_sigmas_slope">Slope: 0º</label> &nbsp; &emsp; &emsp; &emsp; &emsp; &emsp; &nbsp; &nbsp;
                         <label for="dep_sigmas_values">Values:</label>
-                        <input type="text" id="dep_sigmas_values5" value="0.25; 0.5; 2" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                        <input type="text" id="dep_sigmas_values5" placeholder="E.g. 0.25; 0.5; 2" /><br />
                     </div> <br /><br />
-                </div>
+                </div>                
             </div>            
         </div>
     </div>
@@ -311,8 +314,99 @@
 
     // Function called as soon as the window is loaded
     window.onload = function () {
-
         writeLabelNumberLayer3(); // initializes the dynamic labels with three layers (Gr, Sa, Si) -> (G, S, M)
+
+        // Autosave session feature: info regarding the formularies are stored from TIME to TIME
+        const TIME = 2000;         
+        setInterval(myTimer, TIME);
+
+        function myTimer() {
+            // EVENT GENERAL
+            window.localStorage.setItem('nit', document.getElementById("nit").value);
+            window.localStorage.setItem('saved_ts', document.getElementById("saved_ts").value);
+            window.localStorage.setItem('dt', document.getElementById("dt").value);
+            //window.localStorage.setItem('mode', document.querySelector('input[name="mode"]:checked').value); // CHECK HERE
+            window.localStorage.setItem('kv', document.getElementById("kv").value);
+            window.localStorage.setItem('kl', document.getElementById("kl").value);
+            window.localStorage.setItem('sep_thickness', document.getElementById("sep_thickness").value); 
+            
+            // EVENT SPECIFICS
+            window.localStorage.setItem('ch_depth_value', document.getElementById("ch_depth_value").value);
+            window.localStorage.setItem('ch_width_value', document.getElementById("ch_width_value").value);
+            window.localStorage.setItem('dep_height_value', document.getElementById("dep_height_value").value);
+
+            window.localStorage.setItem('dep_props_values0', document.getElementById("dep_props_values0").value);
+            window.localStorage.setItem('dep_props_values1', document.getElementById("dep_props_values1").value);
+            window.localStorage.setItem('dep_props_values2', document.getElementById("dep_props_values2").value);
+            window.localStorage.setItem('dep_props_values3', document.getElementById("dep_props_values3").value);
+            window.localStorage.setItem('dep_props_values4', document.getElementById("dep_props_values4").value);
+            window.localStorage.setItem('dep_props_values5', document.getElementById("dep_props_values5").value);
+
+            window.localStorage.setItem('dep_sigmas_values0', document.getElementById("dep_sigmas_values0").value);
+            window.localStorage.setItem('dep_sigmas_values1', document.getElementById("dep_sigmas_values1").value);
+            window.localStorage.setItem('dep_sigmas_values2', document.getElementById("dep_sigmas_values2").value);
+            window.localStorage.setItem('dep_sigmas_values3', document.getElementById("dep_sigmas_values3").value);
+            window.localStorage.setItem('dep_sigmas_values4', document.getElementById("dep_sigmas_values4").value);
+            window.localStorage.setItem('dep_sigmas_values5', document.getElementById("dep_sigmas_values5").value);
+
+            window.localStorage.setItem('aggr_props_values0', document.getElementById("aggr_props_values0").value);
+            window.localStorage.setItem('aggr_props_values1', document.getElementById("aggr_props_values1").value);
+            window.localStorage.setItem('aggr_props_values2', document.getElementById("aggr_props_values2").value);
+            window.localStorage.setItem('aggr_props_values3', document.getElementById("aggr_props_values3").value);
+            window.localStorage.setItem('aggr_props_values4', document.getElementById("aggr_props_values4").value);
+            window.localStorage.setItem('aggr_props_values5', document.getElementById("aggr_props_values5").value);
+
+            window.localStorage.setItem('aggr_sigmas_values0', document.getElementById("aggr_sigmas_values0").value);
+            window.localStorage.setItem('aggr_sigmas_values1', document.getElementById("aggr_sigmas_values1").value);
+            window.localStorage.setItem('aggr_sigmas_values2', document.getElementById("aggr_sigmas_values2").value);
+            window.localStorage.setItem('aggr_sigmas_values3', document.getElementById("aggr_sigmas_values3").value);
+            window.localStorage.setItem('aggr_sigmas_values4', document.getElementById("aggr_sigmas_values4").value);
+            window.localStorage.setItem('aggr_sigmas_values5', document.getElementById("aggr_sigmas_values5").value);
+
+        }
+
+        // Fill the stored formularies according to the autosave feature when the page is loaded
+        // EVENT GENERAL
+        document.getElementById('nit').value = window.localStorage.getItem('nit')
+        document.getElementById('saved_ts').value = window.localStorage.getItem('saved_ts')
+        document.getElementById('dt').value = window.localStorage.getItem('dt')
+        //document.querySelector('input[name="mode"]:checked').value = window.localStorage.getItem('mode') // CHECK HERE
+        document.getElementById('kv').value = window.localStorage.getItem('kv')
+        document.getElementById('kl').value = window.localStorage.getItem('kl')
+        document.getElementById('sep_thickness').value = window.localStorage.getItem('sep_thickness')
+
+        // EVENT SPECIFICS
+        document.getElementById('ch_depth_value').value = window.localStorage.getItem('ch_depth_value')
+        document.getElementById('ch_width_value').value = window.localStorage.getItem('ch_width_value')
+        document.getElementById('dep_height_value').value = window.localStorage.getItem('dep_height_value')
+
+        document.getElementById('dep_props_values0').value = window.localStorage.getItem('dep_props_values0')
+        document.getElementById('dep_props_values1').value = window.localStorage.getItem('dep_props_values1')
+        document.getElementById('dep_props_values2').value = window.localStorage.getItem('dep_props_values2')
+        document.getElementById('dep_props_values3').value = window.localStorage.getItem('dep_props_values3')
+        document.getElementById('dep_props_values4').value = window.localStorage.getItem('dep_props_values4')
+        document.getElementById('dep_props_values5').value = window.localStorage.getItem('dep_props_values5')
+
+        document.getElementById('dep_sigmas_values0').value = window.localStorage.getItem('dep_sigmas_values0')
+        document.getElementById('dep_sigmas_values1').value = window.localStorage.getItem('dep_sigmas_values1')
+        document.getElementById('dep_sigmas_values2').value = window.localStorage.getItem('dep_sigmas_values2')
+        document.getElementById('dep_sigmas_values3').value = window.localStorage.getItem('dep_sigmas_values3')
+        document.getElementById('dep_sigmas_values4').value = window.localStorage.getItem('dep_sigmas_values4')
+        document.getElementById('dep_sigmas_values5').value = window.localStorage.getItem('dep_sigmas_values5')
+
+        document.getElementById('aggr_props_values0').value = window.localStorage.getItem('aggr_props_values0')
+        document.getElementById('aggr_props_values1').value = window.localStorage.getItem('aggr_props_values1')
+        document.getElementById('aggr_props_values2').value = window.localStorage.getItem('aggr_props_values2')
+        document.getElementById('aggr_props_values3').value = window.localStorage.getItem('aggr_props_values3')
+        document.getElementById('aggr_props_values4').value = window.localStorage.getItem('aggr_props_values4')
+        document.getElementById('aggr_props_values5').value = window.localStorage.getItem('aggr_props_values5')
+
+        document.getElementById('aggr_sigmas_values0').value = window.localStorage.getItem('aggr_sigmas_values0')
+        document.getElementById('aggr_sigmas_values1').value = window.localStorage.getItem('aggr_sigmas_values1')
+        document.getElementById('aggr_sigmas_values2').value = window.localStorage.getItem('aggr_sigmas_values2')
+        document.getElementById('aggr_sigmas_values3').value = window.localStorage.getItem('aggr_sigmas_values3')
+        document.getElementById('aggr_sigmas_values4').value = window.localStorage.getItem('aggr_sigmas_values4')
+        document.getElementById('aggr_sigmas_values5').value = window.localStorage.getItem('aggr_sigmas_values5')
 
         var nLayer3 = document.getElementById('number_layer_3');
         var nLayer5 = document.getElementById('number_layer_5');
@@ -433,7 +527,7 @@
 
             if (((mode == 'INCISION' || mode == 'AGGRADATION') && (contentEvent.dep_props.length == 0 || contentEvent.dep_sigmas.length == 0)) ||
                 (mode == 'AGGRADATION' && (contentEvent.aggr_props.length == 0 || contentEvent.aggr_sigmas.length == 0)))
-                validForm = false;            
+                validForm = false;
 
             if (validForm == true) {
                 contentEvents.push(contentEvent);
@@ -444,7 +538,10 @@
                 divList.innerHTML = "";
                 for (var i = 0; i < contentEvents.length; i++) {
                     var symbol = eventSymbol(eventModes[i])
-                    divList.innerHTML += "<label for=\"mode\">  </label>" + eventSymbol(eventModes[i]) + " &#8594; "; // TODO: check here
+                    if (i == 0)
+                        divList.innerHTML += "<label for=\"mode\">  </label>" + eventSymbol(eventModes[i]); // TODO: check here
+                    else
+                        divList.innerHTML += "<label for=\"mode\">  </label>" + " &#8594; " + eventSymbol(eventModes[i]); // TODO: check here
                 }
             }
             else
@@ -465,8 +562,12 @@
             divMode.innerHTML = "<label for=\"mode\">Number of events: </label>" + contentEvents.length;
             var divList = document.getElementById("mode_event");
             divList.innerHTML = "";
-            for (var i = 0; i < contentEvents.length; i++)
-                divList.innerHTML += "<label for=\"mode\"> </label>" + eventSymbol(eventModes[i]) + " &#8594; ";
+            for (var i = 0; i < contentEvents.length; i++) {
+                if (i == 0)
+                        divList.innerHTML += "<label for=\"mode\">  </label>" + eventSymbol(eventModes[i]); // TODO: check here
+                else
+                    divList.innerHTML += "<label for=\"mode\">  </label>" + " &#8594; " + eventSymbol(eventModes[i]); // TODO: check here
+            }
         }
         else
             alert("There are no events to remove.")
@@ -543,6 +644,52 @@
 
     }
 
+    // Function to restore the original values from the interface
+    function restoreDefaultValues() {
+        // EVENT GENERAL
+        document.getElementById('nit').value = 100
+        document.getElementById('saved_ts').value = 25
+        document.getElementById('dt').value = 0.1
+        //document.querySelector('input[name="mode"]:checked').value = window.localStorage.getItem('mode') // CHECK HERE
+        document.getElementById('kv').value = 0.01
+        document.getElementById('kl').value = 60
+        document.getElementById('sep_thickness').value = 1
+
+        // EVENT SPECIFICS
+        document.getElementById('ch_depth_value').value = "100; 80; 60; 40; 20; 0"
+        document.getElementById('ch_width_value').value = "100; 125; 150; 250; 400; 800"
+        document.getElementById('dep_height_value').value = "25; 20; 15; 10; 5; 0"
+
+        // Assuming a 3-layers mode as the default values
+        document.getElementById('dep_props_values0').value = "30; 50; 20"
+        document.getElementById('dep_props_values1').value = "30; 50; 20"
+        document.getElementById('dep_props_values2').value = "30; 50; 20"
+        document.getElementById('dep_props_values3').value = "30; 50; 20"
+        document.getElementById('dep_props_values4').value = "30; 50; 20"
+        document.getElementById('dep_props_values5').value = "30; 50; 20"
+
+        document.getElementById('dep_sigmas_values0').value = "0.25; 0.5; 2"
+        document.getElementById('dep_sigmas_values1').value = "0.25; 0.5; 2"
+        document.getElementById('dep_sigmas_values2').value = "0.25; 0.5; 2"
+        document.getElementById('dep_sigmas_values3').value = "0.25; 0.5; 2"
+        document.getElementById('dep_sigmas_values4').value = "0.25; 0.5; 2"
+        document.getElementById('dep_sigmas_values5').value = "0.25; 0.5; 2"
+
+        document.getElementById('aggr_props_values0').value = "33.3; 33.3; 33.3"
+        document.getElementById('aggr_props_values1').value = "33.3; 33.3; 33.3"
+        document.getElementById('aggr_props_values2').value = "33.3; 33.3; 33.3"
+        document.getElementById('aggr_props_values3').value = "33.3; 33.3; 33.3"
+        document.getElementById('aggr_props_values4').value = "33.3; 33.3; 33.3"
+        document.getElementById('aggr_props_values5').value = "33.3; 33.3; 33.3"
+
+        document.getElementById('aggr_sigmas_values0').value = "2; 5; 10"
+        document.getElementById('aggr_sigmas_values1').value = "2; 5; 10"
+        document.getElementById('aggr_sigmas_values2').value = "2; 5; 10"
+        document.getElementById('aggr_sigmas_values3').value = "2; 5; 10"
+        document.getElementById('aggr_sigmas_values4').value = "2; 5; 10"
+        document.getElementById('aggr_sigmas_values5').value = "2; 5; 10"
+    }
+
     function checkValue(val, min, max) {
         if (val >= min && val < max)
             return true;
@@ -566,6 +713,9 @@
             divNumberLayersInfo[i].innerHTML = "<label>" + createSpaceStr(57) + "G; MS; M" + "</label>";
         }
 
+        var number_layers_explanation = document.getElementById("number_layers_explanation");        
+        number_layers_explanation.innerHTML = "<label>" + "Number of layers (G: Gravel, MS: Medium Sand, M: Mud):" + "</label>";
+
         // Fill the Layers' initial examples in the boxes according to the number of slopes
         for (let i = 0; i < NUMBER_OF_SLOPES; i++) {
             idAux = "dep_props_values" + i.toString();
@@ -585,6 +735,9 @@
             divNumberLayersInfo[i].innerHTML = "<label>" + createSpaceStr(57) + "G; CS; MS; FS; M" + "</label>";
         }
 
+        var number_layers_explanation = document.getElementById("number_layers_explanation");        
+        number_layers_explanation.innerHTML = "<label>" + "Number of layers (G: Gravel, CS: C. Sand, MS: Medium Sand, FS: F. Sand, M: Mud):" + "</label>";
+
         // Fill the Layers' initial examples in the boxes according to the number of slopes
         for (let i = 0; i < NUMBER_OF_SLOPES; i++) {
             idAux = "dep_props_values" + i.toString();
@@ -603,6 +756,9 @@
         for (let i = 0; i < divNumberLayersInfo.length; i++) {
             divNumberLayersInfo[i].innerHTML = "<label>" + createSpaceStr(57) + "G; VCS; CS; MS; FS; VFS; M" + "</label>";
         }
+
+        var number_layers_explanation = document.getElementById("number_layers_explanation");        
+        number_layers_explanation.innerHTML = "<label>" + "Number of layers (G: Gravel, VCS: Very C. Sand, CS: C. Sand, MS: Medium Sand, FS: F. Sand, VFS: Very F. Sand, M: Mud):" + "</label>";
 
         // Fill the Layers' initial examples in the boxes according to the number of slopes
         for (let i = 0; i < NUMBER_OF_SLOPES; i++) {
