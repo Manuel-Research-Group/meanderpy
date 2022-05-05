@@ -145,8 +145,10 @@
                 </div> <br />
                 <div id="mode_event"> </div> <br /> <br />                
             </div>
-            <div class="general_properties"><br/>
-                <button onclick="restoreDefaultValues(); ">Restore Default Values</button> <br /> <br /><!-- TODO -->
+            <div>
+                <br /><button onclick="restoreDefaultValues(); ">Restore Default Values</button>
+            </div><br />
+            <div class="general_properties"><br/>                
                 <label for="nit">Number of iterations:</label>
                 <input type="number" id="nit" maxlength="6" /><br /><br /> <!-- min="0" max="100" -->
                 <label for="saved_ts">Save mesh every </label>
@@ -189,11 +191,11 @@
 
                 <label for="number_layers"><b><div id="number_layers_explanation"> </div></b></label> <br /> <br /> <!--Number of layers (G: Gravel, S: Sand, M: Mud):-->
                 &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
-                <input type="radio" id="number_layer_3" name="number_layers" checked />
+                <input type="radio" id="number_layer_3" name="number_layers" value="num_3" checked />
                 <label for="number_layers">3 (G, MS, M)</label> <br /> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
-                <input type="radio" id="number_layer_5" name="number_layers" />
+                <input type="radio" id="number_layer_5" name="number_layers" value="num_5"/>
                 <label for="number_layers">5 (G, CS, MS, FS, M)</label> <br /> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
-                <input type="radio" id="number_layer_7" name="number_layers" />
+                <input type="radio" id="number_layer_7" name="number_layers" value="num_7"/>
                 <label for="number_layers">7 (G, VCS, CS, MS, FS, VFS, M)</label> <br /> <br />
 
                 <div class="aggr_properties">
@@ -314,18 +316,20 @@
 
     // Function called as soon as the window is loaded
     window.onload = function () {
-        writeLabelNumberLayer3(); // initializes the dynamic labels with three layers (Gr, Sa, Si) -> (G, S, M)
+        
+
+        //restoreDefaultValues();
 
         // Autosave session feature: info regarding the formularies are stored from TIME to TIME
-        const TIME = 2000;         
+        const TIME = 500;         
         setInterval(myTimer, TIME);
 
         function myTimer() {
             // EVENT GENERAL
             window.localStorage.setItem('nit', document.getElementById("nit").value);
             window.localStorage.setItem('saved_ts', document.getElementById("saved_ts").value);
-            window.localStorage.setItem('dt', document.getElementById("dt").value);
-            //window.localStorage.setItem('mode', document.querySelector('input[name="mode"]:checked').value); // CHECK HERE
+            window.localStorage.setItem('dt', document.getElementById("dt").value);            
+            window.localStorage.setItem('mode', document.querySelector('input[name="mode"]:checked').value);
             window.localStorage.setItem('kv', document.getElementById("kv").value);
             window.localStorage.setItem('kl', document.getElementById("kl").value);
             window.localStorage.setItem('sep_thickness', document.getElementById("sep_thickness").value); 
@@ -333,7 +337,9 @@
             // EVENT SPECIFICS
             window.localStorage.setItem('ch_depth_value', document.getElementById("ch_depth_value").value);
             window.localStorage.setItem('ch_width_value', document.getElementById("ch_width_value").value);
-            window.localStorage.setItem('dep_height_value', document.getElementById("dep_height_value").value);
+            window.localStorage.setItem('dep_height_value', document.getElementById("dep_height_value").value);           
+
+            window.localStorage.setItem('number_layers', document.querySelector('input[name="number_layers"]:checked').value);            
 
             window.localStorage.setItem('dep_props_values0', document.getElementById("dep_props_values0").value);
             window.localStorage.setItem('dep_props_values1', document.getElementById("dep_props_values1").value);
@@ -363,13 +369,32 @@
             window.localStorage.setItem('aggr_sigmas_values4', document.getElementById("aggr_sigmas_values4").value);
             window.localStorage.setItem('aggr_sigmas_values5', document.getElementById("aggr_sigmas_values5").value);
 
+            
         }
 
         // Fill the stored formularies according to the autosave feature when the page is loaded
         // EVENT GENERAL
         document.getElementById('nit').value = window.localStorage.getItem('nit')
         document.getElementById('saved_ts').value = window.localStorage.getItem('saved_ts')
-        document.getElementById('dt').value = window.localStorage.getItem('dt')
+        document.getElementById('dt').value = window.localStorage.getItem('dt')  
+
+        mode = window.localStorage.getItem('mode');              
+        if (mode == document.getElementById('mode_aggradation').value) {            
+            document.getElementById("mode_aggradation").checked = true;
+            hideInterface();
+        }
+            
+        else if (mode == document.getElementById('mode_incision').value) {
+            document.getElementById("mode_incision").checked = true;
+            hideInterface();
+        }
+            
+        else if (mode == document.getElementById('mode_separator').value) {
+            document.getElementById("mode_separator").checked = true;  
+            hideInterface();
+        }
+            
+
         //document.querySelector('input[name="mode"]:checked').value = window.localStorage.getItem('mode') // CHECK HERE
         document.getElementById('kv').value = window.localStorage.getItem('kv')
         document.getElementById('kl').value = window.localStorage.getItem('kl')
@@ -378,7 +403,22 @@
         // EVENT SPECIFICS
         document.getElementById('ch_depth_value').value = window.localStorage.getItem('ch_depth_value')
         document.getElementById('ch_width_value').value = window.localStorage.getItem('ch_width_value')
-        document.getElementById('dep_height_value').value = window.localStorage.getItem('dep_height_value')
+        document.getElementById('dep_height_value').value = window.localStorage.getItem('dep_height_value')           
+        
+        number_layers = window.localStorage.getItem('number_layers');
+        if (number_layers == document.getElementById('number_layer_3').value) {
+            document.getElementById("number_layer_3").checked = true;
+            writeLabelNumberLayer3();
+        }            
+        else if (number_layers == document.getElementById('number_layer_5').value) {
+            document.getElementById("number_layer_5").checked = true;
+            writeLabelNumberLayer5();
+        }
+            
+        else if (number_layers == document.getElementById('number_layer_7').value) {
+            document.getElementById("number_layer_7").checked = true;
+            writeLabelNumberLayer7();
+        }            
 
         document.getElementById('dep_props_values0').value = window.localStorage.getItem('dep_props_values0')
         document.getElementById('dep_props_values1').value = window.localStorage.getItem('dep_props_values1')
@@ -438,6 +478,28 @@
                 $(".separator_properties").show()           
             }            
         });
+    }
+
+    function hideInterface() {
+        mode = window.localStorage.getItem('mode');              
+        if (mode == document.getElementById('mode_aggradation').value) {                
+            $(".general_properties").show()
+            $(".specifics_properties").show()
+            $(".aggr_properties").show()
+            $(".separator_properties").hide()
+        }
+        else if (mode == document.getElementById('mode_incision').value) {
+            $(".general_properties").show()
+            $(".specifics_properties").show()
+            $(".aggr_properties").hide()                
+            $(".separator_properties").hide()
+        }
+        else if (mode == document.getElementById('mode_separator').value) {
+            $(".general_properties").hide()
+            $(".specifics_properties").hide()
+            $(".aggr_properties").hide()     
+            $(".separator_properties").show()           
+        }
     }
 
     function handler() {
@@ -646,11 +708,14 @@
 
     // Function to restore the original values from the interface
     function restoreDefaultValues() {
+
+        writeLabelNumberLayer3(); // initializes the dynamic labels with three layers (Gr, Sa, Si) -> (G, S, M)
+
         // EVENT GENERAL
         document.getElementById('nit').value = 100
         document.getElementById('saved_ts').value = 25
         document.getElementById('dt').value = 0.1
-        //document.querySelector('input[name="mode"]:checked').value = window.localStorage.getItem('mode') // CHECK HERE
+        document.getElementById("mode_aggradation").checked = true;
         document.getElementById('kv').value = 0.01
         document.getElementById('kl').value = 60
         document.getElementById('sep_thickness').value = 1
@@ -659,6 +724,8 @@
         document.getElementById('ch_depth_value').value = "100; 80; 60; 40; 20; 0"
         document.getElementById('ch_width_value').value = "100; 125; 150; 250; 400; 800"
         document.getElementById('dep_height_value').value = "25; 20; 15; 10; 5; 0"
+
+        document.getElementById("number_layer_3").checked = true;
 
         // Assuming a 3-layers mode as the default values
         document.getElementById('dep_props_values0').value = "30; 50; 20"
@@ -687,7 +754,7 @@
         document.getElementById('aggr_sigmas_values2').value = "2; 5; 10"
         document.getElementById('aggr_sigmas_values3').value = "2; 5; 10"
         document.getElementById('aggr_sigmas_values4').value = "2; 5; 10"
-        document.getElementById('aggr_sigmas_values5').value = "2; 5; 10"
+        document.getElementById('aggr_sigmas_values5').value = "2; 5; 10"        
     }
 
     function checkValue(val, min, max) {
