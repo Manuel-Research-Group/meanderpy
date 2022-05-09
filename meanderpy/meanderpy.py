@@ -25,7 +25,6 @@ from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
 import open3d as o3d
 import math
-import ply # Script to read and write PLY files
 import struct
 import os
 
@@ -509,7 +508,7 @@ def plot3D(Z, grid_size = 1):
 def erosional_surface(cld_map, z_map, hw_map, cd_map):
     return cd_map * ((cld_map / hw_map) ** 2 - 1) + z_map
 
-def gausian_surface(sigma_map, cld_map, hw_map):
+def gaussian_surface(sigma_map, cld_map, hw_map):
     return np.exp(- 1 / 2 * ((cld_map / hw_map) / sigma_map) ** 2)
 
 class ChannelEvent:
@@ -839,9 +838,9 @@ class ChannelBelt:
             gr_s, sa_s, si_s = event.dep_sigmas(sl_map)
             t_p = gr_p + sa_p + si_p
 
-            gravel_surface = (gr_p / t_p) * dh_map * gausian_surface(gr_s, cld_map, hw_map)
-            sand_surface = (sa_p / t_p) * dh_map * gausian_surface(sa_s, cld_map, hw_map)
-            silt_surface = (si_p / t_p) * dh_map * gausian_surface(si_s, cld_map, hw_map)
+            gravel_surface = (gr_p / t_p) * dh_map * gaussian_surface(gr_s, cld_map, hw_map)
+            sand_surface = (sa_p / t_p) * dh_map * gaussian_surface(sa_s, cld_map, hw_map)
+            silt_surface = (si_p / t_p) * dh_map * gaussian_surface(si_s, cld_map, hw_map)
 
             gr_p, sa_p, si_p = event.aggr_props(sl_map)
             gr_s, sa_s, si_s = event.aggr_sigmas(sl_map)
@@ -861,8 +860,8 @@ class ChannelBelt:
 
             STD_FOR_GRAVEL_FALL_OFF = 0.1   # EXPERIMENTALLY_DEFINED_STD_FOR_GRAVEL_FALL_OFF
             STD_FOR_SAND_FALL_OFF   = 0.6   # EXPERIMENTALLY_DEFINED_STD_FOR_SAND_FALL_OFF       
-            gravel_surface += (gr_p / t_p) * aggr_map * gausian_surface(STD_FOR_GRAVEL_FALL_OFF, cld_map, hw_map)  # MANUEL
-            sand_surface   += (sa_p / t_p) * aggr_map * gausian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
+            gravel_surface += (gr_p / t_p) * aggr_map * gaussian_surface(STD_FOR_GRAVEL_FALL_OFF, cld_map, hw_map)  # MANUEL
+            sand_surface   += (sa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
             silt_surface   += (si_p / t_p) * aggr_map
             # ADDED by MANUEL to smooth the aggradation maps due to their low resolutions
             gravel_surface = scipy.ndimage.gaussian_filter(gravel_surface, sigma = 10 / dx)
@@ -996,87 +995,6 @@ class ChannelBelt3D():
 
         plotter.show()  
 
-    '''
-    Merge two lists intercalating their elements    
-    '''
-    def merge_xyzrgb(xyz,rgb):
-        silt_color = [51/255, 51/255, 0] # DARK GREEN
-        sand_color = [255/255, 204/255, 0] # YELLOW
-        gravel_color = [255/255, 102/255, 0] # ORANGE
-        substract_color = [0/255, 192/255, 192/255] # TEAL
-        stratColors = np.array([silt_color, sand_color, gravel_color, substract_color])
-
-        merge_result = []
-
-        for i in range(len(xyz)):
-            merge_result.append(xyz[i])
-            merge_result.append(stratColors[rgb[i]])
-
-        return merge_result
-
-    '''
-    Convert a point cloud and its colors to a 3D mesh
-    Inputs: points: list of points in 3D, colors: list of colors as RGB values in [0,1]
-    Output: mesh file in the ply format as specified in 'filename'
-    '''
-    def point_cloud_to_3d_mesh(self, points, colors, filename='point_to_mesh.ply'):
-        cloud = pv.PolyData(np.asarray(points))        
-        surf = cloud.delaunay_2d()
-        colors = np.asarray(colors*255)
-        colorsInt = colors.astype(np.uint8)
-        surf.save('my_mesh.ply', texture=colorsInt)
-
-    # Function to compute the bounding box of a 3D np array adapted from https://stackoverflow.com/questions/31400769/bounding-box-of-numpy-array
-    # NEED TO OPTIMIZE THIS USING NP ARRAY
-    def bbox3D(self, points):
-        xmin, ymin, zmin = math.inf, math.inf, math.inf
-        xmax, ymax, zmax = -math.inf, -math.inf, -math.inf
-        for p in points:
-            if xmin > p[0]: xmin = p[0]
-            if xmax < p[0]: xmax = p[0]
-            if ymin > p[1]: ymin = p[1]
-            if ymax < p[1]: ymax = p[1]
-            if zmin > p[2]: zmin = p[2]
-            if zmax < p[2]: zmax = p[2]
-
-        return xmin, xmax, ymin, ymax, zmin, zmax
-
-    # bottomBBoxPoints must contain the bottom bounding box limits as a list in the following order: xmin, xmax, ymin, ymax, zmin, zmax
-    def generateBoxPoints(self, points, boundingBox, subdivNumX, subdivNumY, color):
-        boxPointList = []
-        boxColorList = []
-
-        xmin, xmax = boundingBox[0], boundingBox[1]
-        ymin, ymax = boundingBox[2], boundingBox[3]
-        zmin, zmax = boundingBox[4], boundingBox[5]
-        
-        # Produce a list of interpolated values from a given range
-        linearXValues = np.linspace(xmin, xmax, subdivNumX)
-        linearYValues = np.linspace(ymin, ymax, subdivNumY)
-        
-        # Generate points in the laterals on the ground  
-        
-        '''
-        for x in linearXValues:            
-            boxPointList.append([x,ymin-1,zmin])
-            boxColorList.append(color)
-        
-        for y in linearYValues:            
-            boxPointList.append([(xmax+xmin)/2,y,zmin])            
-            boxColorList.append(color)
-        '''
-
-        # Close the borders
-        for p in points:            
-            if p[0] == xmin or p[0] == xmax or p[1] == ymin or p[1] == ymax:
-                boxPointList.append([p[0],p[1],zmin])
-                boxColorList.append(color)
-                #if p[1] == ymin or p[1] == ymax:
-                    #boxPointList.append([p[0],p[1]+1,(p[2]-zmin)/2])
-                    #boxColorList.append(color)
-            
-        return boxPointList, boxColorList
-
     # Generates a new PLY file containing the x,y,z coordinates in float instead of double
     def reducePlySize(self, inFileName, outFileName):
         try:        
@@ -1157,12 +1075,6 @@ class ChannelBelt3D():
             os.remove(fileNameOut)
         if os.path.isfile(fileNameOut[:-4]+'_'+'.ply'):
             os.rename(fileNameOut[:-4]+'_'+'.ply', fileNameOut)
-        
-
-    # Function to compare a float with a list of floats in numpy
-    # Extracted from https://stackoverflow.com/questions/55239065/checking-if-a-specific-float-value-is-in-list-array-in-python-numpy
-    def close_to_any(self, a, floats, **kwargs):
-        return np.any(np.isclose(a, floats, **kwargs))
 
     def export_top_layer(self, structure, structure_colors, event_top_layer, number_layers_per_event, grid, top, filename, plant_view, \
                         reduction = None, colored_mesh = True):
