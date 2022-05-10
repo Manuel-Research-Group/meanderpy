@@ -481,7 +481,7 @@
     }
 
     function hideInterface() {
-        mode = window.localStorage.getItem('mode');              
+        mode = window.localStorage.getItem('mode');            
         if (mode == document.getElementById('mode_aggradation').value) {                
             $(".general_properties").show()
             $(".specifics_properties").show()
@@ -712,49 +712,58 @@
         writeLabelNumberLayer3(); // initializes the dynamic labels with three layers (Gr, Sa, Si) -> (G, S, M)
 
         // EVENT GENERAL
-        document.getElementById('nit').value = 100
-        document.getElementById('saved_ts').value = 25
-        document.getElementById('dt').value = 0.1
+        document.getElementById('nit').value = 100;
+        document.getElementById('saved_ts').value = 25;
+        document.getElementById('dt').value = 0.1;
         document.getElementById("mode_aggradation").checked = true;
-        document.getElementById('kv').value = 0.01
-        document.getElementById('kl').value = 60
-        document.getElementById('sep_thickness').value = 1
+        document.getElementById('kv').value = 0.01;
+        document.getElementById('kl').value = 60;
+        document.getElementById('sep_thickness').value = 1;
 
         // EVENT SPECIFICS
-        document.getElementById('ch_depth_value').value = "100; 80; 60; 40; 20; 0"
-        document.getElementById('ch_width_value').value = "100; 125; 150; 250; 400; 800"
-        document.getElementById('dep_height_value').value = "25; 20; 15; 10; 5; 0"
+        document.getElementById('ch_depth_value').value = "100; 80; 60; 40; 20; 0";
+        document.getElementById('ch_width_value').value = "100; 125; 150; 250; 400; 800";
+        document.getElementById('dep_height_value').value = "25; 20; 15; 10; 5; 0";
 
         document.getElementById("number_layer_3").checked = true;
 
         // Assuming a 3-layers mode as the default values
-        document.getElementById('dep_props_values0').value = "30; 50; 20"
-        document.getElementById('dep_props_values1').value = "30; 50; 20"
-        document.getElementById('dep_props_values2').value = "30; 50; 20"
-        document.getElementById('dep_props_values3').value = "30; 50; 20"
-        document.getElementById('dep_props_values4').value = "30; 50; 20"
-        document.getElementById('dep_props_values5').value = "30; 50; 20"
+        document.getElementById('dep_props_values0').value = "30; 50; 20";
+        document.getElementById('dep_props_values1').value = "30; 50; 20";
+        document.getElementById('dep_props_values2').value = "30; 50; 20";
+        document.getElementById('dep_props_values3').value = "30; 50; 20";
+        document.getElementById('dep_props_values4').value = "30; 50; 20";
+        document.getElementById('dep_props_values5').value = "30; 50; 20";
 
-        document.getElementById('dep_sigmas_values0').value = "0.25; 0.5; 2"
-        document.getElementById('dep_sigmas_values1').value = "0.25; 0.5; 2"
-        document.getElementById('dep_sigmas_values2').value = "0.25; 0.5; 2"
-        document.getElementById('dep_sigmas_values3').value = "0.25; 0.5; 2"
-        document.getElementById('dep_sigmas_values4').value = "0.25; 0.5; 2"
-        document.getElementById('dep_sigmas_values5').value = "0.25; 0.5; 2"
+        document.getElementById('dep_sigmas_values0').value = "0.25; 0.5; 2";
+        document.getElementById('dep_sigmas_values1').value = "0.25; 0.5; 2";
+        document.getElementById('dep_sigmas_values2').value = "0.25; 0.5; 2";
+        document.getElementById('dep_sigmas_values3').value = "0.25; 0.5; 2";
+        document.getElementById('dep_sigmas_values4').value = "0.25; 0.5; 2";
+        document.getElementById('dep_sigmas_values5').value = "0.25; 0.5; 2";
 
-        document.getElementById('aggr_props_values0').value = "33.3; 33.3; 33.3"
-        document.getElementById('aggr_props_values1').value = "33.3; 33.3; 33.3"
-        document.getElementById('aggr_props_values2').value = "33.3; 33.3; 33.3"
-        document.getElementById('aggr_props_values3').value = "33.3; 33.3; 33.3"
-        document.getElementById('aggr_props_values4').value = "33.3; 33.3; 33.3"
-        document.getElementById('aggr_props_values5').value = "33.3; 33.3; 33.3"
+        document.getElementById('aggr_props_values0').value = "33.3; 33.3; 33.3";
+        document.getElementById('aggr_props_values1').value = "33.3; 33.3; 33.3";
+        document.getElementById('aggr_props_values2').value = "33.3; 33.3; 33.3";
+        document.getElementById('aggr_props_values3').value = "33.3; 33.3; 33.3";
+        document.getElementById('aggr_props_values4').value = "33.3; 33.3; 33.3";
+        document.getElementById('aggr_props_values5').value = "33.3; 33.3; 33.3";
 
-        document.getElementById('aggr_sigmas_values0').value = "2; 5; 10"
-        document.getElementById('aggr_sigmas_values1').value = "2; 5; 10"
-        document.getElementById('aggr_sigmas_values2').value = "2; 5; 10"
-        document.getElementById('aggr_sigmas_values3').value = "2; 5; 10"
-        document.getElementById('aggr_sigmas_values4').value = "2; 5; 10"
-        document.getElementById('aggr_sigmas_values5').value = "2; 5; 10"        
+        document.getElementById('aggr_sigmas_values0').value = "2; 5; 10";
+        document.getElementById('aggr_sigmas_values1').value = "2; 5; 10";
+        document.getElementById('aggr_sigmas_values2').value = "2; 5; 10";
+        document.getElementById('aggr_sigmas_values3').value = "2; 5; 10";
+        document.getElementById('aggr_sigmas_values4').value = "2; 5; 10";
+        document.getElementById('aggr_sigmas_values5').value = "2; 5; 10"; 
+
+        window.localStorage.setItem('mode', document.querySelector('input[name="mode"]:checked').value);
+        
+        mode = 'AGGRADATION';                 
+        if (mode == document.getElementById('mode_aggradation').value) {            
+            document.getElementById("mode_aggradation").checked = true;
+            console.log('gzuz');
+            hideInterface();            
+        }
     }
 
     function checkValue(val, min, max) {
