@@ -252,7 +252,7 @@ class Channel:
         self.x += RN * (dy/ds) * dt 
         self.y -= RN * (dx/ds) * dt
  
-    def cut_cutoffs(self, crdist, ds):  
+    def cut_cutoffs(self, crdist, ds):
         print('inside cut_cutoffs')   
         cuts = []   
         
@@ -475,6 +475,13 @@ def topostrat(topo):
     for i in (range(0,ts)): #camada 0 é a inferior
         strat[:,:,i] = np.amin(topo[:,:,i:], axis=2)
     return strat # matriz com todos os pontos (armazenado valor do z mínimo)
+
+def plot2D(x, y, title, ylabel):
+  plt.plot(x, y)
+  plt.title(title)
+  plt.xlabel('Length (m)')
+  plt.ylabel(ylabel)
+  plt.show()
 
 def topostrat_evolution(topo):
     """function for converting a stack of geomorphic surfaces into stratigraphic surfaces
@@ -703,7 +710,10 @@ class ChannelBelt:
         last_time = self.times[-1]
         
         for itn in range(1, event.nit+1):            
-            update_progress(itn/event.nit)
+            update_progress(itn/event.nit)    
+
+            #plot2D(channel.x, channel.y, 'Channel Preview', 'Width (m)')
+            #plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)')
 
             channel.migrate(event.Cf, event.kl / YEAR, event.dt * YEAR)            
             channel.cut_cutoffs(event.cr_dist, self.ds)            
@@ -730,6 +740,7 @@ class ChannelBelt:
                 self.channels.append(channel.copy())
                 self.basins.append(basin.copy())
                 self.events.append(event)
+                plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)')
 
         # dgb: Save the final mesh
         '''
