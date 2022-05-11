@@ -543,6 +543,7 @@
             var kv = Number(document.getElementById("kv").value);            
             var kl = Number(document.getElementById("kl").value);            
             var sep_thickness = Number(document.getElementById("sep_thickness").value);
+            var error_msg = "Please correct the following before creating an event:\n";
 
             if (checkValue(nit, 0, 10000) == false || checkValue(saved_ts, 0, 10000) == false ||
                 checkValue(dt, 0, 10000) == false || isNaN(dt) == true || checkValue(kv, 0, 10000) == false || isNaN(kv) == true ||
@@ -586,8 +587,13 @@
                     contentEvent.aggr_sigmas = listEventJson("aggr_sigmas_values", 0.0, 100000);
                 }
             }            
-
-            if (((mode == 'INCISION' || mode == 'AGGRADATION') && (contentEvent.dep_props.length == 0 || contentEvent.dep_sigmas.length == 0)) ||
+            // TODO
+            number_layers_label = window.localStorage.getItem('number_layers');
+            if(number_layers == 'num_3') number_layers_int = 3;
+            if(number_layers == 'num_5') number_layers_int = 5;
+            if(number_layers == 'num_7') number_layers_int = 7;
+            if (((mode == 'INCISION' || mode == 'AGGRADATION') &&
+                (contentEvent.dep_props.length != number_layers_int || contentEvent.dep_sigmas.length != number_layers_int)) ||
                 (mode == 'AGGRADATION' && (contentEvent.aggr_props.length == 0 || contentEvent.aggr_sigmas.length == 0)))
                 validForm = false;
 
@@ -606,8 +612,33 @@
                         divList.innerHTML += "<label for=\"mode\">  </label>" + " &#8594; " + eventSymbol(eventModes[i]); // TODO: check here
                 }
             }
-            else
-                alert("Formulary items are incomplete or inconsistent. Please correct them and try again.");
+            else { // Formulary items are incomplete or inconsistent
+                //alert("Formulary items are incomplete or inconsistent. Please correct them and try again.");
+                if(checkValue(nit, 0, 10000) == false) error_msg += "- Number of iterations must be an integer between 0 and 10000.\n";
+                if(checkValue(saved_ts, 0, 10000) == false) error_msg += "- Save mesh every _ iterations must be an integer between 0 and 10000.\n";
+                if(checkValue(dt, 0.001, 1) == false) error_msg += "- Time of each iteration must be a decimal between 0.001 and 1.\n";
+                if(checkValue(kv, 0.001, 1) == false) error_msg += "- Aggradation/incision modulation must be a decimal between 0.001 and 1.\n";
+                if(checkValue(kl, 0, 10000) == false) error_msg += "- Meandering modulation must be an integer between 0 and 10000.\n";
+                if(ch_depth_value_array.length != 6) error_msg += "- Channel depth must have six values separated with commas.\n";
+                if(ch_width_value_array.length != 6) error_msg += "- Channel width must have six values separated with commas.\n";
+                if(dep_height_value_array.length != 6) error_msg += "- Channel height must have six values separated with commas.\n";
+                number_layers = window.localStorage.getItem('number_layers');
+                if(number_layers == 'num_3') number_layers_int = 3;
+                if(number_layers == 'num_5') number_layers_int = 5;
+                if(number_layers == 'num_7') number_layers_int = 7;
+                
+                if((mode == 'INCISION' || mode == 'AGGRADATION') && contentEvent.dep_props.length == 0) 
+                if((mode == 'INCISION' || mode == 'AGGRADATION') && contentEvent.dep_sigmas.length == 0)
+                if(mode == 'AGGRADATION' && contentEvent.aggr_props.length == 0)
+                if(mode == 'AGGRADATION' && contentEvent.aggr_sigmas.length == 0)
+
+                
+                //if(number_layers == document.getElementById('number_layer_3').value)
+                
+
+                alert(error_msg);
+            }
+                
         }
         else
             alert("Max number of events has been reached. Please remove at least one event to create more.")
