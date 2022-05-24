@@ -463,16 +463,20 @@ class ChannelMapper:
         xy = np.vstack((x_p, y_p)).astype(int).T
         return tuple(map(tuple, xy))
 
-def topostrat(topo):
+# Algum problema aqui
+def topostrat(topo, N = None):
     """function for converting a stack of geomorphic surfaces into stratigraphic surfaces
     inputs:
     topo - 3D numpy array of geomorphic surfaces
     returns:
     strat - 3D numpy array of stratigraphic surfaces
-    """
+    """    
     r,c,ts = np.shape(topo)
+
+    T = N if N is not None else ts # added to solve incision problem
+
     strat = np.copy(topo)
-    for i in (range(0,ts)): #camada 0 é a inferior
+    for i in (range(0,T)): #camada 0 é a inferior
         strat[:,:,i] = np.amin(topo[:,:,i:], axis=2)
     return strat # matriz com todos os pontos (armazenado valor do z mínimo)
 
@@ -740,7 +744,7 @@ class ChannelBelt:
                 self.channels.append(channel.copy())
                 self.basins.append(basin.copy())
                 self.events.append(event)
-                plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)')
+                #plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)')
 
         # dgb: Save the final mesh
         '''
@@ -823,6 +827,7 @@ class ChannelBelt:
 
         for i in range(0, N):
             update_progress(i/N)
+
             event = self.events[i]
             # Last iteration 
             # aggr_map: qual parte do terreno está sofrendo aggradation
@@ -900,12 +905,16 @@ class ChannelBelt:
             surface += silt_surface
             topo[:,:,i*L + 3] = surface
             
-        return ChannelBelt3D(topo, xmin, ymin, dx, dx)
+        return ChannelBelt3D(topo, xmin, ymin, dx, dx) # correto
 
 class ChannelBelt3D():
     def __init__(self, topo, xmin, ymin, dx, dy):
-        self.strat = topostrat(topo)
+
+        #self.raw_plot_xsection(0.1, topo)
+        self.strat = topostrat(topo)      
+        #self.raw_plot_xsection(0.1, self.strat)
         self.topo = topo
+        #self.raw_plot_xsection(0.1, self.topo)
 
         self.xmin = xmin
         self.ymin = ymin
@@ -919,8 +928,18 @@ class ChannelBelt3D():
         self.dx = dx
         self.dy = dy
 
+    def raw_plot_xsection(self, xsec, matrix):
+        sy, sx, sz = np.shape(matrix)
+        xindex = int(xsec * sx)
+        Xv = np.linspace(0, sy, sy)
+        for i in range(0, sz, 4):            
+            Y1 = matrix[:,xindex,i]
+            plt.plot(Xv, Y1)
+
+        plt.show()
+
     def plot_xsection(self, xsec, ve = 1, substrat = True, title = '', silt_color = [51/255, 51/255, 0], sand_color = [255/255, 204/255, 0], gravel_color = [255/255, 102/255, 0]):
-        strat = self.strat # aqui apenas strat final
+        strat = self.topo # aqui apenas strat final
         sy, sx, sz = np.shape(strat)
         if title != '': 
             title += '\n'
@@ -957,7 +976,7 @@ class ChannelBelt3D():
 
             ax1.fill(X1, Y1, facecolor=gravel_color)
             ax1.fill(X1, Y2, facecolor=sand_color) 
-            ax1.fill(X1, Y3, facecolor=silt_color)
+            ax1.fill(X1, Y3, facecolor=silt_color)            
         
         if ve != 1: 
             ax1.set_aspect(ve, adjustable='datalim')
@@ -1203,7 +1222,8 @@ class ChannelBelt3D():
         dir = tempfile.mkdtemp()
         
         # strat: 3D numpy array of statigraphic surfaces (previously was named zz)
-        strat = topostrat(self.topo)
+        #strat = topostrat(self.topo)
+        strat = self.strat
 
         sy, sx, sz = np.shape(strat) # sz contains the number of layers from strat
 
@@ -1237,6 +1257,8 @@ class ChannelBelt3D():
             update_progress(event_top_layer/sz)            
             #filename = 'model{}'.format(int(i/3) + 1) # local folder
             filename = path.join(dir, '{}'.format((int)(event_top_layer/NUMBER_OF_LAYERS_PER_EVENT) + 1)) # temp folder, all models
+
+            strat = topostrat(self.topo, event_top_layer)
             
             # Produces a grid for the current z layer containing the points in grid.points
             grid = pv.StructuredGrid(xx, yy, strat[:,:,event_top_layer] * ve)
