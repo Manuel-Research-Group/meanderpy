@@ -288,7 +288,7 @@ for evt in events_json:
 belt = mp.ChannelBelt(channel, basin)
 for i, event in enumerate(events):
   print('Simulating event {} of {}'.format(i, len(events)))  
-  belt.simulate(event)
+  belt.simulate(event, i)
 
 ### CONFIG
 ve = config_json.get('ve', DEFAULT_CONFIG_VE)

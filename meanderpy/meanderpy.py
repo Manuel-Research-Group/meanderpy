@@ -40,11 +40,13 @@ YEAR = 365*24*60*60.0
 NUMBER_OF_LAYERS_PER_EVENT = 4
 
 def update_progress(progress):
-    """progress bar from https://stackoverflow.com/questions/3160699/python-progress-bar
-    update_progress() : Displays or updates a console progress bar
-    Accepts a float between 0 and 1. Any int will be converted to a float.
-    A value under 0 represents a 'halt'.
-    A value at 1 or bigger represents 100%"""
+    """
+    Displays or updates a console progress bar.
+    Adapted from https://stackoverflow.com/questions/3160699/python-progress-bar
+
+    :param progress: (float) value 0 represents halt and 1 represents 100%.    
+    """
+
     barLength = 20 # Modify this to change the length of the progress bar
     status = ""
     if isinstance(progress, int):
@@ -64,13 +66,23 @@ def update_progress(progress):
     sys.stdout.flush()
 
 def compute_migration_rate(r0, Cf, d, dl, L):
-    """compute migration rate as weighted sum of upstream curvatures
+    """
+    Compute migration rate as weighted sum of upstream curvatures.
+
     pad - padding (number of nodepoints along centerline)
     ns - number of points in centerline
     ds - distances between points in centerline
     omega - constant in HK model
     gamma - constant in HK model
-    R0 - nominal migration rate (dimensionless curvature * migration rate constant)"""
+
+    :param r0: nominal migration rate (dimensionless curvature * migration rate constant)
+    :param Cf: TODO
+    :param d: TODO
+    :param dl: TODO
+    :param L: TODO
+    :return: TODO
+    """
+
     NS = len(dl)
     r1 = np.zeros(NS) # preallocate adjusted channel migration rate
     for i in range(0, NS):
@@ -83,6 +95,18 @@ def compute_migration_rate(r0, Cf, d, dl, L):
     return r1
 
 def find_cutoffs(x, y, crdist, diag):
+    """
+    Function for identifying locations of cutoffs along a centerline
+    and the indices of the segments that will become part of the oxbows [Sylvester]
+
+    :param x: coordinate x of centerline
+    :param y: coordinate y of centerline
+    :param crdist: critical cutoff distance
+    :param diag: TODO   
+
+    :return: TODO
+    """
+
     # distance matrix for centerline points:
     dist = distance.cdist(np.array([x,y]).T,np.array([x,y]).T)
     dist[dist>crdist] = np.NaN # set all values that are larger than the cutoff threshold to NaN
@@ -102,11 +126,15 @@ def find_cutoffs(x, y, crdist, diag):
     return ind1, ind2 # return indices of cutoff points and cutoff coordinates
 
 def find_cutoffs_R(R, W = 5, T = 1):
-    '''
-        R - curvature * width (dimensionless curvature)
-        W - window size (in elements) that will be cut
-        T - threshold for cut
-    '''
+    """
+    TODO
+
+    :param R: TODO
+    :param W: TODO
+    :param T: TODO
+    :return: TODO
+    """
+
     indexes = np.where(np.abs(R) > T)[0][-1:]
 
     if len(indexes) == 0:
@@ -121,6 +149,14 @@ def find_cutoffs_R(R, W = 5, T = 1):
     return max(ind1, 0), min(ind2, len(R) -1)
 
 def zipFilesInDir(dirName, zipFileName, filter):
+    """
+    Compress all the files in a given directory to a zip file.
+
+    :param dirName: (string) input name of the directory to be zipped.
+    :param zipFileName: (string) output name of the zip generated.
+    :param filter: TODO    
+    """
+
     with ZipFile(zipFileName, 'w') as zipObj:
         for (folderName, _, filenames) in walk(dirName):
             for filename in filenames:
@@ -129,21 +165,61 @@ def zipFilesInDir(dirName, zipFileName, filter):
                     zipObj.write(filePath, filename)
 
 
-class Basin:    
-    def __init__(self, x, z): #x,y: array
+class Basin:   
+    """
+    TODO
+    """
+
+    def __init__(self, x, z):
+        """
+        Inits Basin with x and z.
+
+        :param x: (float) x coordinate.
+        :param z: (float) z coordinate.
+        """
+
         self.x = x
         self.z = z
 
     def copy(self):
+        """
+        Copies the Basin object.
+
+        :return: (Basin) copy of Basin.
+        """
+
         return Basin(self.x.copy(), self.z.copy())
 
     def fit_elevation(self, x):
+        """
+        TODO
+
+        :param x: (float) TODO
+        :return: TODO
+        """
+
         return scipy.interpolate.interp1d(self.x, self.z, kind='cubic', fill_value='extrapolate')(x)
 
     def fit_slope(self, x, ws = 2500):
+        """
+        TODO
+
+        :param x: TODO
+        :param ws: (int) TODO
+        :return: TODO
+        """
+
         return scipy.interpolate.interp1d(self.x, self.slope(ws), kind='cubic', fill_value='extrapolate')(x)
 
     def slope(self, ws = 2500, degrees = True):
+        """
+        TODO
+
+        :param ws: TODO
+        :param degrees: (bool) TODO
+        :return: TODO
+        """
+
         slope = np.gradient(self.z, self.x)
         NS = len(self.x)
         sl = np.zeros(NS)
@@ -159,25 +235,59 @@ class Basin:
             return np.arctan(sl) * 180 / np.pi
 
     def aggradate(self, density, kv, dt, aggr_factor):
+        """
+        TODO
+
+        :param density: TODO
+        :param kv: TODO
+        :param dt: TODO
+        :param aggr_factor: TODO
+        """
+
         slope = self.slope(degrees=False)
         K = kv * density * 9.81 * dt
         self.z += K *(slope - aggr_factor*np.mean(slope)) 
 
     def incise(self, density, kv, dt):
+        """
+        TODO
+
+        :param density: TODO
+        :param kv: TODO
+        :param dt: TODO        
+        """
+
         slope = self.slope(degrees=False)
         K = kv * density * 9.81 * dt
         self.z += K *slope  # z decresce
 
     def plot(self, axis = plt, color=sns.xkcd_rgb["ocean blue"], points = False):
+        """
+        TODO
+
+        :param axis: TODO
+        :param color: TODO [unused]
+        :param points: TODO [unused]     
+        """
+
         axis.plot(self.x, self.z)
 
 class Channel:
-    """class for Channel objects"""
+    """
+    Class for Channel objects.
+    """
+
     def __init__(self, x, y, z = [], d = [], w = []):
-        """initialize Channel object
-        x, y, z  - coordinates of centerline
-        W - channel width
-        D - channel depth"""
+        """
+        Initialize channel object.
+
+        :param x: x-coordinate of centerline.
+        :param y: y-coordinate of centerline.
+        :param z: z-coordinate of centerline.
+        :param d: channel depth.
+        :param w: channel width.
+        """
+
         self.x = x
         self.y = y
         self.z = z
@@ -185,9 +295,21 @@ class Channel:
         self.w = w
 
     def copy(self):
+        """
+        Copies the Channel object.
+
+        :return: (Channel) copy of Channel.
+        """
+
         return Channel(self.x.copy(), self.y.copy(), self.z.copy(), self.d.copy(), self.w.copy())
 
     def margin_offset(self):
+        """
+        TODO
+
+        :return: TODO
+        """
+
         d = self.w / 2
 
         dx = np.gradient(self.x)
@@ -202,6 +324,12 @@ class Channel:
         return xo, yo
 
     def derivatives(self):
+        """
+        TODO
+
+        :return: TODO
+        """
+
         dx = np.gradient(self.x)
         dy = np.gradient(self.y)
         dz = np.gradient(self.z)
@@ -211,6 +339,12 @@ class Channel:
         return dx, dy, dz, ds, s
 
     def curvature(self):
+        """
+        TODO
+
+        :return: TODO
+        """
+
         dx = np.gradient(self.x) 
         dy = np.gradient(self.y)      
         
@@ -220,6 +354,15 @@ class Channel:
         return (dx*ddy-dy*ddx)/((dx**2+dy**2)**1.5)
         
     def refit(self, basin, ch_width, ch_depth):
+        """
+        TODO
+
+        :param basin:
+        :param ch_width: 
+        :param ch_depth: channel depth in meters
+        :return: TODO
+        """
+
         slope = basin.fit_slope(self.x)
 
         self.z = basin.fit_elevation(self.x)
@@ -227,6 +370,12 @@ class Channel:
         self.d  = ch_depth(slope)
 
     def resample(self, target_ds):
+        """
+        TODO
+
+        :param target_ds: TODO
+        """
+
         _, _, _, _, s = self.derivatives()
         N = 1 + int(round(s[-1]/target_ds))
 
@@ -235,6 +384,14 @@ class Channel:
         self.x, self.y = scipy.interpolate.splev(u,tck)
 
     def migrate(self, Cf, kl, dt):
+        """
+        Method for computing migration rates along channel centerlines and moving the centerlines accordingly. [Sylvester]
+
+        :param Cf: array of dimensionless Chezy friction factors (can vary across iterations) [Sylvester]
+        :param kl: migration rate constant (m/s)
+        :param dt: time step (s)      
+        """
+
         curv = self.curvature()
         dx, dy, _, ds, s = self.derivatives()
         sinuosity = s[-1]/(self.x[-1]-self.x[0])
@@ -253,7 +410,15 @@ class Channel:
         self.y -= RN * (dx/ds) * dt
  
     def cut_cutoffs(self, crdist, ds):
-        print('inside cut_cutoffs')   
+        """
+        TODO
+
+        :param crdist: TODO
+        :param ds: TODO  
+        :return: TODO              
+        """
+
+        #print('inside cut_cutoffs')   
         cuts = []   
         
         diag_blank_width = int((crdist+20*ds)/ds)
@@ -304,6 +469,13 @@ class Channel:
         return cuts
 
     def cut_cutoffs_R(self, cut_window, ds):
+        """
+        TODO
+
+        :param cut_window: TODO
+        :param ds: TODO
+        """
+
         D = int(cut_window / (2 * ds))
         ind1, ind2 = find_cutoffs_R(self.w / 2 * self.curvature(), D)
         if ind1 != -1:
@@ -315,6 +487,14 @@ class Channel:
             ind1, ind2 = find_cutoffs_R(self.w * self.curvature(), D)
 
     def plot(self, axis = plt, color=sns.xkcd_rgb["ocean blue"], points = False):
+        """
+        Method  for plotting ChannelBelt object. [Sylvester]
+
+        :param axis: TODO
+        :param color: TODO
+        :param points: TODO
+        """
+
         x = self.x
         y = self.y
 
@@ -337,14 +517,33 @@ class Channel:
 # mapas 2D que serão transformados em 3D (usado depois para as gaussian surfaces)
 # downscale para geração dos mapas
 class ChannelMapper:
+    """
+    Transforms 2D maps to 3D to be used for the gaussian surfaces
+
+    :param crdist: TODO
+    :param ds: TODO                
+    """
+
     def __init__(self, xmin, xmax, ymin, ymax, xsize, ysize, downscale = 4, sigma = 2):
+        """
+        Initialize channel mapper.
+
+        :param xmin: TODO
+        :param xmax: TODO
+        :param ymin: TODO
+        :param ymax: TODO
+        :param xsize: grid size in x axis.
+        :param ysize: grid size in y axis.
+        :param downscale: TODO
+        :param sigma: TODO
+        """
+
         self.xmin = xmin
         self.ymin = ymin
         
         self.downscale = downscale
         self.sigma = sigma
-
-        #grid size
+        
         self.xsize = int(xsize / downscale)
         self.ysize = int(ysize / downscale)
 
@@ -358,21 +557,62 @@ class ChannelMapper:
         self.rheight = int(self.height/self.downscale)
 
     def __repr__(self):
+        """
+        TODO
+
+        :return: (string) Information regarding grid size, image size and number of pixels.
+        """
+
         return 'GRID-SIZE: ({};{})\nIMAGE-SIZE: ({};{})\n PIXELS: {}'.format(self.xsize, self.ysize, self.width, self.height, self.width * self.height)
 
     def map_size(self):
+        """
+        [DEBUG] TODO
+
+        :return: TODO
+        """
+
         return (self.xsize, self.ysize)
 
     def post_processing(self, _map):
+        """
+        TODO
+
+        :param _map: TODO
+        :return: TODO
+        """
+
         return self.downsize(self.filter(_map))
 
     def filter(self, _map):
+        """
+        TODO
+
+        :param _map: TODO
+        :return: TODO
+        """
+
         return scipy.ndimage.gaussian_filter(_map, sigma = self.sigma)
 
     def downsize(self, _map):
+        """
+        TODO
+
+        :param _map: TODO
+        :return: TODO
+        """
+
         return np.array(Image.fromarray(_map).resize((self.rwidth, self.rheight), Image.BILINEAR))
 
     def create_maps(self, channel, basin):
+        """
+        TODO
+
+        :param channel
+        :param basin
+        :return: TODO
+        """
+
         ch_map = self.create_ch_map(channel)
         # MANUEL's comments on these channel maps
         cld_map = self.create_cld_map(channel)    # cld: centerline distance - distance from a point to the channel's centerline.
@@ -394,6 +634,13 @@ class ChannelMapper:
         return (ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map)
 
     def create_md_map(self, channel):
+        """
+        Create margin distance
+
+        :param channel: TODO        
+        :return: TODO
+        """
+
         xo, yo = channel.margin_offset()
 
         upper_pixels = self.to_pixels(channel.x + xo, channel.y + yo)
@@ -409,6 +656,13 @@ class ChannelMapper:
         return self.post_processing(md_map)
 
     def create_cld_map(self, channel):
+        """
+        Create centerline distance map.
+
+        :param channel: TODO        
+        :return: TODO
+        """
+
         pixels = self.to_pixels(channel.x, channel.y)
         img = Image.new("1", (self.width, self.height), 1)
         draw = ImageDraw.Draw(img)
@@ -419,6 +673,13 @@ class ChannelMapper:
         return self.post_processing(cld_map)
 
     def create_ch_map(self, channel):
+        """
+        TODO
+
+        :param channel: TODO        
+        :return: TODO
+        """
+
         x, y = channel.x, channel.y
         xo, yo = channel.margin_offset()
 
@@ -434,6 +695,13 @@ class ChannelMapper:
         return self.downsize(np.array(img))
 
     def create_z_map(self, basin):
+        """
+        TODO
+
+        :param basin: TODO      
+        :return: TODO
+        """
+
         x_p = ((basin.x - self.xmin) / self.dx) * self.width
 
         tck, _ = scipy.interpolate.splprep([x_p, basin.z], s = 0)
@@ -443,6 +711,13 @@ class ChannelMapper:
         return self.post_processing(np.tile(z_level, (self.height, 1)))
 
     def create_sl_map(self, basin):
+        """
+        TODO
+
+        :param basin: TODO
+        :return: TODO
+        """
+
         x_p = ((basin.x - self.xmin) / self.dx) * self.width
         
         tck, _ = scipy.interpolate.splprep([x_p, basin.slope()], s = 0)
@@ -452,47 +727,76 @@ class ChannelMapper:
         return self.post_processing(np.tile(z_level, (self.height, 1)))
 
     def plot_map(self, _map):
+        """
+        [DEBUG] Debug method to plot the map as a colorbar.
+
+        :param _map: TODO
+        """
+
         plt.matshow(_map)
         plt.colorbar()
         plt.show()
 
     def to_pixels(self, x, y):
+        """
+        Method to plot the map as a colorbar.
+
+        :param x: TODO
+        :param y: TODO
+        :return: TODO
+        """
+
         x_p = ((x - self.xmin) / self.dx) * self.width
         y_p = ((y - self.ymin) / self.dy) * self.height
 
         xy = np.vstack((x_p, y_p)).astype(int).T
         return tuple(map(tuple, xy))
 
-# Algum problema aqui
 def topostrat(topo, N = None):
-    """function for converting a stack of geomorphic surfaces into stratigraphic surfaces
-    inputs:
-    topo - 3D numpy array of geomorphic surfaces
-    returns:
-    strat - 3D numpy array of stratigraphic surfaces
+    """
+    Function for converting a stack of geomorphic surfaces into stratigraphic surfaces.
+
+    :param topo: 3D numpy array of geomorphic surfaces
+    :param N: TODO
+    :return: strat - 3D numpy array of stratigraphic surfaces
     """    
+
     r,c,ts = np.shape(topo)
 
-    T = N if N is not None else ts # added to solve incision problem
+    T = N if N is not None else ts # added to solve the incision problem
 
     strat = np.copy(topo)
-    for i in (range(0,T)): #camada 0 é a inferior
+    for i in (range(0,T)): # the layer 0 is the bototm one
         strat[:,:,i] = np.amin(topo[:,:,i:], axis=2)
     return strat # matriz com todos os pontos (armazenado valor do z mínimo)
 
-def plot2D(x, y, title, ylabel):
-  plt.plot(x, y)
-  plt.title(title)
-  plt.xlabel('Length (m)')
-  plt.ylabel(ylabel)
-  plt.show()
+def plot2D(x, y, title, ylabel, fileName, save):
+    """
+    Plots in a Matplotlib graph the x and y array values.
+    
+    :param x: vector containing the x elements.
+    :param y: vector containing the y elements.
+    :param title: title of the plot.
+    :param ylabel: label of the y axis.
+    """
+    
+    plt.plot(x, y)        
+    plt.title(title)
+    plt.xlabel('Length (m)')
+    plt.ylabel(ylabel)
+    plt.ylim(-50, 300)
+    if (save):
+        plt.savefig(fileName)
+        plt.clf()
+    else:
+        plt.show()
 
 def topostrat_evolution(topo):
-    """function for converting a stack of geomorphic surfaces into stratigraphic surfaces
-    inputs:
-    topo - 3D numpy array of geomorphic surfaces
-    returns:
-    strat - 3D numpy array of stratigraphic surfaces
+    """
+    Function for converting a stack of geomorphic surfaces into stratigraphic surfaces.
+
+    :param topo: 3D numpy array of geomorphic surfaces
+    :return: strat: 3D numpy array of stratigraphic surfaces
     """
     N = 4
     r,c,ts = np.shape(topo)
@@ -502,6 +806,14 @@ def topostrat_evolution(topo):
     return strat
 
 def plot3D(Z, grid_size = 1):
+    """
+    TODO
+
+    :param Z: TODO
+    :param grid_size: TODO
+    :return: TODO
+    """
+
     X, Y = np.meshgrid(np.linspace(0, Z.shape[1] * grid_size, Z.shape[1]), np.linspace(0, Z.shape[0] * grid_size, Z.shape[0]))
     fig = plt.figure()
     ax = plt.axes(projection='3d')
@@ -517,30 +829,76 @@ def plot3D(Z, grid_size = 1):
     return fig
 
 def erosional_surface(cld_map, z_map, hw_map, cd_map):
+    """
+    TODO
+
+    :param cld_map: centerline distance map
+    :param z_map: represents the current z level of the basin
+    :param hw_map: map that relates each pixel to its closer channel width that is called the half-width
+    :param cd_map: the channel depth at each location which multiplies the terms that creates the parabolic formation
+    :return: TODO
+    """
+
     return cd_map * ((cld_map / hw_map) ** 2 - 1) + z_map
 
 def gaussian_surface(sigma_map, cld_map, hw_map):
+    """
+    Calculates the gaussian 
+
+    :param sigma_map: TODO
+    :param cld_map: centerline distance map
+    :param hw_map: map that relates each pixel to its closer channel width that is called the half-width
+    :return: TODO
+    """
+
     return np.exp(- 1 / 2 * ((cld_map / hw_map) / sigma_map) ** 2)
 
 class ChannelEvent:
-    '''
-        mode: 'INCISION' | 'AGGRADATION' | 'SEPARATOR' # Dennis: extended to support INCISION mode
-        material-order: GRAVEL, SAND, SILT
-    '''
+    """
+    Contains only the init method, which.
+    The remamining methods (plots) are only used to debug.
+    """
+
     def __init__(self, mode = 'AGGRADATION', 
         nit = 100, dt = 0.1, saved_ts = 10,
         cr_dist = 200, cr_wind = 1500,
         Cf = 0.02, kl = 60.0, kv = 0.01,
-
         ch_depth = lambda slope: -20 * slope, ch_width = lambda slope: 700 * np.exp(0.80 * slope) + 95, 
         dep_height = lambda slope: -20 * slope * 1/4, dep_props = lambda slope: (0.3, 0.5, 0.2), dep_sigmas = lambda slope: (0.25, 0.5, 2),
         aggr_props = lambda slope: (0.333, 0.333, 0.333), aggr_sigmas = lambda slope: (2, 5, 10),
         
-        sep_thickness = 0, # Dennis: separator thickness from the SEPARADOR mode
+        sep_thickness = 0, #dennis: separator thickness from the SEPARADOR mode
 
-        dens = 1000, aggr_factor = 2):        
+        dens = 1000, aggr_factor = 2):
+        """       
+        Initializes a ChannelEvent object.
+        Channel width and depth: parameters to determine the shape of the channel used to cut the terrain.
+        Deposition height, proportions and sigmas: parameters used in the deposition process that takes place after the channel cut step.
+        Aggradation Proportions, and Sigmas: parameters used in the aggradation process that is quite similar to the deposition process above.
+        However, in contrast to the deposition, the aggradation only is performed when there is a elevation in the basin profile.
+
+        :param mode: event type (Incision, Aggradation or Separator).
+        :param nit: number of iterations.
+        :param dt: time of each iteration (in years).
+        :param saved_ts: number of iterations interval which the mesh is saved.
+        :param cr_dist: TODO
+        :param cr_wind: TODO
+        :param Cf: TODO
+        :param kl: Meandering modulation (m/years).
+        :param kv: aggradation/incision modulation (m/years).
+        :param ch_depth: channel depth in meters.
+        :param ch_width: channel width in meters.
+        :param ch_height: channel height in meters.
+        :param dep_props: deposition proportions of the material filling the deposition depth.
+        :param dep_sigmas: TODO
+        :param aggr_props: proportions of the materials used in aggradation cycle.
+        :param aggr_sigmas: TODO
+        :param sep_thickness: thickness of the event separator
+        :param dens: TODO
+        :param aggr_factor: TODO
+        """        
         
-        # Dennis: Initialize unused variables for the events
+        #dennis: Initialize unused variables for the events
         if (mode == 'INCISION'):
             aggr_props = lambda slope: (0, 0, 0)
             aggr_sigmas = lambda slope: (0, 0, 0)
@@ -577,8 +935,19 @@ class ChannelEvent:
         self.dens = dens
         self.aggr_factor = aggr_factor
         self.start_time = -1
+    
+    
+    # DEBUG methods
 
     def plot_ch_depth(self, slope = np.linspace(-5, 0, 20), axis = None):
+        """
+        [DEBUG] Plots the channel depth for debugging.
+
+        :param slope: TODO
+        :param axis: TODO
+        :return: figure which can be shown by the matplotlib.
+        """
+
         if axis is None:
             fig, axis = plt.subplots(1, 1)
         else:
@@ -590,6 +959,14 @@ class ChannelEvent:
         return fig
 
     def plot_ch_width(self, slope = np.linspace(-5, 0, 20), axis = None):
+        """
+        [DEBUG] Plots the channel width for debugging.
+
+        :param slope: TODO
+        :param axis: TODO
+        :return: figure which can be shown by the matplotlib.
+        """
+
         if axis is None:
             fig, axis = plt.subplots(1, 1)
         else:
@@ -601,6 +978,14 @@ class ChannelEvent:
         return fig
 
     def plot_dep_height(self, slope = np.linspace(-5, 0, 20), axis = None):
+        """
+        [DEBUG] Plots the channel width for debugging.
+
+        :param slope: TODO
+        :param axis: TODO
+        :return: figure which can be shown by the matplotlib.
+        """
+
         if axis is None:
             fig, axis = plt.subplots(1, 1)
         else:
@@ -612,6 +997,14 @@ class ChannelEvent:
         return fig
 
     def plot_dep_props(self, slope = np.linspace(-5, 0, 20), axis = None):
+        """
+        [DEBUG] Plots the deposition proportions of the material filling the deposition depth.
+
+        :param slope: TODO
+        :param axis: TODO
+        :return: figure which can be shown by the matplotlib.
+        """
+
         if axis is None:
             fig, axis = plt.subplots(1, 1)
         else:
@@ -628,6 +1021,14 @@ class ChannelEvent:
         return fig
 
     def plot_dep_sigmas(self, slope = np.linspace(-5, 0, 20), axis = None):
+        """
+        [DEBUG] Plots the deposition sigmas for debugging.
+
+        :param slope: TODO
+        :param axis: TODO
+        :return: figure which can be shown by the matplotlib.
+        """
+
         if axis is None:
             fig, axis = plt.subplots(1, 1)
         else:
@@ -641,7 +1042,15 @@ class ChannelEvent:
         axis.legend(['gravel', ' sand', 'silt'])
         return fig
 
-    def plot_aggr_props(self, slope = np.linspace(-5, 0, 20), axis = None):
+    def plot_aggr_props(self, slope = np.linspace(-5, 0, 20), axis = None):        
+        """
+        [DEBUG] Plots the aggradation proportions for debugging.
+
+        :param slope: TODO
+        :param axis: TODO
+        :return: figure which can be shown by the matplotlib.
+        """
+
         if axis is None:
             fig, axis = plt.subplots(1, 1)
         else:
@@ -657,7 +1066,15 @@ class ChannelEvent:
         axis.legend(['gravel', ' sand', 'silt'])
         return fig
 
-    def plot_aggr_sigmas(self, slope = np.linspace(-5, 0, 20), axis = None):
+    def plot_aggr_sigmas(self, slope = np.linspace(-5, 0, 20), axis = None):        
+        """
+        [DEBUG] Plots the aggradation sigmas for debugging.
+
+        :param slope: TODO
+        :param axis: TODO
+        :return: figure which can be shown by the matplotlib.
+        """
+
         if axis is None:
             fig, axis = plt.subplots(1, 1)
         else:
@@ -671,7 +1088,13 @@ class ChannelEvent:
         axis.legend(['gravel', ' sand', 'silt'])
         return fig
 
-    def plot_all_relations(self):
+    def plot_all_relations(self):        
+        """
+        [DEBUG] Plots all the previous plot methods together.
+        
+        :return: figure which can be shown by the matplotlib.
+        """
+
         fig, axes = plt.subplots(4, 2)
 
         self.plot_ch_depth(axis = axes[0][0])
@@ -683,12 +1106,21 @@ class ChannelEvent:
         self.plot_aggr_sigmas(axis = axes[3][1])
 
         return fig
+    
 
 class ChannelBelt:
+    """
+    Class for ChannelBelt objects.
+    """
+
     def __init__(self, channel, basin):
         """
-            Times in years.
+        Initializes the ChannelBelt object. Times in years.
+
+        :param channel: list of Channel objects [Sylvester]
+        :param basin: TODO        
         """
+
         self.channels = [channel.copy()]        
         self.basins = [basin.copy()]
         self.times = [0.0]
@@ -696,7 +1128,14 @@ class ChannelBelt:
 
     # 2 progress bars: meandering + modeling
     # essa parte é simulação 2D
-    def simulate(self, event): # parte 2D
+    def simulate(self, event, eventOrder): # parte 2D
+        """
+        TODO
+
+        :param event: event list. 
+        :param eventOrder: order of the event in the event list. Use to allow saving all intermediate channel and basin profiles.            
+        """
+        
         last_time = self.times[-1]
         event.start_time = last_time + event.dt        
 
@@ -744,7 +1183,11 @@ class ChannelBelt:
                 self.channels.append(channel.copy())
                 self.basins.append(basin.copy())
                 self.events.append(event)
-                #plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)')
+                # Used for debug purposes
+                #plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)', 'basin_' + str(eventOrder) +'-' + str(itn) + '.png', save=True) # vista lateral
+                #plot2D(channel.x, channel.y, 'Channel Preview', 'Elevation (m)', 'channel_' + str(eventOrder) + '-' + str(itn) + '.png', save=True) # vista superior
+                
+                
 
         # dgb: Save the final mesh
         '''
@@ -758,6 +1201,13 @@ class ChannelBelt:
         #print("\n#times: ", len(self.times), " <space>.")
 
     def plot_basin(self, evolution = True):
+        """
+        TODO
+
+        :param evolution: TODO
+        :return: TODO
+        """
+
         fig, axis = plt.subplots(1, 1)
         if not evolution:
             self.basins[-1].plot(axis)
@@ -778,6 +1228,15 @@ class ChannelBelt:
         return fig
 
     def plot(self, start_time=0, end_time = 0, points = False):
+        """
+        TODO
+
+        :param start_time: TODO
+        :param end_time: TODO
+        :param points: TODO
+        :return: TODO
+        """
+
         start_index = 0
         if start_time > 0:
             start_index = bisect.bisect_left(self.times, start_time)
@@ -796,6 +1255,14 @@ class ChannelBelt:
         return fig
 
     def build_3d_model(self, dx, margin = 500): # recebe lista de bacias e lista de canais
+        """
+        TODO
+
+        :param dx: cell size in x and y directions [Sylvester]
+        :param margin: TODO        
+        :return: TODO
+        """
+
         xmax, xmin, ymax, ymin = [], [], [], []
         for channel in self.channels: # um canal para cada snapshot. Cada passo gera 4 malhas
             xmax.append(max(channel.x))
@@ -833,11 +1300,11 @@ class ChannelBelt:
             # aggr_map: qual parte do terreno está sofrendo aggradation
             # surface: parte mais superior computada
             aggr_map = bz_map - surface 
-            aggr_map[aggr_map < 0] = 0 
+            aggr_map[aggr_map < 0] = 0
 
 
             # channel, centerline distance, channel z, basin z, slope, half width
-            # ch_map: 
+            # ch_map:
             ch_map, cld_map, md_map, cz_map, bz_map, sl_map, hw_map = mapper.create_maps(self.channels[i], self.basins[i])            
 
             # channel depth
@@ -908,7 +1375,21 @@ class ChannelBelt:
         return ChannelBelt3D(topo, xmin, ymin, dx, dx) # correto
 
 class ChannelBelt3D():
+    """
+    Class for 3D models of channel belts. (Sylvester)
+    """
+
     def __init__(self, topo, xmin, ymin, dx, dy):
+        """
+        Initializes the ChannelBelt3D object.
+
+        :param topo: set of topographic surfaces (3D numpy array) (Sylvester)
+        :param xmin: TODO
+        :param ymin: TODO
+        :param dx: gridcell size (m) (Sylvester)
+        :param dy: TODO
+        :return: TODO
+        """
 
         #self.raw_plot_xsection(0.1, topo)
         self.strat = topostrat(topo)      
@@ -929,6 +1410,13 @@ class ChannelBelt3D():
         self.dy = dy
 
     def raw_plot_xsection(self, xsec, matrix):
+        """
+        TODO
+
+        :param xsec: TODO
+        :param matrix: TODO        
+        """
+
         sy, sx, sz = np.shape(matrix)
         xindex = int(xsec * sx)
         Xv = np.linspace(0, sy, sy)
@@ -939,6 +1427,19 @@ class ChannelBelt3D():
         plt.show()
 
     def plot_xsection(self, xsec, ve = 1, substrat = True, title = '', silt_color = [51/255, 51/255, 0], sand_color = [255/255, 204/255, 0], gravel_color = [255/255, 102/255, 0]):
+        """
+        Method for plotting a cross section through a 3D model; also plots map of 
+        basal erosional surface and map of final geomorphic surface. [Sylvester]
+
+        :param xsec: location of cross section along the x-axis (in pixel/ voxel coordinates)
+        :param ve: vertical exaggeration
+        :param substrat: (bool) TODO
+        :param title: (string) TODO
+        :param silt_color: (list)
+        :param sand_color: (list)
+        :param gravel_color: (list)
+        """
+
         strat = self.topo # aqui apenas strat final
         sy, sx, sz = np.shape(strat)
         if title != '': 
@@ -989,6 +1490,14 @@ class ChannelBelt3D():
         return fig1
 
     def plot(self, ve = 1, curvature = False, save = False):
+        """
+        TODO
+
+        :param ve: TODO 
+        :param curvature: (bool) TODO        
+        :param save: (bool) TODO 
+        """
+
         sy, sx, sz = np.shape(self.strat)
         x = np.linspace(self.xmin, self.xmin + sx * self.dx, sx)
         y = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
@@ -1010,6 +1519,12 @@ class ChannelBelt3D():
             plotter.show(screenshot='airplane.png')
 
     def render(self, ve = 3):
+        """
+        TODO
+
+        :param ve: TODO 
+        """
+
         sy, sx, sz = np.shape(self.strat)
         x = np.linspace(self.xmin, self.xmin + sx * self.dx, sx)
         y = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
@@ -1027,6 +1542,13 @@ class ChannelBelt3D():
 
     # Generates a new PLY file containing the x,y,z coordinates in float instead of double
     def reducePlySize(self, inFileName, outFileName):
+        """
+        TODO
+
+        :param inFileName: TODO 
+        :param outFileName: TODO 
+        """
+
         try:        
             # First part: read (and write) the ply header as text file
             with open(inFileName, "rt", encoding="Latin-1") as inFile:
@@ -1090,6 +1612,17 @@ class ChannelBelt3D():
             print("Error. Could not read files ", inFileName, " and ", outFileName)    
 
     def generateTriangleMesh(self, vertices, faces, colors, fileNameOut='out.ply', coloredMesh=True):
+        """
+        Generate and export a 3D model in PLY file format. The file has reduced size with float32 data instead of double.
+
+        :param vertices: TODO 
+        :param faces: TODO 
+        :param faces: TODO 
+        :param colors: TODO 
+        :param fileNameOut: (string) TODO 
+        :param coloredMesh: (bool) TODO 
+        """
+
         mesh = o3d.geometry.TriangleMesh()
         
         mesh.vertices = o3d.utility.Vector3dVector(vertices)
@@ -1108,6 +1641,20 @@ class ChannelBelt3D():
 
     def export_top_layer(self, structure, structure_colors, event_top_layer, number_layers_per_event, grid, top, filename, plant_view, \
                         reduction = None, colored_mesh = True):
+        """
+        TODO
+
+        :param structure: TODO 
+        :param structure_colors: TODO 
+        :param event_top_layer: TODO 
+        :param number_layers_per_event: TODO 
+        :param grid: TODO 
+        :param top: TODO
+        :param filename: (string) TODO
+        :param plant_view: TODO
+        :param reduction: TODO
+        :param colored_mesh: (bool) TODO
+        """
 
         FLOAT_TO_INT_FACTOR = 1
 
@@ -1199,14 +1746,17 @@ class ChannelBelt3D():
         else:              
             block_colors = np.zeros([len(block_vertices),3])
             self.generateTriangleMesh(block_vertices, block_triangles, block_colors, filename + '.ply', coloredMesh=False)
-
-
-    '''
-    Function to export the 3D meshes for each layer. Meshes are compressed as PLY files and compacted into a ZIP.    
-    Inputs: self, zipname, reduction, colored_meshes: whether the mesh should be exported with their material colors, ve(vertical exaggeration)
-    Output: ZIP file containing the models for each layer (names as model1.ply, model2.ply, etc)
-    '''   
+  
     def export_objs(self, top_event_layers_zipname = 'event_layers.zip', reduction = None, ve = 3):
+        """
+        Function to export the 3D meshes for each layer. Meshes are compressed as PLY files and compacted into a ZIP.
+        Outputs a ZIP file containing the models for each layer (names as model1.ply, model2.ply, etc).
+
+        :param top_event_layers_zipname: TODO 
+        :param reduction: TODO 
+        :param ve: vertical exaggeration TODO        
+        """
+
         # Constants        
         LAYER_THICKNESS_THRESHOLD = 1e-1#0.9 #1e-2   
 
@@ -1305,10 +1855,14 @@ class ChannelBelt3D():
         # Compact in a zip file all the ply files in filename folder
         zipfile = path.join(dir, 'final_layers.zip')
         zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
-        copyfile(zipfile, 'final_layers.zip')
-        
+        copyfile(zipfile, 'final_layers.zip')        
 
     def export(self, ve = 3):
+        """
+        TODO
+
+        :param ve: TODO   
+        """
         #np.savetxt('shape.txt',[sy, sx, sz],fmt='%.4f') # DEBUG
         #zz = topostrat_evolution(self.topo)
         zz = topostrat(self.topo)

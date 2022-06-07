@@ -5,3 +5,5 @@ meanderpy
    :maxdepth: 4
 
    meanderpy
+   spam
+   runner
