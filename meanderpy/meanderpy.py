@@ -246,7 +246,8 @@ class Basin:
 
         slope = self.slope(degrees=False)
         K = kv * density * 9.81 * dt
-        self.z += K *(slope - aggr_factor*np.mean(slope)) 
+        #self.z += K *(slope - aggr_factor*np.mean(slope)) # OLD METHOD
+        self.z += -K* slope # BEUREN'S SUGGESTION
 
     def incise(self, density, kv, dt):
         """
@@ -770,7 +771,7 @@ def topostrat(topo, N = None):
         strat[:,:,i] = np.amin(topo[:,:,i:], axis=2)
     return strat # matriz com todos os pontos (armazenado valor do z mínimo)
 
-def plot2D(x, y, title, ylabel, fileName, save):
+def plot2D(x, y, title, ylabel, fileName, save=True):
     """
     Plots in a Matplotlib graph the x and y array values.
     
@@ -784,7 +785,7 @@ def plot2D(x, y, title, ylabel, fileName, save):
     plt.title(title)
     plt.xlabel('Length (m)')
     plt.ylabel(ylabel)
-    plt.ylim(-50, 300)
+    plt.ylim(-50, 500)
     if (save):
         plt.savefig(fileName)
         plt.clf()
@@ -1155,8 +1156,8 @@ class ChannelBelt:
         for itn in range(1, event.nit+1):            
             update_progress(itn/event.nit)    
 
-            #plot2D(channel.x, channel.y, 'Channel Preview', 'Width (m)')
-            #plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)')
+            #plot2D(channel.x, channel.y, 'Channel Preview', 'Width (m)') # need to update the call
+            #plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)') # need to update the call
 
             channel.migrate(event.Cf, event.kl / YEAR, event.dt * YEAR)            
             channel.cut_cutoffs(event.cr_dist, self.ds)            
@@ -1184,8 +1185,8 @@ class ChannelBelt:
                 self.basins.append(basin.copy())
                 self.events.append(event)
                 # Used for debug purposes
-                #plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)', 'basin_' + str(eventOrder) +'-' + str(itn) + '.png', save=True) # vista lateral
-                #plot2D(channel.x, channel.y, 'Channel Preview', 'Elevation (m)', 'channel_' + str(eventOrder) + '-' + str(itn) + '.png', save=True) # vista superior
+                plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)', 'basin_' + str(eventOrder) +'-' + str(itn) + '.png', save=True) # vista lateral
+                plot2D(channel.x, channel.y, 'Channel Preview', 'Elevation (m)', 'channel_' + str(eventOrder) + '-' + str(itn) + '.png', save=True) # vista superior
                 
                 
 
