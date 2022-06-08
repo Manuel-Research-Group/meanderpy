@@ -289,6 +289,7 @@ belt = mp.ChannelBelt(channel, basin)
 for i, event in enumerate(events):
   print('Simulating event {} of {}'.format(i, len(events)))  
   belt.simulate(event, i)
+  # basin, channel, time, events information inside belt object  
 
 ### CONFIG
 ve = config_json.get('ve', DEFAULT_CONFIG_VE)

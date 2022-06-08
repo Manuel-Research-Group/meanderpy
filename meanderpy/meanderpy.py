@@ -238,24 +238,34 @@ class Basin:
         """
         TODO
 
-        :param density: TODO
-        :param kv: TODO
-        :param dt: TODO
-        :param aggr_factor: TODO
+        :param density: water density in kg/m³ = 1000 kg/m³
+        :param kv: aggradation/incision modulation (m/years).
+        :param dt: time of each iteration (in years).
+        :param aggr_factor: aggradation factor. According to Sylvester (meanderpy.py, line 201) it should be larger than 1 so that this leads to overall aggradation
         """
 
         slope = self.slope(degrees=False)
         K = kv * density * 9.81 * dt
-        #self.z += K *(slope - aggr_factor*np.mean(slope)) # OLD METHOD
-        self.z += -K* slope # BEUREN'S SUGGESTION
+        self.z += K *(slope - aggr_factor*np.mean(slope)) # OLD METHOD
+
+        #print('-----------------')        
+        #print('aggr_factor: ', aggr_factor)
+        #print('mean(slope): ', np.mean(slope))
+        #print('slope: ', slope)
+        #print('self.z: ', self.z)
+        #print('-----------------')
+
+        #self.z += -K* slope # BEUREN'S SUGGESTION
+
+        #self.z += -K* (slope + aggr_factor*np.mean(slope)) # NEW EXPERIMENTAL METHOD
 
     def incise(self, density, kv, dt):
         """
         TODO
 
-        :param density: TODO
-        :param kv: TODO
-        :param dt: TODO        
+        :param density: water density in kg/m³ = 1000 kg/m³
+        :param kv: aggradation/incision modulation (m/years).
+        :param dt: time of each iteration (in years).        
         """
 
         slope = self.slope(degrees=False)
@@ -390,7 +400,7 @@ class Channel:
 
         :param Cf: array of dimensionless Chezy friction factors (can vary across iterations) [Sylvester]
         :param kl: migration rate constant (m/s)
-        :param dt: time step (s)      
+        :param dt: time step (s) [Sylvester] (?)
         """
 
         curv = self.curvature()
@@ -864,12 +874,14 @@ class ChannelEvent:
         nit = 100, dt = 0.1, saved_ts = 10,
         cr_dist = 200, cr_wind = 1500,
         Cf = 0.02, kl = 60.0, kv = 0.01,
-        ch_depth = lambda slope: -20 * slope, ch_width = lambda slope: 700 * np.exp(0.80 * slope) + 95, 
-        dep_height = lambda slope: -20 * slope * 1/4, dep_props = lambda slope: (0.3, 0.5, 0.2), dep_sigmas = lambda slope: (0.25, 0.5, 2),
-        aggr_props = lambda slope: (0.333, 0.333, 0.333), aggr_sigmas = lambda slope: (2, 5, 10),
-        
+        ch_depth = lambda slope: -20 * slope,
+        ch_width = lambda slope: 700 * np.exp(0.80 * slope) + 95, 
+        dep_height = lambda slope: -20 * slope * 1/4,
+        dep_props = lambda slope: (0.3, 0.5, 0.2),
+        dep_sigmas = lambda slope: (0.25, 0.5, 2),
+        aggr_props = lambda slope: (0.333, 0.333, 0.333),
+        aggr_sigmas = lambda slope: (2, 5, 10),        
         sep_thickness = 0, #dennis: separator thickness from the SEPARADOR mode
-
         dens = 1000, aggr_factor = 2):
         """       
         Initializes a ChannelEvent object.
@@ -889,14 +901,14 @@ class ChannelEvent:
         :param kv: aggradation/incision modulation (m/years).
         :param ch_depth: channel depth in meters.
         :param ch_width: channel width in meters.
-        :param ch_height: channel height in meters.
+        :param dep_height: deposition height in meters per slope.
         :param dep_props: deposition proportions of the material filling the deposition depth.
         :param dep_sigmas: TODO
         :param aggr_props: proportions of the materials used in aggradation cycle.
         :param aggr_sigmas: TODO
         :param sep_thickness: thickness of the event separator
-        :param dens: TODO
-        :param aggr_factor: TODO
+        :param dens: water density in kg/m³ = 1000 kg/m³
+        :param aggr_factor: aggradation factor. According to Sylvester (meanderpy.py, line 201) it should be larger than 1 so that this leads to overall aggradation
         """        
         
         #dennis: Initialize unused variables for the events
@@ -1178,13 +1190,13 @@ class ChannelBelt:
             '''
 
             # número de canais = time stamp
-            if itn % event.saved_ts == 0:                
+            if itn % event.saved_ts == 0:
                 #print("ITN: ", itn, " <space>.")
                 self.times.append(last_time + (itn+1) * event.dt)
                 self.channels.append(channel.copy())
                 self.basins.append(basin.copy())
                 self.events.append(event)
-                # Used for debug purposes
+                # Used for debug purposes: save the png basins + channels
                 plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)', 'basin_' + str(eventOrder) +'-' + str(itn) + '.png', save=True) # vista lateral
                 plot2D(channel.x, channel.y, 'Channel Preview', 'Elevation (m)', 'channel_' + str(eventOrder) + '-' + str(itn) + '.png', save=True) # vista superior
                 
@@ -1196,7 +1208,7 @@ class ChannelBelt:
         self.times.append(last_time + (itn+1) * event.dt)
         self.channels.append(channel.copy())
         self.basins.append(basin.copy())
-        self.events.append(event)        
+        self.events.append(event)
         '''        
         
         #print("\n#times: ", len(self.times), " <space>.")
@@ -1259,8 +1271,8 @@ class ChannelBelt:
         """
         TODO
 
-        :param dx: cell size in x and y directions [Sylvester]
-        :param margin: TODO        
+        :param dx: grid generated from dxdy variable (coming from JSON "Map Scale"). See initialization of grid variable in runner.py
+        :param margin: margin informed as "Channel Padding" in the "Channel Configuration" interface        
         :return: TODO
         """
 
@@ -1301,8 +1313,7 @@ class ChannelBelt:
             # aggr_map: qual parte do terreno está sofrendo aggradation
             # surface: parte mais superior computada
             aggr_map = bz_map - surface 
-            aggr_map[aggr_map < 0] = 0
-
+            aggr_map[aggr_map < 0] = 0            
 
             # channel, centerline distance, channel z, basin z, slope, half width
             # ch_map:
@@ -1313,10 +1324,12 @@ class ChannelBelt:
             cd_map = event.ch_depth(sl_map)
 
             channel_surface = erosional_surface(cld_map, cz_map, hw_map, cd_map)
+
+            # NEED TO ADJUST THIS TO HANDLE MORE THAN THREE LAYERS (GRAVEL, SAND, SILT)
                         
-            # gr_p: proporção de gravel. gr_s: gravel sigma.
-            # sa_p: propoção de sand. sa_s: sand sigma.
-            # si_p: propoção de silt. si_s: silt sigma.
+            # gr_p: gravel proportions. gr_s: gravel sigma.
+            # sa_p: sand proportions. sa_s: sand sigma.
+            # si_p: silt proportions. si_s: silt sigma.
             # t_p: soma das proporções total (não precisa dar 100%) = gr_p + sa_p + si_p
             gr_p, sa_p, si_p = event.dep_props(sl_map)
             gr_s, sa_s, si_s = event.dep_sigmas(sl_map)
@@ -1332,14 +1345,14 @@ class ChannelBelt:
             
             # MANUEL: modulate the aggradation mapps in the case of gravel and sand by Gaussians with standard 
             #         deviations defined experimentally to avoid gravel and sand moving up walls of the channel.
-            #         This actually works as a way of implementing a smooth cutoff for the these material depositions.
+            #         This actually works as a way of implementing a smooth cutoff for these material depositions.
             #         The function gaussian_surface defines a Gaussian inside the channel, thus returning zero
             #         only at the channels boarders. To force a quicker fall off (although only reaching zero at the channel's
             #         boarder) we used these experimentally defined standard deviations when accumulating the results of aggradation. 
             #    
             # DENNIS: corrected the value of t_p to avoid division by zero. t_p can be either an array or an integer           
 
-            if isinstance(t_p, int) == True and t_p == 0:
+            if t_p == 0:
                 t_p = 0.001
 
             STD_FOR_GRAVEL_FALL_OFF = 0.1   # EXPERIMENTALLY_DEFINED_STD_FOR_GRAVEL_FALL_OFF
