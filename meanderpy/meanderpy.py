@@ -1352,7 +1352,7 @@ class ChannelBelt:
             #    
             # DENNIS: corrected the value of t_p to avoid division by zero. t_p can be either an array or an integer           
 
-            if t_p == 0:
+            if isinstance(t_p, int) == True and t_p == 0: # check here (if isinstance is removed it does not work)
                 t_p = 0.001
 
             STD_FOR_GRAVEL_FALL_OFF = 0.1   # EXPERIMENTALLY_DEFINED_STD_FOR_GRAVEL_FALL_OFF
