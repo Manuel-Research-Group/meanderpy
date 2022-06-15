@@ -246,7 +246,8 @@ class Basin:
 
         slope = self.slope(degrees=False)
         K = kv * density * 9.81 * dt
-        self.z += K *(slope - aggr_factor*np.mean(slope)) # OLD METHOD
+        self.z += K *(slope - aggr_factor*np.mean(slope)) # Sylvester's Method
+        #self.z += K *(slope - aggr_factor*np.min(slope)) # NEW METHOD
 
         #print('-----------------')        
         #print('aggr_factor: ', aggr_factor)
@@ -1198,7 +1199,7 @@ class ChannelBelt:
                 self.events.append(event)
                 # Used for debug purposes: save the png basins + channels
                 plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)', 'basin_' + str(eventOrder) +'-' + str(itn) + '.png', save=True) # vista lateral
-                plot2D(channel.x, channel.y, 'Channel Preview', 'Elevation (m)', 'channel_' + str(eventOrder) + '-' + str(itn) + '.png', save=True) # vista superior
+                #plot2D(channel.x, channel.y, 'Channel Preview', 'Elevation (m)', 'channel_' + str(eventOrder) + '-' + str(itn) + '.png', save=True) # vista superior
                 
                 
 

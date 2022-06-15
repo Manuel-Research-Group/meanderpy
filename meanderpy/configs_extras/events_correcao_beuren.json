@@ -3,8 +3,8 @@
     "nit": 100,
     "saved_ts": 25,
     "dt": 0.1,
-    "mode": "INCISION",
-    "kv": 0.01,
+    "mode": "AGGRADATION",
+    "kv": 0.005,
     "kl": 60,
     "ch_depth": [
       {
@@ -13,23 +13,23 @@
       },
       {
         "slope": -4,
-        "value": 30
+        "value": 20
       },
       {
         "slope": -3,
-        "value": 30
+        "value": 10
       },
       {
         "slope": -2,
-        "value": 30
+        "value": 8
       },
       {
         "slope": -1,
-        "value": 30
+        "value": 5
       },
       {
         "slope": 0,
-        "value": 30
+        "value": 0
       }
     ],
     "ch_width": [
@@ -61,43 +61,43 @@
     "dep_height": [
       {
         "slope": -5,
-        "value": 5
+        "value": 0
       },
       {
         "slope": -4,
-        "value": 10
+        "value": 0
       },
       {
         "slope": -3,
-        "value": 15
+        "value": 0
       },
       {
         "slope": -2,
-        "value": 20
+        "value": 0
       },
       {
         "slope": -1,
-        "value": 25
+        "value": 0
       },
       {
         "slope": 0,
-        "value": 30
+        "value": 0
       }
     ],
     "dep_props": [
       {
         "slope": -5,
         "value": [
-          0.5,
           0.3,
+          0.5,
           0.2
         ]
       },
       {
         "slope": -4,
         "value": [
-          0.4,
-          0.4,
+          0.3,
+          0.5,
           0.2
         ]
       },
@@ -112,25 +112,25 @@
       {
         "slope": -2,
         "value": [
-          0.2,
-          0.6,
+          0.3,
+          0.5,
           0.2
         ]
       },
       {
         "slope": -1,
         "value": [
-          0.1,
-          0.8,
-          0.1
+          0.3,
+          0.5,
+          0.2
         ]
       },
       {
         "slope": 0,
         "value": [
-          0,
-          0.9,
-          0.1
+          0.3,
+          0.5,
+          0.2
         ]
       }
     ],
@@ -138,49 +138,49 @@
       {
         "slope": -5,
         "value": [
-          0.15,
-          0.2,
-          0.8
+          0.25,
+          0.5,
+          2
         ]
       },
       {
         "slope": -4,
         "value": [
-          0.2,
-          0.2,
-          1
+          0.25,
+          0.5,
+          2
         ]
       },
       {
         "slope": -3,
         "value": [
           0.25,
-          0.4,
-          1.25
+          0.5,
+          2
         ]
       },
       {
         "slope": -2,
         "value": [
-          0.3,
-          0.6,
-          1.5
+          0.25,
+          0.5,
+          2
         ]
       },
       {
         "slope": -1,
         "value": [
-          0.35,
-          0.8,
+          0.25,
+          0.5,
           2
         ]
       },
       {
         "slope": 0,
         "value": [
-          0,
-          1,
-          3
+          0.25,
+          0.5,
+          2
         ]
       }
     ],
@@ -289,8 +289,8 @@
     "nit": 100,
     "saved_ts": 25,
     "dt": 0.1,
-    "mode": "INCISION",
-    "kv": 0.01,
+    "mode": "AGGRADATION",
+    "kv": 0.005,
     "kl": 60,
     "ch_depth": [
       {
@@ -299,23 +299,23 @@
       },
       {
         "slope": -4,
-        "value": 30
+        "value": 20
       },
       {
         "slope": -3,
-        "value": 30
+        "value": 10
       },
       {
         "slope": -2,
-        "value": 30
+        "value": 8
       },
       {
         "slope": -1,
-        "value": 30
+        "value": 5
       },
       {
         "slope": 0,
-        "value": 30
+        "value": 0
       }
     ],
     "ch_width": [
@@ -347,43 +347,43 @@
     "dep_height": [
       {
         "slope": -5,
-        "value": 5
+        "value": 0
       },
       {
         "slope": -4,
-        "value": 10
+        "value": 0
       },
       {
         "slope": -3,
-        "value": 15
+        "value": 0
       },
       {
         "slope": -2,
-        "value": 20
+        "value": 0
       },
       {
         "slope": -1,
-        "value": 25
+        "value": 0
       },
       {
         "slope": 0,
-        "value": 30
+        "value": 0
       }
     ],
     "dep_props": [
       {
         "slope": -5,
         "value": [
-          0.5,
           0.3,
+          0.5,
           0.2
         ]
       },
       {
         "slope": -4,
         "value": [
-          0.4,
-          0.4,
+          0.3,
+          0.5,
           0.2
         ]
       },
@@ -398,25 +398,25 @@
       {
         "slope": -2,
         "value": [
-          0.2,
-          0.6,
+          0.3,
+          0.5,
           0.2
         ]
       },
       {
         "slope": -1,
         "value": [
-          0.1,
-          0.8,
-          0.1
+          0.3,
+          0.5,
+          0.2
         ]
       },
       {
         "slope": 0,
         "value": [
-          0,
-          0.9,
-          0.1
+          0.3,
+          0.5,
+          0.2
         ]
       }
     ],
@@ -424,49 +424,49 @@
       {
         "slope": -5,
         "value": [
-          0.15,
-          0.2,
-          0.8
+          0.25,
+          0.5,
+          2
         ]
       },
       {
         "slope": -4,
         "value": [
-          0.2,
-          0.2,
-          1
+          0.25,
+          0.5,
+          2
         ]
       },
       {
         "slope": -3,
         "value": [
           0.25,
-          0.4,
-          1.25
+          0.5,
+          2
         ]
       },
       {
         "slope": -2,
         "value": [
-          0.3,
-          0.6,
-          1.5
+          0.25,
+          0.5,
+          2
         ]
       },
       {
         "slope": -1,
         "value": [
-          0.35,
-          0.8,
+          0.25,
+          0.5,
           2
         ]
       },
       {
         "slope": 0,
         "value": [
-          0,
-          1,
-          3
+          0.25,
+          0.5,
+          2
         ]
       }
     ],
@@ -575,8 +575,8 @@
     "nit": 100,
     "saved_ts": 25,
     "dt": 0.1,
-    "mode": "INCISION",
-    "kv": 0.01,
+    "mode": "AGGRADATION",
+    "kv": 0.005,
     "kl": 60,
     "ch_depth": [
       {
@@ -585,23 +585,23 @@
       },
       {
         "slope": -4,
-        "value": 30
+        "value": 20
       },
       {
         "slope": -3,
-        "value": 30
+        "value": 10
       },
       {
         "slope": -2,
-        "value": 30
+        "value": 8
       },
       {
         "slope": -1,
-        "value": 30
+        "value": 5
       },
       {
         "slope": 0,
-        "value": 30
+        "value": 0
       }
     ],
     "ch_width": [
@@ -633,43 +633,43 @@
     "dep_height": [
       {
         "slope": -5,
-        "value": 5
+        "value": 0
       },
       {
         "slope": -4,
-        "value": 10
+        "value": 0
       },
       {
         "slope": -3,
-        "value": 15
+        "value": 0
       },
       {
         "slope": -2,
-        "value": 20
+        "value": 0
       },
       {
         "slope": -1,
-        "value": 25
+        "value": 0
       },
       {
         "slope": 0,
-        "value": 30
+        "value": 0
       }
     ],
     "dep_props": [
       {
         "slope": -5,
         "value": [
-          0.5,
           0.3,
+          0.5,
           0.2
         ]
       },
       {
         "slope": -4,
         "value": [
-          0.4,
-          0.4,
+          0.3,
+          0.5,
           0.2
         ]
       },
@@ -684,25 +684,25 @@
       {
         "slope": -2,
         "value": [
-          0.2,
-          0.6,
+          0.3,
+          0.5,
           0.2
         ]
       },
       {
         "slope": -1,
         "value": [
-          0.1,
-          0.8,
-          0.1
+          0.3,
+          0.5,
+          0.2
         ]
       },
       {
         "slope": 0,
         "value": [
-          0,
-          0.9,
-          0.1
+          0.3,
+          0.5,
+          0.2
         ]
       }
     ],
@@ -710,49 +710,49 @@
       {
         "slope": -5,
         "value": [
-          0.15,
-          0.2,
-          0.8
+          0.25,
+          0.5,
+          2
         ]
       },
       {
         "slope": -4,
         "value": [
-          0.2,
-          0.2,
-          1
+          0.25,
+          0.5,
+          2
         ]
       },
       {
         "slope": -3,
         "value": [
           0.25,
-          0.4,
-          1.25
+          0.5,
+          2
         ]
       },
       {
         "slope": -2,
         "value": [
-          0.3,
-          0.6,
-          1.5
+          0.25,
+          0.5,
+          2
         ]
       },
       {
         "slope": -1,
         "value": [
-          0.35,
-          0.8,
+          0.25,
+          0.5,
           2
         ]
       },
       {
         "slope": 0,
         "value": [
-          0,
-          1,
-          3
+          0.25,
+          0.5,
+          2
         ]
       }
     ],
