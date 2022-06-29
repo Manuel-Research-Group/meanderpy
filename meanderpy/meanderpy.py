@@ -1300,7 +1300,7 @@ class ChannelBelt:
         surface = bz_map # bz_map: altura do centro do canal explodido lateralmente
 
         N = len(self.channels) 
-        L = NUMBER_OF_LAYERS_PER_EVENT 
+        L = NUMBER_OF_LAYERS_PER_EVENT # atualizar
 
         topo = np.zeros((mapper.rheight, mapper.rwidth, N*L))
 
@@ -1332,6 +1332,8 @@ class ChannelBelt:
             # sa_p: sand proportions. sa_s: sand sigma.
             # si_p: silt proportions. si_s: silt sigma.
             # t_p: soma das proporções total (não precisa dar 100%) = gr_p + sa_p + si_p
+
+            # atualizar: retornar 7 variáveis em vez das 3 (algumas terão zeros, para garantir que sejam 7 sempre "camadas fantasmas")
             gr_p, sa_p, si_p = event.dep_props(sl_map)
             gr_s, sa_s, si_s = event.dep_sigmas(sl_map)
             t_p = gr_p + sa_p + si_p
@@ -1358,6 +1360,7 @@ class ChannelBelt:
 
             STD_FOR_GRAVEL_FALL_OFF = 0.1   # EXPERIMENTALLY_DEFINED_STD_FOR_GRAVEL_FALL_OFF
             STD_FOR_SAND_FALL_OFF   = 0.6   # EXPERIMENTALLY_DEFINED_STD_FOR_SAND_FALL_OFF       
+            # atualizar
             gravel_surface += (gr_p / t_p) * aggr_map * gaussian_surface(STD_FOR_GRAVEL_FALL_OFF, cld_map, hw_map)  # MANUEL
             sand_surface   += (sa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
             silt_surface   += (si_p / t_p) * aggr_map
@@ -1380,6 +1383,7 @@ class ChannelBelt:
             # DEPOSITING SEDIMENT - superfície acumula gravel + sand + silt
             # Colocar isso com 7 camadas com condicionais (se proporção for zero não soma)
             # TODO
+            # atualizar
             surface += gravel_surface
             topo[:,:,i*L + 1] = surface
             surface += sand_surface
@@ -1463,6 +1467,7 @@ class ChannelBelt3D():
         xindex = int(xsec * sx)
 
         # gera as legendas para o Matplotlib
+        # atualizar: testa numero de camadas e cria legenda com 3, 5 ou 7 (não criar legenda com "fantasmas")
         legend_elements = [
             Line2D([0], [0], color=silt_color, lw=4, label='Silt'),
             Line2D([0], [0], color=sand_color, lw=4, label='Sand'),
@@ -1485,7 +1490,8 @@ class ChannelBelt3D():
                 Line2D([0], [0], color=substract_color, lw=4, label='Substract') 
             )
         
-        for i in range(0, sz, 4):
+        # atualizar: Y1...Y7 
+        for i in range(0, sz, NUMBER_OF_LAYERS_PER_EVENT):
             Y1 = np.concatenate((strat[:,xindex,i],   strat[::-1,xindex,i+1])) 
             Y2 = np.concatenate((strat[:,xindex,i+1], strat[::-1,xindex,i+2]))
             Y3 = np.concatenate((strat[:,xindex,i+2], strat[::-1,xindex,i+3]))
@@ -1775,11 +1781,11 @@ class ChannelBelt3D():
         # Constants        
         LAYER_THICKNESS_THRESHOLD = 1e-1#0.9 #1e-2   
 
+        # atualizar
         SILT_COLOR = [51/255, 51/255, 0] # DARK GREEN - [0.2, 0.2, 0.0]
         SAND_COLOR = [255/255, 204/255, 0] # YELLOW - [1.0, 0.8, 0.0]
         GRAVEL_COLOR = [255/255, 102/255, 0] # ORANGE - [1.0, 0.4, 0.0]
         SUBSTRACT_COLOR = [192/255, 192/255, 192/255] # GRAY - [0.7529, 0.7529, 0.7529]
-
         # Set the strat material colors to an array
         strat_colors = np.array([SILT_COLOR, SAND_COLOR, GRAVEL_COLOR, SUBSTRACT_COLOR])     
         
@@ -1817,7 +1823,7 @@ class ChannelBelt3D():
         mesh_iterator = 0
         # Main loop to generate a mesh for each layer. The meshes are available in a zip file names i.ply.
         # For now, we have 4 layers in the following order: silt, sand, gravel and substract
-        # Layer 0 corresponds to the initialized layer in the constructor of the channel belt
+        # Layer 0 corresponds to the initialized layer in the constructor of the channel belt        
         for event_top_layer in range(0, sz, NUMBER_OF_LAYERS_PER_EVENT):
             update_progress(event_top_layer/sz)            
             #filename = 'model{}'.format(int(i/3) + 1) # local folder
