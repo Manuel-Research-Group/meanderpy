@@ -35,6 +35,7 @@ DEFAULT_EVENT_DT = 0.1
 DEFAULT_EVENT_MODE = 'AGGRADATION'
 DEFAULT_EVENT_KV = 0.01
 DEFAULT_EVENT_KL = 60.0
+DEFAULT_EVENT_NUMBER_LAYERS = 3
 DEFAULT_EVENT_CR_DIST = 200
 DEFAULT_EVENT_CR_WIND = 1500
 
@@ -247,6 +248,8 @@ for evt in events_json:
   mode = evt.get('mode', DEFAULT_EVENT_MODE)
   kv = evt.get('kv', DEFAULT_EVENT_KV)  
   kl = evt.get('kl', DEFAULT_EVENT_KL)
+  number_layers = evt.get('number_layers', DEFAULT_EVENT_NUMBER_LAYERS)
+
   cr_dist = evt.get('cr_dist', DEFAULT_EVENT_CR_DIST)
   cr_wind = evt.get('cr_wind', DEFAULT_EVENT_CR_WIND)
 
@@ -255,9 +258,8 @@ for evt in events_json:
 
   dep_height = evt.get('dep_height', DEFAULT_EVENT_DEP_HEIGHT)
 
-  dep_props = evt.get('dep_props', DEFAULT_EVENT_DEP_PROPS)
-  dep_sigmas = evt.get('dep_sigmas', DEFAULT_EVENT_DEP_SIGMAS)
-  
+  dep_props = evt.get('dep_props', DEFAULT_EVENT_DEP_PROPS)  
+  dep_sigmas = evt.get('dep_sigmas', DEFAULT_EVENT_DEP_SIGMAS)  
   aggr_props = evt.get('aggr_props', DEFAULT_EVENT_AGGR_PROPS)
   aggr_sigmas = evt.get('aggr_sigmas', DEFAULT_EVENT_AGGR_SIGMAS)
 
@@ -270,6 +272,7 @@ for evt in events_json:
     mode = mode,
     kv = kv,
     kl = kl,
+    number_layers = number_layers,
     cr_dist = cr_dist,
     cr_wind = cr_wind,
     ch_depth = create_tabular_param(ch_depth),

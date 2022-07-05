@@ -541,7 +541,7 @@
             var dt = Number(document.getElementById("dt").value);            
             var mode = document.querySelector('input[name="mode"]:checked').value;            
             var kv = Number(document.getElementById("kv").value);            
-            var kl = Number(document.getElementById("kl").value);            
+            var kl = Number(document.getElementById("kl").value);                 
             var sep_thickness = Number(document.getElementById("sep_thickness").value);
             var error_msg = "Please correct the following before creating an event:\n";
 
@@ -550,8 +550,16 @@
                 checkValue(kl, 0, 10000) == false)
                 validForm = false;
 
+            var number_layers;
+            if (document.getElementById("number_layer_3").checked == true)
+                number_layers = 3;
+            else if (document.getElementById("number_layer_5").checked == true)
+                number_layers = 5;
+            else
+                number_layers = 7;            
+
             var ch_depth_value = document.getElementById("ch_depth_value").value;
-            ch_depth_value_array = splitAppendValues(ch_depth_value, 0.0, 100000);            
+            ch_depth_value_array = splitAppendValues(ch_depth_value, 0.0, 100000);             
 
             var ch_width_value = document.getElementById("ch_width_value").value;
             ch_width_value_array = splitAppendValues(ch_width_value, 0.0, 100000);            
@@ -577,21 +585,47 @@
                 contentEvent.mode = mode;
                 contentEvent.kv = kv;
                 contentEvent.kl = kl;            
+                contentEvent.number_layers = number_layers;                
                 contentEvent.ch_depth = simpleEventJson(ch_depth_value_array);
                 contentEvent.ch_width = simpleEventJson(ch_width_value_array);
-                contentEvent.dep_height = simpleEventJson(dep_height_value_array);
+                contentEvent.dep_height = simpleEventJson(dep_height_value_array);                
                 contentEvent.dep_props = listEventJson("dep_props_values", 0.0, 1.0);
                 contentEvent.dep_sigmas = listEventJson("dep_sigmas_values", 0.0, 100000);
                 if (mode == 'AGGRADATION') {
                     contentEvent.aggr_props = listEventJson("aggr_props_values", 0.0, 1.0);
                     contentEvent.aggr_sigmas = listEventJson("aggr_sigmas_values", 0.0, 100000);
                 }
+
+                for (var slope=0; slope < 6; slope++) {  
+                    var dep_props_copy = contentEvent.dep_props[slope].value;
+                    var dep_sigmas_copy = contentEvent.dep_sigmas[slope].value;
+                    if (mode == 'AGGRADATION') {
+                        var aggr_props_copy = contentEvent.aggr_props[slope].value;
+                        var aggr_sigmas_copy = contentEvent.aggr_sigmas[slope].value;
+                    }
+
+                    if (contentEvent.number_layers == 3) {                        
+                        contentEvent.dep_props[slope].value = [dep_props_copy[0],0,0,dep_props_copy[1],0,0,dep_props_copy[2]];
+                        contentEvent.dep_sigmas[slope].value = [dep_sigmas_copy[0],0,0,dep_sigmas_copy[1],0,0,dep_sigmas_copy[2]];  
+                        if (mode == 'AGGRADATION') {                      
+                            contentEvent.aggr_props[slope].value = [aggr_props_copy[0],0,0,aggr_props_copy[1],0,0,aggr_props_copy[2]];                        
+                            contentEvent.aggr_sigmas[slope].value = [aggr_sigmas_copy[0],0,0,aggr_sigmas_copy[1],0,0,aggr_sigmas_copy[2]];                        
+                        }
+                    }
+                    else if (contentEvent.number_layers == 5) {
+                        contentEvent.dep_props[slope].value = [dep_props_copy[0],0,dep_props_copy[1],dep_props_copy[2],dep_props_copy[3],0,dep_props_copy[4]];
+                        contentEvent.dep_sigmas[slope].value = [dep_sigmas_copy[0],0,dep_sigmas_copy[1],dep_sigmas_copy[2],dep_sigmas_copy[3],0,dep_sigmas_copy[4]];
+                        if (mode == 'AGGRADATION') {
+                            contentEvent.aggr_props[slope].value = [aggr_props_copy[0],0,aggr_props_copy[1],aggr_props_copy[2],aggr_props_copy[3],0,aggr_props_copy[4]];
+                            contentEvent.aggr_sigmas[slope].value = [aggr_sigmas_copy[0],0,aggr_sigmas_copy[1],aggr_sigmas_copy[2],aggr_sigmas_copy[3],0,aggr_sigmas_copy[4]];
+                        }
+                    }                    
+                }
+
             }            
 
-            if (((mode == 'INCISION' || mode == 'AGGRADATION') &&
-                    (contentEvent.dep_props.length == 0 || contentEvent.dep_sigmas.length == 0)) ||
-                    (mode == 'AGGRADATION' &&
-                    (contentEvent.aggr_props.length == 0 || contentEvent.aggr_sigmas.length == 0)))
+            if (((mode == 'INCISION' || mode == 'AGGRADATION') && (contentEvent.dep_props.length == 0 || contentEvent.dep_sigmas.length == 0)) ||
+                    (mode == 'AGGRADATION' && (contentEvent.aggr_props.length == 0 || contentEvent.aggr_sigmas.length == 0)))
                 validForm = false;
 
             if (validForm == true) {
