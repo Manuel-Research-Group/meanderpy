@@ -1354,8 +1354,11 @@ class ChannelBelt:
             gr_p, vcsa_p, csa_p, sa_p, fsa_p, vfsa_p, si_p = event.dep_props(sl_map)
             gr_s, vcsa_s, csa_s, sa_s, fsa_s, vfsa_s, si_s = event.dep_sigmas(sl_map)
             t_p = gr_p + vcsa_s + csa_p + sa_p + fsa_p + vfsa_p + si_p            
+            
+            # t_p equals zero in case of a SEPARATOR event - NEED TO CHECK HERE
+            if ((type(t_p) == np.ndarray and t_p.all() == 0) or (type(t_p) == int and t_p == 0)):
+                t_p = 1
 
-            # seguir atualizando aqui
             gravel_surface = (gr_p / t_p) * dh_map * gaussian_surface(gr_s, cld_map, hw_map)
             very_coarse_sand_surface = (vcsa_p / t_p) * dh_map * gaussian_surface(vcsa_s, cld_map, hw_map)
             coarse_sand_surface = (csa_p / t_p) * dh_map * gaussian_surface(csa_s, cld_map, hw_map)

@@ -574,55 +574,63 @@
             var contentEvent = {};
 
             // Group all the events into variable contentEvent
-            if(mode == 'SEPARATOR'){
-                contentEvent.mode = mode;
-                contentEvent.sep_thickness = sep_thickness;
-            }                
-            else {
-                contentEvent.nit = nit;
-                contentEvent.saved_ts = saved_ts;
-                contentEvent.dt = dt;
-                contentEvent.mode = mode;
-                contentEvent.kv = kv;
-                contentEvent.kl = kl;            
-                contentEvent.number_layers = number_layers;                
-                contentEvent.ch_depth = simpleEventJson(ch_depth_value_array);
-                contentEvent.ch_width = simpleEventJson(ch_width_value_array);
-                contentEvent.dep_height = simpleEventJson(dep_height_value_array);                
-                contentEvent.dep_props = listEventJson("dep_props_values", 0.0, 1.0);
-                contentEvent.dep_sigmas = listEventJson("dep_sigmas_values", 0.0, 100000);
+            
+            contentEvent.nit = nit;
+            contentEvent.saved_ts = saved_ts;
+            contentEvent.dt = dt;
+            contentEvent.mode = mode;
+            contentEvent.kv = kv;
+            contentEvent.kl = kl;            
+            contentEvent.number_layers = number_layers;                
+            contentEvent.ch_depth = simpleEventJson(ch_depth_value_array);
+            contentEvent.ch_width = simpleEventJson(ch_width_value_array);
+            contentEvent.dep_height = simpleEventJson(dep_height_value_array);                
+            contentEvent.dep_props = listEventJson("dep_props_values", 0.0, 1.0);
+            contentEvent.dep_sigmas = listEventJson("dep_sigmas_values", 0.0, 100000);
+
+            // DENNIS: CHANGED HERE SEPARATOR - CHECK
+            if (mode == 'SEPARATOR' || mode == 'AGGRADATION') {
+                contentEvent.aggr_props = listEventJson("aggr_props_values", 0.0, 1.0);
+                contentEvent.aggr_sigmas = listEventJson("aggr_sigmas_values", 0.0, 100000);
+
+                if (mode == 'SEPARATOR') {                
+                    contentEvent.sep_thickness = sep_thickness;
+                }
+            }            
+
+            for (var slope=0; slope < 6; slope++) {
+                // DENNIS: CHANGED HERE SEPARATOR - CHECK
+                if (mode == 'SEPARATOR') {
+                    contentEvent.dep_props[slope].value = [0,0,0,0,0,0,0];
+                    contentEvent.dep_sigmas[slope].value = [0,0,0,0,0,0,0];
+                    contentEvent.aggr_props[slope].value = [0,0,0,0,0,0,0];
+                    contentEvent.aggr_sigmas[slope].value = [0,0,0,0,0,0,0];
+                }
+                
+                var dep_props_copy = contentEvent.dep_props[slope].value;
+                var dep_sigmas_copy = contentEvent.dep_sigmas[slope].value;
                 if (mode == 'AGGRADATION') {
-                    contentEvent.aggr_props = listEventJson("aggr_props_values", 0.0, 1.0);
-                    contentEvent.aggr_sigmas = listEventJson("aggr_sigmas_values", 0.0, 100000);
+                    var aggr_props_copy = contentEvent.aggr_props[slope].value;
+                    var aggr_sigmas_copy = contentEvent.aggr_sigmas[slope].value;
                 }
 
-                // if separador: setar todos os termos dep_props etc para ZERO (não devem aparecer as camadas)
-
-                for (var slope=0; slope < 6; slope++) {
-                    var dep_props_copy = contentEvent.dep_props[slope].value;
-                    var dep_sigmas_copy = contentEvent.dep_sigmas[slope].value;
+                if (contentEvent.number_layers == 3) {
+                    contentEvent.dep_props[slope].value = [dep_props_copy[0],0,0,dep_props_copy[1],0,0,dep_props_copy[2]];
+                    contentEvent.dep_sigmas[slope].value = [dep_sigmas_copy[0],0,0,dep_sigmas_copy[1],0,0,dep_sigmas_copy[2]];  
                     if (mode == 'AGGRADATION') {
-                        var aggr_props_copy = contentEvent.aggr_props[slope].value;
-                        var aggr_sigmas_copy = contentEvent.aggr_sigmas[slope].value;
-                    }
-
-                    if (contentEvent.number_layers == 3) {
-                        contentEvent.dep_props[slope].value = [dep_props_copy[0],0,0,dep_props_copy[1],0,0,dep_props_copy[2]];
-                        contentEvent.dep_sigmas[slope].value = [dep_sigmas_copy[0],0,0,dep_sigmas_copy[1],0,0,dep_sigmas_copy[2]];  
-                        if (mode == 'AGGRADATION') {
-                            contentEvent.aggr_props[slope].value = [aggr_props_copy[0],0,0,aggr_props_copy[1],0,0,aggr_props_copy[2]];                        
-                            contentEvent.aggr_sigmas[slope].value = [aggr_sigmas_copy[0],0,0,aggr_sigmas_copy[1],0,0,aggr_sigmas_copy[2]];                        
-                        }
-                    }
-                    else if (contentEvent.number_layers == 5) {
-                        contentEvent.dep_props[slope].value = [dep_props_copy[0],0,dep_props_copy[1],dep_props_copy[2],dep_props_copy[3],0,dep_props_copy[4]];
-                        contentEvent.dep_sigmas[slope].value = [dep_sigmas_copy[0],0,dep_sigmas_copy[1],dep_sigmas_copy[2],dep_sigmas_copy[3],0,dep_sigmas_copy[4]];
-                        if (mode == 'AGGRADATION') {
-                            contentEvent.aggr_props[slope].value = [aggr_props_copy[0],0,aggr_props_copy[1],aggr_props_copy[2],aggr_props_copy[3],0,aggr_props_copy[4]];
-                            contentEvent.aggr_sigmas[slope].value = [aggr_sigmas_copy[0],0,aggr_sigmas_copy[1],aggr_sigmas_copy[2],aggr_sigmas_copy[3],0,aggr_sigmas_copy[4]];
-                        }
-                    }                    
+                        contentEvent.aggr_props[slope].value = [aggr_props_copy[0],0,0,aggr_props_copy[1],0,0,aggr_props_copy[2]];                        
+                        contentEvent.aggr_sigmas[slope].value = [aggr_sigmas_copy[0],0,0,aggr_sigmas_copy[1],0,0,aggr_sigmas_copy[2]];                        
+                    }                        
                 }
+                else if (contentEvent.number_layers == 5) {
+                    contentEvent.dep_props[slope].value = [dep_props_copy[0],0,dep_props_copy[1],dep_props_copy[2],dep_props_copy[3],0,dep_props_copy[4]];
+                    contentEvent.dep_sigmas[slope].value = [dep_sigmas_copy[0],0,dep_sigmas_copy[1],dep_sigmas_copy[2],dep_sigmas_copy[3],0,dep_sigmas_copy[4]];
+                    if (mode == 'AGGRADATION') {
+                        contentEvent.aggr_props[slope].value = [aggr_props_copy[0],0,aggr_props_copy[1],aggr_props_copy[2],aggr_props_copy[3],0,aggr_props_copy[4]];
+                        contentEvent.aggr_sigmas[slope].value = [aggr_sigmas_copy[0],0,aggr_sigmas_copy[1],aggr_sigmas_copy[2],aggr_sigmas_copy[3],0,aggr_sigmas_copy[4]];
+                    }
+                }                    
+                
 
             }            
 
