@@ -596,7 +596,9 @@
                     contentEvent.aggr_sigmas = listEventJson("aggr_sigmas_values", 0.0, 100000);
                 }
 
-                for (var slope=0; slope < 6; slope++) {  
+                // if separador: setar todos os termos dep_props etc para ZERO (não devem aparecer as camadas)
+
+                for (var slope=0; slope < 6; slope++) {
                     var dep_props_copy = contentEvent.dep_props[slope].value;
                     var dep_sigmas_copy = contentEvent.dep_sigmas[slope].value;
                     if (mode == 'AGGRADATION') {
@@ -604,10 +606,10 @@
                         var aggr_sigmas_copy = contentEvent.aggr_sigmas[slope].value;
                     }
 
-                    if (contentEvent.number_layers == 3) {                        
+                    if (contentEvent.number_layers == 3) {
                         contentEvent.dep_props[slope].value = [dep_props_copy[0],0,0,dep_props_copy[1],0,0,dep_props_copy[2]];
                         contentEvent.dep_sigmas[slope].value = [dep_sigmas_copy[0],0,0,dep_sigmas_copy[1],0,0,dep_sigmas_copy[2]];  
-                        if (mode == 'AGGRADATION') {                      
+                        if (mode == 'AGGRADATION') {
                             contentEvent.aggr_props[slope].value = [aggr_props_copy[0],0,0,aggr_props_copy[1],0,0,aggr_props_copy[2]];                        
                             contentEvent.aggr_sigmas[slope].value = [aggr_sigmas_copy[0],0,0,aggr_sigmas_copy[1],0,0,aggr_sigmas_copy[2]];                        
                         }

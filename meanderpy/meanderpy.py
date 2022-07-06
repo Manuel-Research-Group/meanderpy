@@ -1500,8 +1500,10 @@ class ChannelBelt3D():
         :param sand_color: (list)
         :param gravel_color: (list)
         """
-
-        strat = self.topo # aqui apenas strat final
+        
+        # DENNIS: modificado aqui
+        #strat = self.topo
+        strat = self.strat # aqui apenas strat final
         sy, sx, sz = np.shape(strat)
         if title != '': 
             title += '\n'
@@ -1536,8 +1538,8 @@ class ChannelBelt3D():
                 Line2D([0], [0], color=substract_color, lw=4, label='Substract') 
             )
         
-        # atualizar: Y1...Y7 
-        for i in range(0, sz, NUMBER_OF_LAYERS_PER_EVENT):
+        # atualizar: Y1...Y7
+        for i in range(0, sz, NUMBER_OF_LAYERS_PER_EVENT):            
             Y1 = np.concatenate((strat[:,xindex,i],   strat[::-1,xindex,i+1])) 
             Y2 = np.concatenate((strat[:,xindex,i+1], strat[::-1,xindex,i+2]))
             Y3 = np.concatenate((strat[:,xindex,i+2], strat[::-1,xindex,i+3]))
@@ -1552,7 +1554,7 @@ class ChannelBelt3D():
             ax1.fill(X1, Y4, facecolor=sand_color)
             ax1.fill(X1, Y5, facecolor=fine_sand_color)
             ax1.fill(X1, Y6, facecolor=very_fine_sand_color)
-            ax1.fill(X1, Y7, facecolor=silt_color)
+            ax1.fill(X1, Y7, facecolor=silt_color)        
         
         if ve != 1: 
             ax1.set_aspect(ve, adjustable='datalim')

@@ -263,7 +263,7 @@ for evt in events_json:
   aggr_props = evt.get('aggr_props', DEFAULT_EVENT_AGGR_PROPS)
   aggr_sigmas = evt.get('aggr_sigmas', DEFAULT_EVENT_AGGR_SIGMAS)
 
-  sep_thicnkess = evt.get('sep_thickness', DEFAULT_EVENT_SEP_THICKNESS)
+  sep_thickness = evt.get('sep_thickness', DEFAULT_EVENT_SEP_THICKNESS)
   
   event = mp.ChannelEvent(
     nit = nit,
@@ -282,7 +282,7 @@ for evt in events_json:
     dep_sigmas = create_tabular_param(dep_sigmas),
     aggr_props = create_tabular_param(aggr_props),
     aggr_sigmas = create_tabular_param(aggr_sigmas),
-    sep_thickness = sep_thicnkess
+    sep_thickness = sep_thickness
   )
   events.append(event)
 
