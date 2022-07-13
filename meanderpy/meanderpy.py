@@ -37,7 +37,8 @@ YEAR = 365*24*60*60.0
 # We then deposit (aggradate) a certain number of materials. For instance, when using gravel, sand and silt, the number of materials == 3.
 # When using gravel, gross sand, medium sand, fine sand, and silt, then number of materials == 5.
 # When using gravel, very gross sand, gross sand, medium sand, fine sand, very fine sand, and silt, then number of materials == 7.
-NUMBER_OF_LAYERS_PER_EVENT = 8 # change to 8
+NUMBER_OF_LAYERS_PER_EVENT = 9 # there are 7 layers + previous surface + separator
+BIG_NUMBER = 10**9
 
 def update_progress(progress):
     """
@@ -773,13 +774,15 @@ def topostrat(topo, N = None):
     :return: strat - 3D numpy array of stratigraphic surfaces
     """    
 
-    r,c,ts = np.shape(topo)
+    r,c,ts = np.shape(topo)    
 
-    T = N if N is not None else ts # added to solve the incision problem
+    T = N if N is not None else ts # added to solve the incision problem    
 
-    strat = np.copy(topo)
-    for i in (range(0,T)): # the layer 0 is the bototm one
-        strat[:,:,i] = np.amin(topo[:,:,i:], axis=2)
+    strat = np.copy(topo)    
+    #print('(D) topo: ', topo[:,:,-2])    
+    for i in (range(0,T)): # the layer 0 is the bottom one
+        strat[:,:,i] = np.amin(topo[:,:,i:], axis=2)        
+    #print('(E) strat: ', strat)
     return strat # matriz com todos os pontos (armazenado valor do z mínimo)
 
 def plot2D(x, y, title, ylabel, fileName, save=True):
@@ -869,7 +872,7 @@ class ChannelEvent:
     """
     Contains only the init method, which.
     The remamining methods (plots) are only used to debug.
-    """
+    """    
 
     def __init__(self, mode = 'AGGRADATION', 
         nit = 100, dt = 0.1, saved_ts = 10,
@@ -878,10 +881,10 @@ class ChannelEvent:
         ch_depth = lambda slope: -20 * slope,
         ch_width = lambda slope: 700 * np.exp(0.80 * slope) + 95, 
         dep_height = lambda slope: -20 * slope * 1/4,
-        dep_props = lambda slope: (0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.2), # initializing 7 layers
-        dep_sigmas = lambda slope: (0.25, 0.0, 0.0, 0.5, 0.0, 0.0, 2),
-        aggr_props = lambda slope: (0.333, 0.0, 0.0, 0.333, 0.0, 0.0, 0.333),
-        aggr_sigmas = lambda slope: (2, 0.0, 0.0, 5, 0.0, 0.0, 10),        
+        dep_props = lambda slope: (0.3, 0.0, 0.0, 0.5, 0.0, 0.0, 0.2, 0.0), # initializing 7 layers + 1 for separator
+        dep_sigmas = lambda slope: (0.25, BIG_NUMBER, BIG_NUMBER, 0.5, BIG_NUMBER, BIG_NUMBER, 2, BIG_NUMBER),
+        aggr_props = lambda slope: (0.333, 0.0, 0.0, 0.333, 0.0, 0.0, 0.333, 0.0),
+        aggr_sigmas = lambda slope: (2, BIG_NUMBER, BIG_NUMBER, 5, BIG_NUMBER, BIG_NUMBER, 10, BIG_NUMBER),        
         sep_thickness = 0, #dennis: separator thickness from the SEPARADOR mode
         dens = 1000, aggr_factor = 2):
         """       
@@ -914,17 +917,21 @@ class ChannelEvent:
         """        
         
         #dennis: Initialize unused variables for the events
+        # CHECK HERE  
+        '''
         if (mode == 'INCISION'):
-            aggr_props = lambda slope: (0, 0, 0, 0, 0, 0, 0)
-            aggr_sigmas = lambda slope: (0, 0, 0, 0, 0, 0, 0)
+            aggr_props = lambda slope: (0, 0, 0, 0, 0, 0, 0, 0)
+            aggr_sigmas = lambda slope: (0, 0, 0, 0, 0, 0, 0, 0)
             sep_thickness = 0
         elif (mode == 'AGGRADATION'):
-            sep_thickness = 0
+            sep_thickness = 0                
         elif (mode == 'SEPARATOR'):
-            dep_props = lambda slope: (0, 0, 0, 0, 0, 0, 0)
-            dep_sigmas = lambda slope: (0, 0, 0, 0, 0, 0, 0)
-            aggr_props = lambda slope: (0, 0, 0, 0, 0, 0, 0)
-            aggr_sigmas = lambda slope: (0, 0, 0, 0, 0, 0, 0)
+            dep_props = lambda slope: (0, 0, 0, 0, 0, 0, 0, 1)
+            dep_sigmas = lambda slope: (0, 0, 0, 0, 0, 0, 0, 1)
+            aggr_props = lambda slope: (0, 0, 0, 0, 0, 0, 0, 1)
+            aggr_sigmas = lambda slope: (0, 0, 0, 0, 0, 0, 0, 1)
+        '''
+        
 
         self.mode = mode
         self.nit = nit
@@ -1150,7 +1157,7 @@ class ChannelBelt:
 
         :param event: event list. 
         :param eventOrder: order of the event in the event list. Use to allow saving all intermediate channel and basin profiles.            
-        """
+        """        
         
         last_time = self.times[-1]
         event.start_time = last_time + event.dt        
@@ -1158,7 +1165,7 @@ class ChannelBelt:
         if len(self.events) == 0:
             channel = self.channels[0]
             basin = self.basins[0]
-            self.events.append(event)
+            self.events.append(event) #create a "base event" which is a copy of the first one (need to be confirmed if necessary)
             channel.refit(basin, event.ch_width, event.ch_depth)
             _, _, _, ds, _ = channel.derivatives()
             self.ds = np.mean(ds)
@@ -1186,24 +1193,26 @@ class ChannelBelt:
             if event.mode == 'AGGRADATION':
                 print('AGGRADATION!!!')
                 basin.aggradate(event.dens, event.kv / YEAR, event.dt * YEAR, event.aggr_factor)
-            # TODO Dennis: SEPARATE must be included as a function from basin
-            '''
+            # TODO Dennis: SEPARATE must be included as a function from basin            
             if event.mode == 'SEPARATOR':
-                basin.separate(...)
-            '''
+                print('SIMULATE/SEPARATOR')    
 
             # número de canais = time stamp
-            if itn % event.saved_ts == 0:
-                #print("ITN: ", itn, " <space>.")
+            if (itn % event.saved_ts == 0 and (event.mode == 'INCISION' or event.mode == 'AGGRADATION')):
                 self.times.append(last_time + (itn+1) * event.dt)
                 self.channels.append(channel.copy())
                 self.basins.append(basin.copy())
                 self.events.append(event)
-                # Used for debug purposes: save the png basins + channels
+                # Used to create the gif files containing the basin animation
                 plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)', 'basin_' + str(eventOrder) +'-' + str(itn) + '.png', save=True) # vista lateral
                 #plot2D(channel.x, channel.y, 'Channel Preview', 'Elevation (m)', 'channel_' + str(eventOrder) + '-' + str(itn) + '.png', save=True) # vista superior
-                
-                
+            
+        # DENNIS: saves a single layer of separator
+        if event.mode == 'SEPARATOR':
+            self.times.append(last_time + event.dt)
+            self.channels.append(channel.copy())
+            self.basins.append(basin.copy())
+            self.events.append(event)   
 
         # dgb: Save the final mesh
         '''
@@ -1275,11 +1284,15 @@ class ChannelBelt:
         TODO
 
         :param dx: grid generated from dxdy variable (coming from JSON "Map Scale"). See initialization of grid variable in runner.py
-        :param margin: margin informed as "Channel Padding" in the "Channel Configuration" interface        
+        :param margin: margin informed as "Channel Padding" in the "Channel Configuration" interface
         :return: TODO
         """
 
-              
+        #print('LEN: ', len(self.events))
+        #print('MODE: ', self.events[0].mode)
+        #print('DEP PROPS: ', self.events[0].dep_props)
+        #print('MODE: ', self.events[1].mode)
+        #print('DEP PROPS: ', self.events[1].dep_props)
 
         xmax, xmin, ymax, ymin = [], [], [], []
         for channel in self.channels: # um canal para cada snapshot. Cada passo gera 4 malhas
@@ -1313,7 +1326,7 @@ class ChannelBelt:
         for i in range(0, N):
             update_progress(i/N)
 
-            event = self.events[i]
+            event = self.events[i]            
             # Last iteration 
             # aggr_map: qual parte do terreno está sofrendo aggradation
             # surface: parte mais superior computada
@@ -1340,8 +1353,8 @@ class ChannelBelt:
             # We then deposit (aggradate) a certain number of materials. For instance, when using gravel, sand and silt, the number of materials == 3.
             # When using gravel, gross sand, medium sand, fine sand, and silt, then number of materials == 5.
             # When using gravel, very gross sand, gross sand, medium sand, fine sand, very fine sand, and silt, then number of materials == 7.
-
-            # atualizar: retornar 7 variáveis em vez das 3 (algumas terão zeros, para garantir que sejam 7 sempre "camadas fantasmas")
+            
+            # atualizar: retornar 8 variáveis em vez das 3 (algumas terão zeros, para garantir que sejam 7 camadas + separator)
             # gravel, sand and silt variables:        
             # gr_p: gravel proportions. gr_s: gravel sigma.
             # vcsa_p: very coarse sand proportions. vcsa_s: very coarse sand sigma.
@@ -1349,15 +1362,25 @@ class ChannelBelt:
             # sa_p: sand proportions. sa_s: sand sigma.
             # fsa_p: fine sand proportions. fsa_s: fine sand sigma.
             # vfsa_s: very fine sand proportions. vfsa_s: very fine sand sigma.        
-            # si_p: silt proportions. si_s: silt sigma.                         
+            # si_p: silt proportions. si_s: silt sigma.  
+            # sep_p: separator proportions. sep_s: separator sigma.
+
+            print('event mode:', event.mode)
+            #print('event dep props:', event.dep_props(sl_map))
+            #print('event dep props (len):', len(event.dep_props(sl_map)))
+            print('----------')
             
-            gr_p, vcsa_p, csa_p, sa_p, fsa_p, vfsa_p, si_p = event.dep_props(sl_map)
-            gr_s, vcsa_s, csa_s, sa_s, fsa_s, vfsa_s, si_s = event.dep_sigmas(sl_map)
-            t_p = gr_p + vcsa_s + csa_p + sa_p + fsa_p + vfsa_p + si_p            
+            gr_p, vcsa_p, csa_p, sa_p, fsa_p, vfsa_p, si_p, sep_p = event.dep_props(sl_map)
+            gr_s, vcsa_s, csa_s, sa_s, fsa_s, vfsa_s, si_s, sep_s = event.dep_sigmas(sl_map)
+            t_p = gr_p + vcsa_s + csa_p + sa_p + fsa_p + vfsa_p + si_p + sep_p
+
+            #print('TP: ', t_p)
             
             # t_p equals zero in case of a SEPARATOR event - NEED TO CHECK HERE
             if ((type(t_p) == np.ndarray and t_p.all() == 0) or (type(t_p) == int and t_p == 0)):
                 t_p = 1
+
+            #print('event.sep_thickness = ', event.sep_thickness)
 
             gravel_surface = (gr_p / t_p) * dh_map * gaussian_surface(gr_s, cld_map, hw_map)
             very_coarse_sand_surface = (vcsa_p / t_p) * dh_map * gaussian_surface(vcsa_s, cld_map, hw_map)
@@ -1366,11 +1389,12 @@ class ChannelBelt:
             fine_sand_surface = (fsa_p / t_p) * dh_map * gaussian_surface(fsa_s, cld_map, hw_map)
             very_fine_sand_surface = (vfsa_p / t_p) * dh_map * gaussian_surface(vfsa_s, cld_map, hw_map)
             silt_surface = (si_p / t_p) * dh_map * gaussian_surface(si_s, cld_map, hw_map)
+            separator_surface = (sep_p / t_p) * dh_map * event.sep_thickness
 
             # reusing deposition variables for aggradation purposes
-            gr_p, vcsa_p, csa_p, sa_p, fsa_p, vfsa_p, si_p = event.aggr_props(sl_map)
-            gr_s, vcsa_s, csa_s, sa_s, fsa_s, vfsa_s, si_s = event.aggr_sigmas(sl_map)
-            t_p = gr_p + vcsa_s + csa_p + sa_p + fsa_p + vfsa_p + si_p
+            gr_p, vcsa_p, csa_p, sa_p, fsa_p, vfsa_p, si_p, sep_p = event.aggr_props(sl_map)
+            gr_s, vcsa_s, csa_s, sa_s, fsa_s, vfsa_s, si_s, sep_s = event.aggr_sigmas(sl_map)
+            t_p = gr_p + vcsa_s + csa_p + sa_p + fsa_p + vfsa_p + si_p + sep_p
             
             # MANUEL: modulate the aggradation mapps in the case of gravel and sand by Gaussians with standard 
             #         deviations defined experimentally to avoid gravel and sand moving up walls of the channel.
@@ -1386,14 +1410,16 @@ class ChannelBelt:
 
             STD_FOR_GRAVEL_FALL_OFF = 0.1   # EXPERIMENTALLY_DEFINED_STD_FOR_GRAVEL_FALL_OFF
             STD_FOR_SAND_FALL_OFF   = 0.6   # EXPERIMENTALLY_DEFINED_STD_FOR_SAND_FALL_OFF
-            # atualizar
+            # atualizar              
             gravel_surface += (gr_p / t_p) * aggr_map * gaussian_surface(STD_FOR_GRAVEL_FALL_OFF, cld_map, hw_map)  # MANUEL
             very_coarse_sand_surface   += (vcsa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
             coarse_sand_surface   += (csa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
             sand_surface   += (sa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
             fine_sand_surface   += (fsa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
             very_fine_sand_surface   += (vfsa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
-            silt_surface   += (si_p / t_p) * aggr_map
+            silt_surface   += (si_p / t_p) * aggr_map # CHECK WHETHER SILT NEEDS TO BE MODULATED BY A GAUSSIAN
+            separator_surface   += (sep_p / t_p) * event.sep_thickness              
+                
             # ADDED by MANUEL to smooth the aggradation maps due to their low resolutions
             gravel_surface = scipy.ndimage.gaussian_filter(gravel_surface, sigma = 10 / dx)
             very_coarse_sand_surface   = scipy.ndimage.gaussian_filter(very_coarse_sand_surface, sigma = 10 / dx)
@@ -1402,6 +1428,7 @@ class ChannelBelt:
             fine_sand_surface   = scipy.ndimage.gaussian_filter(fine_sand_surface, sigma = 10 / dx)
             very_fine_sand_surface   = scipy.ndimage.gaussian_filter(very_fine_sand_surface, sigma = 10 / dx)
             silt_surface   = scipy.ndimage.gaussian_filter(silt_surface, sigma = 10 / dx)
+                              
 
             '''
             gravel_surface += (gr_p / t_p) * aggr_map
@@ -1414,8 +1441,11 @@ class ChannelBelt:
 
             topo[:,:,i*L + 0] = surface
 
-            # DEPOSITING SEDIMENT - superfície acumula gravel + sand + silt
-            # Colocar isso com 7 camadas com condicionais (se proporção for zero não soma)
+            #print('gravel_surface: ', gravel_surface)
+            #print('very_coarse_sand_surface: ', very_coarse_sand_surface)
+
+            # DEPOSITING SEDIMENT - superfície acumula gravel (1) + sand (5) + silt (1) + separator (1)
+            # Colocar isso com 8 camadas com condicionais (se proporção for zero não soma)
             # TODO
             # atualizar
             surface += gravel_surface
@@ -1432,6 +1462,8 @@ class ChannelBelt:
             topo[:,:,i*L + 6] = surface
             surface += silt_surface
             topo[:,:,i*L + 7] = surface
+            surface += separator_surface
+            topo[:,:,i*L + 8] = surface        
             
         return ChannelBelt3D(topo, xmin, ymin, dx, dx) # correto
 
@@ -1453,19 +1485,31 @@ class ChannelBelt3D():
         """
 
         #self.raw_plot_xsection(0.1, topo)
+        #print('Entering topostrat from ChannelBelt3D INIT')
+        #print('self.topo[:,:,-1]: (before topostrat) ', topo[:,:,-1])
         self.strat = topostrat(topo)      
         #self.raw_plot_xsection(0.1, self.strat)
         self.topo = topo
         #self.raw_plot_xsection(0.1, self.topo)
 
         self.xmin = xmin
-        self.ymin = ymin
+        self.ymin = ymin        
 
         zmin, zmax = np.amin(self.strat[:,:,0]), np.amax(self.strat[:,:,-1])
+
+        #print('self.strat[:,:,0]: ', self.strat[:,:,0])
+        #print('self.topo[:,:,0]: (after topostrat)', self.topo[:,:,0])
+
+        #print('zmin (1): ', zmin)
+        #print('zmax (1): ', zmax)
+
         dz = zmax - zmin
         
-        self.zmin = zmin - dz * 0.1 
-        self.zmax = zmax + dz * 0.1
+        self.zmin = zmin - dz * 0.1
+        self.zmax = zmax + dz * 0.1   
+
+        #print('self.zmin INIT: ', self.zmin)
+        #print('self.zmax INIT: ', self.zmax)
     
         self.dx = dx
         self.dy = dy
@@ -1490,7 +1534,7 @@ class ChannelBelt3D():
     def plot_xsection(self, xsec, ve = 1, substrat = True, title = '',
                     silt_color = [51/255, 51/255, 0], very_coarse_sand_color = [255/255, 153/255, 0], coarse_sand_color = [255/255, 204/255, 0],
                     sand_color = [255/255, 255/255, 0], fine_sand_color = [255/255, 255/255, 153/255], very_fine_sand_color = [255/255, 204/255, 153/255],
-                    gravel_color = [255/255, 102/255, 0]):
+                    gravel_color = [255/255, 102/255, 0], separator_color = [0/255, 0/255, 255/255]):
         """
         Method for plotting a cross section through a 3D model; also plots map of 
         basal erosional surface and map of final geomorphic surface. [Sylvester]
@@ -1523,6 +1567,7 @@ class ChannelBelt3D():
             Line2D([0], [0], color=coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Coarse Sand'),
             Line2D([0], [0], color=very_coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Coarse Sand'),
             Line2D([0], [0], color=gravel_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Gravel'),
+            Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
         ]
 
         # Matplotlib
@@ -1550,6 +1595,7 @@ class ChannelBelt3D():
             Y5 = np.concatenate((strat[:,xindex,i+4], strat[::-1,xindex,i+5]))
             Y6 = np.concatenate((strat[:,xindex,i+5], strat[::-1,xindex,i+6]))
             Y7 = np.concatenate((strat[:,xindex,i+6], strat[::-1,xindex,i+7]))
+            Y8 = np.concatenate((strat[:,xindex,i+7], strat[::-1,xindex,i+8]))
             
             ax1.fill(X1, Y1, facecolor=gravel_color)
             ax1.fill(X1, Y2, facecolor=very_coarse_sand_color) 
@@ -1558,10 +1604,16 @@ class ChannelBelt3D():
             ax1.fill(X1, Y5, facecolor=fine_sand_color)
             ax1.fill(X1, Y6, facecolor=very_fine_sand_color)
             ax1.fill(X1, Y7, facecolor=silt_color)        
+            ax1.fill(X1, Y8, facecolor=separator_color)        
         
         if ve != 1: 
             ax1.set_aspect(ve, adjustable='datalim')
         ax1.set_xlim(self.ymin, self.ymin + sy * self.dy)
+
+        # DEBUG
+        #print('self.zmin: ', self.zmin)
+        #print('self.zmax: ', self.zmax)
+
         ax1.set_ylim(self.zmin, self.zmax)
         ax1.set_xlabel('Width (m)')
         ax1.set_ylabel('Elevation (m)')
@@ -1849,10 +1901,11 @@ class ChannelBelt3D():
         FINE_SAND_COLOR = [255/255, 255/255, 153/255]
         VERY_FINE_SAND_COLOR = [255/255, 204/255, 153/255]
         SILT_COLOR = [51/255, 51/255, 0]
-        SUBSTRACT_COLOR = [192/255, 192/255, 192/255]
+        SEPARATOR_COLOR = [0/255, 0/255, 255/255]
+        SUBSTRACT_COLOR = [192/255, 192/255, 192/255]        
         
         # Set the strat material colors to an array
-        strat_colors = np.array([SILT_COLOR, VERY_FINE_SAND_COLOR, FINE_SAND_COLOR, SAND_COLOR, COARSE_SAND_COLOR,
+        strat_colors = np.array([SEPARATOR_COLOR, SILT_COLOR, VERY_FINE_SAND_COLOR, FINE_SAND_COLOR, SAND_COLOR, COARSE_SAND_COLOR,
                                 VERY_COARSE_SAND_COLOR, GRAVEL_COLOR, SUBSTRACT_COLOR])
         
         # dir contains the path of the temp directory, used to store the intermediate meshes
@@ -1895,6 +1948,7 @@ class ChannelBelt3D():
             #filename = 'model{}'.format(int(i/3) + 1) # local folder
             filename = path.join(dir, '{}'.format((int)(event_top_layer/NUMBER_OF_LAYERS_PER_EVENT) + 1)) # temp folder, all models
 
+            print('Entering topostrat from export_objs')
             strat = topostrat(self.topo, event_top_layer)
             
             # Produces a grid for the current z layer containing the points in grid.points
@@ -1952,5 +2006,6 @@ class ChannelBelt3D():
         """
         #np.savetxt('shape.txt',[sy, sx, sz],fmt='%.4f') # DEBUG
         #zz = topostrat_evolution(self.topo)
+        print("entering topostrat from export")
         zz = topostrat(self.topo)
         np.save("terrain.npy", zz)

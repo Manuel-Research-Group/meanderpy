@@ -35,7 +35,6 @@ DEFAULT_EVENT_DT = 0.1
 DEFAULT_EVENT_MODE = 'AGGRADATION'
 DEFAULT_EVENT_KV = 0.01
 DEFAULT_EVENT_KL = 60.0
-DEFAULT_EVENT_NUMBER_LAYERS = 3
 DEFAULT_EVENT_CR_DIST = 200
 DEFAULT_EVENT_CR_WIND = 1500
 
@@ -248,8 +247,6 @@ for evt in events_json:
   mode = evt.get('mode', DEFAULT_EVENT_MODE)
   kv = evt.get('kv', DEFAULT_EVENT_KV)  
   kl = evt.get('kl', DEFAULT_EVENT_KL)
-  number_layers = evt.get('number_layers', DEFAULT_EVENT_NUMBER_LAYERS)
-
   cr_dist = evt.get('cr_dist', DEFAULT_EVENT_CR_DIST)
   cr_wind = evt.get('cr_wind', DEFAULT_EVENT_CR_WIND)
 
@@ -258,13 +255,14 @@ for evt in events_json:
 
   dep_height = evt.get('dep_height', DEFAULT_EVENT_DEP_HEIGHT)
 
-  dep_props = evt.get('dep_props', DEFAULT_EVENT_DEP_PROPS)  
-  dep_sigmas = evt.get('dep_sigmas', DEFAULT_EVENT_DEP_SIGMAS)  
+  dep_props = evt.get('dep_props', DEFAULT_EVENT_DEP_PROPS) # atualizar (sempre 7 + separator, demais zero)
+  dep_sigmas = evt.get('dep_sigmas', DEFAULT_EVENT_DEP_SIGMAS)
+
   aggr_props = evt.get('aggr_props', DEFAULT_EVENT_AGGR_PROPS)
   aggr_sigmas = evt.get('aggr_sigmas', DEFAULT_EVENT_AGGR_SIGMAS)
 
-  sep_thickness = evt.get('sep_thickness', DEFAULT_EVENT_SEP_THICKNESS)
-  
+  sep_thicnkess = evt.get('sep_thickness', DEFAULT_EVENT_SEP_THICKNESS)
+
   event = mp.ChannelEvent(
     nit = nit,
     saved_ts = saved_ts,
@@ -272,7 +270,6 @@ for evt in events_json:
     mode = mode,
     kv = kv,
     kl = kl,
-    number_layers = number_layers,
     cr_dist = cr_dist,
     cr_wind = cr_wind,
     ch_depth = create_tabular_param(ch_depth),
@@ -282,17 +279,21 @@ for evt in events_json:
     dep_sigmas = create_tabular_param(dep_sigmas),
     aggr_props = create_tabular_param(aggr_props),
     aggr_sigmas = create_tabular_param(aggr_sigmas),
-    sep_thickness = sep_thickness
+    sep_thickness = sep_thicnkess
   )
   events.append(event)
 
-### RUN
+  print('(A) - EVENT MODE: ', event.mode)
+  print('(A) - EVENT PROPS: ', event.dep_props)
 
+### RUN
 belt = mp.ChannelBelt(channel, basin)
+#print('(C) LEN events: ', len(events))
+
 for i, event in enumerate(events):
-  print('Simulating event {} of {}'.format(i, len(events)))  
-  belt.simulate(event, i)
-  # basin, channel, time, events information inside belt object  
+  print('Simulating event {} of {}'.format(i, len(events)))    
+  belt.simulate(event, i)    
+  # basin, channel, time, events information inside belt object
 
 ### CONFIG
 ve = config_json.get('ve', DEFAULT_CONFIG_VE)
@@ -304,6 +305,12 @@ preview = config_json.get('preview', DEFAULT_CONFIG_PREVIEW)
 title = config_json.get('title', DEFAULT_CONFIG_TITLE)
 render = config_json.get('render', DEFAULT_CONFIG_RENDER)
 export = config_json.get('export', DEFAULT_CONFIG_EXPORT)
+
+print('(B) Len belt.Events: ', len(belt.events))
+print('(B) belt.Events[0]: ', belt.events[0].mode)
+print('(B) belt.Events[1]: ', belt.events[1].mode)
+#print('(B) belt.Events[2]: ', belt.events[2].mode)
+print('(B) Len Events: ', len(events))
 
 print('Building 3D model using {} meters grid'.format(grid))
 model = belt.build_3d_model(grid, margin)
