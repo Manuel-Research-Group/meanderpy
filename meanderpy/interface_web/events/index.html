@@ -531,6 +531,7 @@
 
     const NUM_EVENT_ATTRIBUTES = 6;
     const BIG_NUMBER = 10**6;
+    const LITTLE_NUMBER = 10**-6;
 
     // EVENTS
     function generateEvent() {
@@ -602,13 +603,15 @@
                 // DENNIS: CHANGED HERE SEPARATOR - CHECK
                 if (mode == 'SEPARATOR') {
                     contentEvent.dep_props[slope].value = [0,0,0,0,0,0,0,1];
-                    contentEvent.dep_sigmas[slope].value = [0,0,0,0,0,0,0,1]; // sigma==1 to avoid division by zero
+                    contentEvent.dep_sigmas[slope].value = [LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER]; // sigma==1 to avoid division by zero
                     contentEvent.aggr_props[slope].value = [0,0,0,0,0,0,0,0];
-                    contentEvent.aggr_sigmas[slope].value = [0,0,0,0,0,0,0,1]; // sigma==1 to avoid division by zero
+                    contentEvent.aggr_sigmas[slope].value = [LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER]; // sigma==1 to avoid division by zero
                 }
                 else { // INCISION OR AGGRADATION
-                    contentEvent.aggr_props[slope].value = [0,0,0,0,0,0,0,0];
-                    contentEvent.aggr_sigmas[slope].value = [0,0,0,0,0,0,0,1]; // sigma==1 to avoid division by zero
+                    //if (mode == 'INCISION') {
+                    //    contentEvent.aggr_props[slope].value = [0,0,0,0,0,0,0,0];
+                    //    contentEvent.aggr_sigmas[slope].value = [BIG_NUMBER,BIG_NUMBER,BIG_NUMBER,BIG_NUMBER,BIG_NUMBER,BIG_NUMBER,BIG_NUMBER,BIG_NUMBER]; // sigma==1 to avoid division by zero
+                    //}
 
                     var dep_props_copy = contentEvent.dep_props[slope].value;
                     var dep_sigmas_copy = contentEvent.dep_sigmas[slope].value;                    
@@ -617,9 +620,9 @@
 
                     if (contentEvent.number_layers == 3) {
                         contentEvent.dep_props[slope].value = [dep_props_copy[0],0,0,dep_props_copy[1],0,0,dep_props_copy[2],0];
-                        contentEvent.dep_sigmas[slope].value = [dep_sigmas_copy[0],0,0,dep_sigmas_copy[1],0,0,dep_sigmas_copy[2],0];                          
-                        contentEvent.aggr_props[slope].value = [aggr_props_copy[0],0,0,aggr_props_copy[1],0,0,aggr_props_copy[2],0];                        
-                        contentEvent.aggr_sigmas[slope].value = [aggr_sigmas_copy[0],0,0,aggr_sigmas_copy[1],0,0,aggr_sigmas_copy[2],0];                        
+                        contentEvent.dep_sigmas[slope].value = [dep_sigmas_copy[0],LITTLE_NUMBER,LITTLE_NUMBER,dep_sigmas_copy[1],LITTLE_NUMBER,LITTLE_NUMBER,dep_sigmas_copy[2],LITTLE_NUMBER];
+                        contentEvent.aggr_props[slope].value = [aggr_props_copy[0],0,0,aggr_props_copy[1],0,0,aggr_props_copy[2],0];
+                        contentEvent.aggr_sigmas[slope].value = [aggr_sigmas_copy[0],LITTLE_NUMBER,LITTLE_NUMBER,aggr_sigmas_copy[1],LITTLE_NUMBER,LITTLE_NUMBER,aggr_sigmas_copy[2],LITTLE_NUMBER];
                     }
                     else if (contentEvent.number_layers == 5) {
                         contentEvent.dep_props[slope].value = [dep_props_copy[0],0,dep_props_copy[1],dep_props_copy[2],dep_props_copy[3],0,dep_props_copy[4],0];

@@ -1410,7 +1410,7 @@ class ChannelBelt:
 
             STD_FOR_GRAVEL_FALL_OFF = 0.1   # EXPERIMENTALLY_DEFINED_STD_FOR_GRAVEL_FALL_OFF
             STD_FOR_SAND_FALL_OFF   = 0.6   # EXPERIMENTALLY_DEFINED_STD_FOR_SAND_FALL_OFF
-            # atualizar              
+            # The next block produces an ERROR when 0 is passed to sigma.
             gravel_surface += (gr_p / t_p) * aggr_map * gaussian_surface(STD_FOR_GRAVEL_FALL_OFF, cld_map, hw_map)  # MANUEL
             very_coarse_sand_surface   += (vcsa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
             coarse_sand_surface   += (csa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
@@ -1418,8 +1418,8 @@ class ChannelBelt:
             fine_sand_surface   += (fsa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
             very_fine_sand_surface   += (vfsa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
             silt_surface   += (si_p / t_p) * aggr_map # CHECK WHETHER SILT NEEDS TO BE MODULATED BY A GAUSSIAN
-            separator_surface   += (sep_p / t_p) * event.sep_thickness              
-                
+            separator_surface   += (sep_p / t_p) * event.sep_thickness
+             
             # ADDED by MANUEL to smooth the aggradation maps due to their low resolutions
             gravel_surface = scipy.ndimage.gaussian_filter(gravel_surface, sigma = 10 / dx)
             very_coarse_sand_surface   = scipy.ndimage.gaussian_filter(very_coarse_sand_surface, sigma = 10 / dx)
