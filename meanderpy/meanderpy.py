@@ -1465,14 +1465,14 @@ class ChannelBelt:
             surface += separator_surface
             topo[:,:,i*L + 8] = surface        
             
-        return ChannelBelt3D(topo, xmin, ymin, dx, dx) # correto
+        return ChannelBelt3D(topo, xmin, ymin, dx, dx, self.events) # correto
 
 class ChannelBelt3D():
     """
     Class for 3D models of channel belts. (Sylvester)
     """
 
-    def __init__(self, topo, xmin, ymin, dx, dy):
+    def __init__(self, topo, xmin, ymin, dx, dy, events): # Added the events parameter by dennis
         """
         Initializes the ChannelBelt3D object.
 
@@ -1513,6 +1513,8 @@ class ChannelBelt3D():
     
         self.dx = dx
         self.dy = dy
+
+        self.events = events # Added the events parameter by dennis
 
     def raw_plot_xsection(self, xsec, matrix):
         """
@@ -1559,6 +1561,7 @@ class ChannelBelt3D():
 
         # gera as legendas para o Matplotlib
         # atualizar: testa numero de camadas e cria legenda com 3, 5 ou 7 (não criar legenda com "fantasmas")
+        
         legend_elements = [
             Line2D([0], [0], color=silt_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Silt'),
             Line2D([0], [0], color=very_fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Fine Sand'),
@@ -1568,7 +1571,44 @@ class ChannelBelt3D():
             Line2D([0], [0], color=very_coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Coarse Sand'),
             Line2D([0], [0], color=gravel_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Gravel'),
             Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
-        ]
+        ]        
+
+        # Added by Dennis: still need to check this info (TODO)
+        '''
+        if self.events.number_layers == 3:
+            legend_elements = [
+                Line2D([0], [0], color=silt_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Silt'),
+                #Line2D([0], [0], color=very_fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Fine Sand'),
+                #Line2D([0], [0], color=fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Fine Sand'),            
+                Line2D([0], [0], color=sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Sand'),
+                #Line2D([0], [0], color=coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Coarse Sand'),
+                #Line2D([0], [0], color=very_coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Coarse Sand'),
+                Line2D([0], [0], color=gravel_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Gravel'),
+                Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
+            ]
+        elif self.events.number_layers == 5:
+            legend_elements = [
+                Line2D([0], [0], color=silt_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Silt'),
+                #Line2D([0], [0], color=very_fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Fine Sand'),
+                Line2D([0], [0], color=fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Fine Sand'),            
+                Line2D([0], [0], color=sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Sand'),
+                Line2D([0], [0], color=coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Coarse Sand'),
+                #Line2D([0], [0], color=very_coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Coarse Sand'),
+                Line2D([0], [0], color=gravel_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Gravel'),
+                Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
+            ]
+        else:
+            legend_elements = [
+                Line2D([0], [0], color=silt_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Silt'),
+                Line2D([0], [0], color=very_fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Fine Sand'),
+                Line2D([0], [0], color=fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Fine Sand'),            
+                Line2D([0], [0], color=sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Sand'),
+                Line2D([0], [0], color=coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Coarse Sand'),
+                Line2D([0], [0], color=very_coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Coarse Sand'),
+                Line2D([0], [0], color=gravel_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Gravel'),
+                Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
+            ]
+        '''
 
         # Matplotlib
         fig1 = plt.figure(figsize=(20,5))
@@ -1948,7 +1988,7 @@ class ChannelBelt3D():
             #filename = 'model{}'.format(int(i/3) + 1) # local folder
             filename = path.join(dir, '{}'.format((int)(event_top_layer/NUMBER_OF_LAYERS_PER_EVENT) + 1)) # temp folder, all models
 
-            print('Entering topostrat from export_objs')
+            #print('Entering topostrat from export_objs')
             strat = topostrat(self.topo, event_top_layer)
             
             # Produces a grid for the current z layer containing the points in grid.points
@@ -1969,9 +2009,12 @@ class ChannelBelt3D():
         copyfile(zipfile, top_event_layers_zipname)
 
         # Compact in a zip file all the ply files in filename folder
+        # Removed for now
+        '''
         zipfile = path.join(dir, 'plant_views.zip')
         zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.png')
         copyfile(zipfile, 'plant_views.zip')
+        '''
 
         # EXPORT ALL THE LAYERS OF THE FINAL MESH
         dir = tempfile.mkdtemp()
@@ -1994,9 +2037,12 @@ class ChannelBelt3D():
             mesh_iterator = mesh_iterator + 1
         
         # Compact in a zip file all the ply files in filename folder
+        # Removed for now
+        '''
         zipfile = path.join(dir, 'final_layers.zip')
         zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
-        copyfile(zipfile, 'final_layers.zip')        
+        copyfile(zipfile, 'final_layers.zip')
+        '''
 
     def export(self, ve = 3):
         """

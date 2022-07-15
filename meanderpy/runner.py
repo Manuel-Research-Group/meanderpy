@@ -38,6 +38,8 @@ DEFAULT_EVENT_KL = 60.0
 DEFAULT_EVENT_CR_DIST = 200
 DEFAULT_EVENT_CR_WIND = 1500
 
+DEFAULT_NUMBER_LAYERS = 3 # Added by Dennis
+
 DEFAULT_EVENT_CH_DEPTH = [
   {"slope": -5, "value": 100},
   {"slope": -4, "value": 80},
@@ -247,6 +249,8 @@ for evt in events_json:
   mode = evt.get('mode', DEFAULT_EVENT_MODE)
   kv = evt.get('kv', DEFAULT_EVENT_KV)  
   kl = evt.get('kl', DEFAULT_EVENT_KL)
+  number_layers = evt.get('number_layers', DEFAULT_EVENT_KL) # Added by Dennis
+
   cr_dist = evt.get('cr_dist', DEFAULT_EVENT_CR_DIST)
   cr_wind = evt.get('cr_wind', DEFAULT_EVENT_CR_WIND)
 
@@ -270,6 +274,7 @@ for evt in events_json:
     mode = mode,
     kv = kv,
     kl = kl,
+    number_layers = number_layers,
     cr_dist = cr_dist,
     cr_wind = cr_wind,
     ch_depth = create_tabular_param(ch_depth),
@@ -283,16 +288,11 @@ for evt in events_json:
   )
   events.append(event)
 
-  print('(A) - EVENT MODE: ', event.mode)
-  print('(A) - EVENT PROPS: ', event.dep_props)
-
 ### RUN
 belt = mp.ChannelBelt(channel, basin)
-#print('(C) LEN events: ', len(events))
-
 for i, event in enumerate(events):
   print('Simulating event {} of {}'.format(i, len(events)))    
-  belt.simulate(event, i)    
+  belt.simulate(event, i)
   # basin, channel, time, events information inside belt object
 
 ### CONFIG
@@ -305,12 +305,6 @@ preview = config_json.get('preview', DEFAULT_CONFIG_PREVIEW)
 title = config_json.get('title', DEFAULT_CONFIG_TITLE)
 render = config_json.get('render', DEFAULT_CONFIG_RENDER)
 export = config_json.get('export', DEFAULT_CONFIG_EXPORT)
-
-print('(B) Len belt.Events: ', len(belt.events))
-print('(B) belt.Events[0]: ', belt.events[0].mode)
-print('(B) belt.Events[1]: ', belt.events[1].mode)
-#print('(B) belt.Events[2]: ', belt.events[2].mode)
-print('(B) Len Events: ', len(events))
 
 print('Building 3D model using {} meters grid'.format(grid))
 model = belt.build_3d_model(grid, margin)
@@ -346,9 +340,13 @@ if show_sections:
   copyfile(zipfile, 'cross_sections_PDF.zip')
 
   # Compact in a zip file all the SVG files in filename folder
+  # Need to check here if the SVG file is consistent
+  # Removed for now
+  '''
   zipfile = path.join(temp_dir, 'cross_sections_SVG.zip')
   zipFilesInDir(temp_dir, zipfile, lambda fn: path.splitext(fn)[1] == '.svg')
   copyfile(zipfile, 'cross_sections_SVG.zip')
+  '''
 
 if export:
   print('Exporting 3D model')
