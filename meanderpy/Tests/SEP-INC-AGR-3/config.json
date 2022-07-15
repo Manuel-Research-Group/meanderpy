@@ -1,0 +1,21 @@
+{
+  "ve": 1,
+  "dxdy": 25,
+  "margin": 500,
+  "cross_sections": [
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9
+  ],
+  "show_sections": true,
+  "render": true,
+  "preview": true,
+  "title": "TESTE 5",
+  "export": true
+}
