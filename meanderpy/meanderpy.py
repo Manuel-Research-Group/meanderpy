@@ -1603,44 +1603,24 @@ class ChannelBelt3D():
         xindex = int(xsec * sx)
 
         # gera as legendas para o Matplotlib
-        # atualizar: testa numero de camadas e cria legenda com 3, 5 ou 7 (não criar legenda com "fantasmas")
-        
-        legend_elements = [
-            Line2D([0], [0], color=silt_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Silt'),
-            Line2D([0], [0], color=very_fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Fine Sand'),
-            Line2D([0], [0], color=fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Fine Sand'),            
-            Line2D([0], [0], color=sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Sand'),
-            Line2D([0], [0], color=coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Coarse Sand'),
-            Line2D([0], [0], color=very_coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Coarse Sand'),
-            Line2D([0], [0], color=gravel_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Gravel'),
-            Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
-        ]        
-
-        # Added by Dennis: still need to check this info (TODO)
-        '''
-        if self.events.number_layers == 3:
+        # Added by Dennis: create the labels according to the number of layers in the events       
+        if self.events[0].number_layers == 3:
             legend_elements = [
-                Line2D([0], [0], color=silt_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Silt'),
-                #Line2D([0], [0], color=very_fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Fine Sand'),
-                #Line2D([0], [0], color=fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Fine Sand'),            
-                Line2D([0], [0], color=sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Sand'),
-                #Line2D([0], [0], color=coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Coarse Sand'),
-                #Line2D([0], [0], color=very_coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Coarse Sand'),
+                Line2D([0], [0], color=silt_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Silt'),                        
+                Line2D([0], [0], color=sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Sand'),                
                 Line2D([0], [0], color=gravel_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Gravel'),
                 Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
             ]
-        elif self.events.number_layers == 5:
+        elif self.events[0].number_layers == 5:
             legend_elements = [
-                Line2D([0], [0], color=silt_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Silt'),
-                #Line2D([0], [0], color=very_fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Fine Sand'),
+                Line2D([0], [0], color=silt_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Silt'),                
                 Line2D([0], [0], color=fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Fine Sand'),            
                 Line2D([0], [0], color=sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Sand'),
-                Line2D([0], [0], color=coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Coarse Sand'),
-                #Line2D([0], [0], color=very_coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Coarse Sand'),
+                Line2D([0], [0], color=coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Coarse Sand'),                
                 Line2D([0], [0], color=gravel_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Gravel'),
                 Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
             ]
-        else:
+        elif self.events[0].number_layers == 7:
             legend_elements = [
                 Line2D([0], [0], color=silt_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Silt'),
                 Line2D([0], [0], color=very_fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Fine Sand'),
@@ -1651,7 +1631,9 @@ class ChannelBelt3D():
                 Line2D([0], [0], color=gravel_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Gravel'),
                 Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
             ]
-        '''
+        else:
+            raise Exception('Invalid number of layers.')
+        
 
         # Matplotlib
         fig1 = plt.figure(figsize=(20,5))

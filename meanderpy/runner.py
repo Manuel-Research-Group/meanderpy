@@ -209,6 +209,23 @@ def zipFilesInDir(dirName, zipFileName, filter):
                     filePath = path.join(folderName, filename)
                     zipObj.write(filePath, filename)
 
+# Dennis: create a list of event modes (strings) to be incorpored into the title
+def generateStringFromEventModes(eventModeList):
+  eventSimpleText = '['
+  for e in eventModeList:
+    if e == 'AGGRADATION':
+      eventSimpleText = eventSimpleText + 'AGR, '
+    elif e == 'INCISION':
+      eventSimpleText = eventSimpleText + 'INC, '
+    elif e == 'SEPARATOR':
+      eventSimpleText = eventSimpleText + 'SEP, '
+    else:
+      raise Exception('Invalid event mode.')
+  eventSimpleText = eventSimpleText[0:-2]
+  eventSimpleText = eventSimpleText + ']'
+
+  return eventSimpleText
+
 # MAIN
 
 channels_file = open(CHANNELS_FILE, 'r')
@@ -290,10 +307,16 @@ for evt in events_json:
 
 ### RUN
 belt = mp.ChannelBelt(channel, basin)
+eventModeList = [] # Dennis: create a list of event modes (strings) to be incorpored into the title
 for i, event in enumerate(events):
   print('Simulating event {} of {}'.format(i, len(events)))    
   belt.simulate(event, i)
+  eventModeList.append(event.mode) # Dennis: create a list of event modes (strings) to be incorpored into the title
   # basin, channel, time, events information inside belt object
+
+eventSimpleText = generateStringFromEventModes(eventModeList)
+
+print('eventText: ', eventSimpleText)
 
 ### CONFIG
 ve = config_json.get('ve', DEFAULT_CONFIG_VE)
@@ -314,7 +337,6 @@ if len(cross_sections) > 0:
 
 # Variable introduced to show the cross sections
 # DENNIS: generate and organize the new matplotlib figures into a zip
-
 if show_sections:
   cross_section_count = 0
   temp_dir = tempfile.mkdtemp()
@@ -326,7 +348,7 @@ if show_sections:
     model.plot_xsection(
       xsec = xsec, 
       ve = ve, 
-      title = title
+      title = title + '    ' + eventSimpleText# Dennis: added here to contain information regarding the event order
     )    
     #plt.show()
     # DENNIS: added to save the figures instead of just showing them in a separate window
