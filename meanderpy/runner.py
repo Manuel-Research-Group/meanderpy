@@ -211,18 +211,17 @@ def zipFilesInDir(dirName, zipFileName, filter):
 
 # Dennis: create a list of event modes (strings) to be incorpored into the title
 def generateStringFromEventModes(eventModeList):
-  eventSimpleText = '['
+  eventSimpleText = 'Events: '
   for e in eventModeList:
     if e == 'AGGRADATION':
-      eventSimpleText = eventSimpleText + 'AGR, '
+      eventSimpleText = eventSimpleText + 'AGG, '
     elif e == 'INCISION':
       eventSimpleText = eventSimpleText + 'INC, '
     elif e == 'SEPARATOR':
       eventSimpleText = eventSimpleText + 'SEP, '
     else:
       raise Exception('Invalid event mode.')
-  eventSimpleText = eventSimpleText[0:-2]
-  eventSimpleText = eventSimpleText + ']'
+  eventSimpleText = eventSimpleText[0:-2]  
 
   return eventSimpleText
 
@@ -305,6 +304,9 @@ for evt in events_json:
   )
   events.append(event)
 
+for e in events:
+  print('e: ', e.mode)
+
 ### RUN
 belt = mp.ChannelBelt(channel, basin)
 eventModeList = [] # Dennis: create a list of event modes (strings) to be incorpored into the title
@@ -315,8 +317,6 @@ for i, event in enumerate(events):
   # basin, channel, time, events information inside belt object
 
 eventSimpleText = generateStringFromEventModes(eventModeList)
-
-print('eventText: ', eventSimpleText)
 
 ### CONFIG
 ve = config_json.get('ve', DEFAULT_CONFIG_VE)
@@ -348,7 +348,7 @@ if show_sections:
     model.plot_xsection(
       xsec = xsec, 
       ve = ve, 
-      title = title + '    ' + eventSimpleText# Dennis: added here to contain information regarding the event order
+      title = title + '\n' + eventSimpleText # Dennis: added here to contain information regarding the event order
     )    
     #plt.show()
     # DENNIS: added to save the figures instead of just showing them in a separate window

@@ -164,7 +164,7 @@
             </div>
             <div class="separator_properties"> <br/>
                 <label for="sep_thickness">Separator thickness (m):</label>
-                <input type="number" id="sep_thickness" value=1 maxlength="10" /><br /><br />
+                <input type="number" id="sep_thickness" value=0.2 maxlength="1" /><br /><br />
             </div>
         </div>
         <div class="column2">
@@ -509,7 +509,7 @@
     function eventSymbol(eventName) {
         var symbol;
         if (eventName == 'AGGRADATION')
-            symbol = '[AGR]';
+            symbol = '[AGG]';
         else if (eventName == 'INCISION')
             symbol = '[INC]';
         else if (eventName == 'SEPARATOR')
@@ -799,7 +799,7 @@
         document.getElementById("mode_aggradation").checked = true;
         document.getElementById('kv').value = 0.01;
         document.getElementById('kl').value = 60;
-        document.getElementById('sep_thickness').value = 1;
+        document.getElementById('sep_thickness').value = 0.2;
 
         // EVENT SPECIFICS
         document.getElementById('ch_depth_value').value = "100; 80; 60; 40; 20; 0";

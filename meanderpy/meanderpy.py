@@ -256,9 +256,7 @@ class Basin:
         #print('slope: ', slope)
         #print('self.z: ', self.z)
         #print('-----------------')
-
         #self.z += -K* slope # BEUREN'S SUGGESTION
-
         #self.z += -K* (slope + aggr_factor*np.mean(slope)) # NEW EXPERIMENTAL METHOD
 
     def incise(self, density, kv, dt):
@@ -1160,8 +1158,12 @@ class ChannelBelt:
         """        
         
         last_time = self.times[-1]
-        event.start_time = last_time + event.dt        
+        event.start_time = last_time + event.dt    
 
+        # Since an event has been appended for the first event, it should not be appended again later inside the loop below.
+        # This variable makes sure that it doesn't happen.
+        firstEvent = False    
+        
         if len(self.events) == 0:
             channel = self.channels[0]
             basin = self.basins[0]
@@ -1170,6 +1172,7 @@ class ChannelBelt:
             _, _, _, ds, _ = channel.derivatives()
             self.ds = np.mean(ds)
             event.start_time = 0
+            firstEvent = True
 
         channel = self.channels[-1].copy()
         basin = self.basins[-1].copy()
@@ -1198,7 +1201,7 @@ class ChannelBelt:
                 print('SIMULATE/SEPARATOR')    
 
             # número de canais = time stamp
-            if (itn % event.saved_ts == 0 and (event.mode == 'INCISION' or event.mode == 'AGGRADATION')):
+            if ((itn % event.saved_ts == 0) and (event.mode == 'INCISION' or event.mode == 'AGGRADATION') and (not firstEvent)):
                 self.times.append(last_time + (itn+1) * event.dt)
                 self.channels.append(channel.copy())
                 self.basins.append(basin.copy())
@@ -1208,7 +1211,7 @@ class ChannelBelt:
                 #plot2D(channel.x, channel.y, 'Channel Preview', 'Elevation (m)', 'channel_' + str(eventOrder) + '-' + str(itn) + '.png', save=True) # vista superior
             
         # DENNIS: saves a single layer of separator
-        if event.mode == 'SEPARATOR':
+        if ((event.mode == 'SEPARATOR') and (not firstEvent)):
             self.times.append(last_time + event.dt)
             self.channels.append(channel.copy())
             self.basins.append(basin.copy())
@@ -1316,15 +1319,20 @@ class ChannelBelt:
         # surface: resultado atual do processo de corte e deposição (cut and fill)
         surface = bz_map # bz_map: altura do centro do canal explodido lateralmente
 
-        N = len(self.channels) 
+        N = len(self.channels) # Dennis
         L = NUMBER_OF_LAYERS_PER_EVENT # atualizar
 
         topo = np.zeros((mapper.rheight, mapper.rwidth, N*L))        
 
-        for i in range(0, N):
+        for i in range(0, N): # Dennis - Obs: if used range(1,N) we avoid drawing the layers of the first event twice but it draw the substract wrongly
             update_progress(i/N)
 
-            event = self.events[i]            
+            event = self.events[i] 
+
+            firstEventIsSeparator = False
+            if i == 0 and event.mode == 'SEPARATOR':
+                firstEventIsSeparator = True
+
             # Last iteration 
             # aggr_map: qual parte do terreno está sofrendo aggradation
             # surface: parte mais superior computada
@@ -1339,8 +1347,15 @@ class ChannelBelt:
             dh_map = event.dep_height(sl_map)
             cd_map = event.ch_depth(sl_map)
 
-            if (event.mode != 'SEPARATOR'):
+            '''
+            if (event.mode != 'SEPARATOR'):            
                 channel_surface = erosional_surface(cld_map, cz_map, hw_map, cd_map)
+            else:
+                channel_surface = surface
+            '''
+
+            if (event.mode != 'SEPARATOR' or firstEventIsSeparator):            
+                channel_surface = erosional_surface(cld_map, cz_map, hw_map, cd_map) # parte do cut
             else:
                 channel_surface = surface
 
@@ -1390,7 +1405,7 @@ class ChannelBelt:
             #    t_p = 1
 
             #print('event.sep_thickness = ', event.sep_thickness)
-            
+
             gravel_surface = (gr_p / t_p) * dh_map * gaussian_surface(gr_s, cld_map, hw_map)
             very_coarse_sand_surface = (vcsa_p / t_p) * dh_map * gaussian_surface(vcsa_s, cld_map, hw_map)
             coarse_sand_surface = (csa_p / t_p) * dh_map * gaussian_surface(csa_s, cld_map, hw_map)
@@ -1398,7 +1413,18 @@ class ChannelBelt:
             fine_sand_surface = (fsa_p / t_p) * dh_map * gaussian_surface(fsa_s, cld_map, hw_map)
             very_fine_sand_surface = (vfsa_p / t_p) * dh_map * gaussian_surface(vfsa_s, cld_map, hw_map)
             silt_surface = (si_p / t_p) * dh_map * gaussian_surface(si_s, cld_map, hw_map)
-            separator_surface = (sep_p / t_p) * dh_map * event.sep_thickness            
+            separator_surface = (sep_p / t_p) * dh_map * event.sep_thickness
+            
+            '''
+            gravel_surface = (gr_p / t_p) * dh_map * gaussian_surface(gr_s, cld_map, hw_map)
+            very_coarse_sand_surface = (vcsa_p / t_p) * dh_map * gaussian_surface(vcsa_s, cld_map, hw_map)
+            coarse_sand_surface = (csa_p / t_p) * dh_map * gaussian_surface(csa_s, cld_map, hw_map)
+            sand_surface = (sa_p / t_p) * dh_map * gaussian_surface(sa_s, cld_map, hw_map)
+            fine_sand_surface = (fsa_p / t_p) * dh_map * gaussian_surface(fsa_s, cld_map, hw_map)
+            very_fine_sand_surface = (vfsa_p / t_p) * dh_map * gaussian_surface(vfsa_s, cld_map, hw_map)
+            silt_surface = (si_p / t_p) * dh_map * gaussian_surface(si_s, cld_map, hw_map)
+            separator_surface = (sep_p / t_p) * dh_map * event.sep_thickness
+            '''
 
             # reusing deposition variables for aggradation purposes
             '''
@@ -1416,8 +1442,8 @@ class ChannelBelt:
             #    
             # DENNIS: corrected the value of t_p to avoid division by zero. t_p can be either an array or an integer           
 
-            if isinstance(t_p, int) == True and t_p == 0: # check here (if isinstance is removed it does not work)
-                t_p = 0.001
+            #if isinstance(t_p, int) == True and t_p == 0: # check here (if isinstance is removed it does not work)
+            #    t_p = 0.001
 
             STD_FOR_GRAVEL_FALL_OFF = 0.1   # EXPERIMENTALLY_DEFINED_STD_FOR_GRAVEL_FALL_OFF
             STD_FOR_SAND_FALL_OFF   = 0.6   # EXPERIMENTALLY_DEFINED_STD_FOR_SAND_FALL_OFF
@@ -1586,6 +1612,8 @@ class ChannelBelt3D():
         :param sand_color: (list)
         :param gravel_color: (list)
         """
+
+        LINE_WIDTH = 4
         
         # DENNIS: modificado aqui
         #strat = self.topo
@@ -1606,37 +1634,46 @@ class ChannelBelt3D():
         # Added by Dennis: create the labels according to the number of layers in the events       
         if self.events[0].number_layers == 3:
             legend_elements = [
-                Line2D([0], [0], color=silt_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Silt'),                        
-                Line2D([0], [0], color=sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Sand'),                
-                Line2D([0], [0], color=gravel_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Gravel'),
-                Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
+                Line2D([0], [0], color=silt_color, lw=LINE_WIDTH, label='Silt'),                        
+                Line2D([0], [0], color=sand_color, lw=LINE_WIDTH, label='Sand'),                
+                Line2D([0], [0], color=gravel_color, lw=LINE_WIDTH, label='Gravel'),
+                #Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
             ]
         elif self.events[0].number_layers == 5:
             legend_elements = [
-                Line2D([0], [0], color=silt_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Silt'),                
-                Line2D([0], [0], color=fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Fine Sand'),            
-                Line2D([0], [0], color=sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Sand'),
-                Line2D([0], [0], color=coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Coarse Sand'),                
-                Line2D([0], [0], color=gravel_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Gravel'),
-                Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
+                Line2D([0], [0], color=silt_color, lw=LINE_WIDTH, label='Silt'),                
+                Line2D([0], [0], color=fine_sand_color, lw=LINE_WIDTH, label='Fine Sand'),            
+                Line2D([0], [0], color=sand_color, lw=LINE_WIDTH, label='Sand'),
+                Line2D([0], [0], color=coarse_sand_color, lw=LINE_WIDTH, label='Coarse Sand'),                
+                Line2D([0], [0], color=gravel_color, lw=LINE_WIDTH, label='Gravel'),
+                #Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
             ]
         elif self.events[0].number_layers == 7:
             legend_elements = [
-                Line2D([0], [0], color=silt_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Silt'),
-                Line2D([0], [0], color=very_fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Fine Sand'),
-                Line2D([0], [0], color=fine_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Fine Sand'),            
-                Line2D([0], [0], color=sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Sand'),
-                Line2D([0], [0], color=coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Coarse Sand'),
-                Line2D([0], [0], color=very_coarse_sand_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Very Coarse Sand'),
-                Line2D([0], [0], color=gravel_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Gravel'),
-                Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
+                Line2D([0], [0], color=silt_color, lw=LINE_WIDTH, label='Silt'),
+                Line2D([0], [0], color=very_fine_sand_color, lw=LINE_WIDTH, label='Very Fine Sand'),
+                Line2D([0], [0], color=fine_sand_color, lw=LINE_WIDTH, label='Fine Sand'),            
+                Line2D([0], [0], color=sand_color, lw=LINE_WIDTH, label='Sand'),
+                Line2D([0], [0], color=coarse_sand_color, lw=LINE_WIDTH, label='Coarse Sand'),
+                Line2D([0], [0], color=very_coarse_sand_color, lw=LINE_WIDTH, label='Very Coarse Sand'),
+                Line2D([0], [0], color=gravel_color, lw=LINE_WIDTH, label='Gravel'),
+                #Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
             ]
         else:
             raise Exception('Invalid number of layers.')
         
+        # Dennis: We only include the separator in the figure legend if at least one of the events is a separator
+        # 
+        hasSeparator = False
+        for e in self.events:
+            if e.mode == 'SEPARATOR':
+                hasSeparator = True
+
+        if hasSeparator == True:
+            legend_elements.append(Line2D([0], [0], color=separator_color, lw=LINE_WIDTH, label='Condensed Section'))
 
         # Matplotlib
-        fig1 = plt.figure(figsize=(20,5))
+        fig1 = plt.figure(figsize=(20,6)) # Dennis: changed from (20,5) to (20,6) to increase the title height
         ax1 = fig1.add_subplot(111)
         ax1.set_title('{}Cross section at ({:.3f}) - {:.3f} km'.format(title, xsec, xindex * self.dx + self.xmin))
 
@@ -1647,9 +1684,7 @@ class ChannelBelt3D():
             substract_color = [192/255, 192/255, 192/255]
             Yb = np.ones(sy) * self.zmin
             ax1.fill(X1, np.concatenate((Yb, strat[::-1,xindex,0])), facecolor=substract_color)
-            legend_elements.append(
-                Line2D([0], [0], color=substract_color, lw=4, label='Substract') 
-            )
+            legend_elements.append(Line2D([0], [0], color=substract_color, lw=LINE_WIDTH, label='Substract'))
         
         # atualizar: Y1...Y7
         for i in range(0, sz, NUMBER_OF_LAYERS_PER_EVENT):            
