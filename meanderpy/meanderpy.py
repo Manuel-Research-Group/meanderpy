@@ -1,3 +1,4 @@
+from calendar import c
 from cmath import nan
 from zipfile import ZipFile
 import tempfile
@@ -1201,7 +1202,10 @@ class ChannelBelt:
                 print('SIMULATE/SEPARATOR')    
 
             # número de canais = time stamp
-            if ((itn % event.saved_ts == 0) and (event.mode == 'INCISION' or event.mode == 'AGGRADATION') and (not firstEvent)):
+            # Save if it is not the first event or if it is the first event we avoid saving the first saved_ts layers because
+            # it has already been saved when "len(self.events) == 0" (see the respective test in the beginning of this procedure)
+            if ((itn % event.saved_ts == 0) and (event.mode == 'INCISION' or event.mode == 'AGGRADATION') and \
+                ((not firstEvent) or (firstEvent and itn > event.saved_ts))):
                 self.times.append(last_time + (itn+1) * event.dt)
                 self.channels.append(channel.copy())
                 self.basins.append(basin.copy())
@@ -1596,10 +1600,12 @@ class ChannelBelt3D():
 
         plt.show()
 
+    # TODO: definir vetor de cores "separator_color"
+    # separator: basal, inversion, condensed section
     def plot_xsection(self, xsec, ve = 1, substrat = True, title = '',
                     silt_color = [51/255, 51/255, 0], very_coarse_sand_color = [255/255, 153/255, 0], coarse_sand_color = [255/255, 204/255, 0],
                     sand_color = [255/255, 255/255, 0], fine_sand_color = [255/255, 255/255, 153/255], very_fine_sand_color = [255/255, 204/255, 153/255],
-                    gravel_color = [255/255, 102/255, 0], separator_color = [0/255, 0/255, 255/255]):
+                    gravel_color = [255/255, 102/255, 0], separator_color = [[255/255, 0/255, 0/255], [255/255, 0/255, 255/255], [0/255, 0/255, 255/255]]):
         """
         Method for plotting a cross section through a 3D model; also plots map of 
         basal erosional surface and map of final geomorphic surface. [Sylvester]
@@ -1612,6 +1618,11 @@ class ChannelBelt3D():
         :param sand_color: (list)
         :param gravel_color: (list)
         """
+
+        SEPARATOR_TYPE = 2 # TODO: pegar do JSON
+        BASAL_SURFACE = 0
+        INVERSION_SURFACE = 1
+        CONDENSED_SECTION = 2
 
         LINE_WIDTH = 4
         
@@ -1631,7 +1642,8 @@ class ChannelBelt3D():
         xindex = int(xsec * sx)
 
         # gera as legendas para o Matplotlib
-        # Added by Dennis: create the labels according to the number of layers in the events       
+        # Added by Dennis: create the labels according to the number of layers in the events  
+        # TODO: criar legenda para cada uma das cores, dependendo dos separadores que foram usados     
         if self.events[0].number_layers == 3:
             legend_elements = [
                 Line2D([0], [0], color=silt_color, lw=LINE_WIDTH, label='Silt'),                        
@@ -1669,13 +1681,32 @@ class ChannelBelt3D():
             if e.mode == 'SEPARATOR':
                 hasSeparator = True
 
-        if hasSeparator == True:
-            legend_elements.append(Line2D([0], [0], color=separator_color, lw=LINE_WIDTH, label='Condensed Section'))
+        if hasSeparator == True: #TODO
+            legend_elements.append(Line2D([0], [0], color=separator_color[BASAL_SURFACE], lw=LINE_WIDTH, label='Basal Surface'))
+            legend_elements.append(Line2D([0], [0], color=separator_color[INVERSION_SURFACE], lw=LINE_WIDTH, label='Inversion Surface'))
+            legend_elements.append(Line2D([0], [0], color=separator_color[CONDENSED_SECTION], lw=LINE_WIDTH, label='Condensed Section'))
 
         # Matplotlib
         fig1 = plt.figure(figsize=(20,6)) # Dennis: changed from (20,5) to (20,6) to increase the title height
         ax1 = fig1.add_subplot(111)
         ax1.set_title('{}Cross section at ({:.3f}) - {:.3f} km'.format(title, xsec, xindex * self.dx + self.xmin))
+
+        
+        # Dennis: Added a new caption text containing the main information regarding the events
+        #for e in self.events:
+            # todo
+
+        # For now info is only displayed for the first event
+        '''
+        tex = '|Event 1configurations|\n' + 'nit: ' + str(self.events[0].nit) + '\n' \
+                + 'saved_ts: ' + str(self.events[0].saved_ts) + '\n' \
+                + 'dt: ' + str(self.events[0].dt) + '\n' \
+                + 'mode: ' + str(self.events[0].mode) + '\n' \
+                + 'kv: ' + str(self.events[0].kv) + '\n' \
+                + 'kl: ' + str(self.events[0].kl) + '\n' \
+                + 'number_layers: ' + str(self.events[0].number_layers) + '\n'
+        ax1.text(-150, 225, tex, fontsize=10, va='bottom')
+        '''
 
         Xv = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
         X1 = np.concatenate((Xv, Xv[::-1])) # faz array inverso
@@ -1687,6 +1718,7 @@ class ChannelBelt3D():
             legend_elements.append(Line2D([0], [0], color=substract_color, lw=LINE_WIDTH, label='Substract'))
         
         # atualizar: Y1...Y7
+        # sz: numero total de camadas        
         for i in range(0, sz, NUMBER_OF_LAYERS_PER_EVENT):            
             Y1 = np.concatenate((strat[:,xindex,i],   strat[::-1,xindex,i+1])) 
             Y2 = np.concatenate((strat[:,xindex,i+1], strat[::-1,xindex,i+2]))
@@ -1703,16 +1735,14 @@ class ChannelBelt3D():
             ax1.fill(X1, Y4, facecolor=sand_color)
             ax1.fill(X1, Y5, facecolor=fine_sand_color)
             ax1.fill(X1, Y6, facecolor=very_fine_sand_color)
-            ax1.fill(X1, Y7, facecolor=silt_color)        
-            ax1.fill(X1, Y8, facecolor=separator_color)        
+            ax1.fill(X1, Y7, facecolor=silt_color)                    
+            # TODO: testar o tipo do separador para criar a cor específica (vermelho, roxo, azul)
+            # recuperar ele do JSON (buscar o tipo e indexar)
+            ax1.fill(X1, Y8, facecolor=separator_color[SEPARATOR_TYPE])
         
         if ve != 1: 
             ax1.set_aspect(ve, adjustable='datalim')
         ax1.set_xlim(self.ymin, self.ymin + sy * self.dy)
-
-        # DEBUG
-        #print('self.zmin: ', self.zmin)
-        #print('self.zmax: ', self.zmax)
 
         ax1.set_ylim(self.zmin, self.zmax)
         ax1.set_xlabel('Width (m)')
