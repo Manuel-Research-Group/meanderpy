@@ -164,7 +164,16 @@
             </div>
             <div class="separator_properties"> <br/>
                 <label for="sep_thickness">Separator thickness (m):</label>
-                <input type="number" id="sep_thickness" value=0.2 maxlength="1" /><br /><br />
+                <input type="number" id="sep_thickness" value=0.2 maxlength="1" /><br /><br />         
+                <div class="set_type">
+                    <label for="sep_type">Separator Type:</label> <br /> &emsp; &emsp; &emsp;
+                    <label for="sep_type">Basal surface</label>
+                    <input type="radio" id="sep_type_basal" name="sep_type" value="BASAL_SURFACE" /> <br /> &emsp; &emsp; &emsp;
+                    <label for="sep_type">Inversion</label>
+                    <input type="radio" id="sep_type_inversion" name="sep_type" value="INVERSION" /> &emsp; <br /> &emsp; &emsp; &emsp;
+                    <label for="sep_type">Condensed section</label>
+                    <input type="radio" id="sep_type_condensed" name="sep_type" value="CONDENSED_SECTION" checked/><br /><br />                
+                </div>
             </div>
         </div>
         <div class="column2">
@@ -315,8 +324,7 @@
     const NUMBER_OF_SLOPES = 6;
 
     // Function called as soon as the window is loaded
-    window.onload = function () {
-        
+    window.onload = function () {        
 
         //restoreDefaultValues();
 
@@ -332,7 +340,9 @@
             window.localStorage.setItem('mode', document.querySelector('input[name="mode"]:checked').value);
             window.localStorage.setItem('kv', document.getElementById("kv").value);
             window.localStorage.setItem('kl', document.getElementById("kl").value);
+            // Separator
             window.localStorage.setItem('sep_thickness', document.getElementById("sep_thickness").value); 
+            window.localStorage.setItem('sep_type', document.querySelector('input[name="sep_type"]:checked').value);
             
             // EVENT SPECIFICS
             window.localStorage.setItem('ch_depth_value', document.getElementById("ch_depth_value").value);
@@ -382,23 +392,38 @@
         if (mode == document.getElementById('mode_aggradation').value) {            
             document.getElementById("mode_aggradation").checked = true;
             hideInterface();
-        }
-            
+        }            
         else if (mode == document.getElementById('mode_incision').value) {
             document.getElementById("mode_incision").checked = true;
             hideInterface();
-        }
-            
+        }            
         else if (mode == document.getElementById('mode_separator').value) {
             document.getElementById("mode_separator").checked = true;  
             hideInterface();
         }
-            
 
         //document.querySelector('input[name="mode"]:checked').value = window.localStorage.getItem('mode') // CHECK HERE
         document.getElementById('kv').value = window.localStorage.getItem('kv')
         document.getElementById('kl').value = window.localStorage.getItem('kl')
+
+        // Separator
         document.getElementById('sep_thickness').value = window.localStorage.getItem('sep_thickness')
+
+        sep_type = window.localStorage.getItem('sep_type');
+        if (sep_type == document.getElementById('sep_type_basal').value) {            
+            document.getElementById("sep_type_basal").checked = true;
+            hideInterface();
+        }            
+        else if (sep_type == document.getElementById('sep_type_inversion').value) {
+            document.getElementById("mode_incision").checked = true;
+            hideInterface();
+        }            
+        else if (sep_type == document.getElementById('sep_type_condensed').value) {
+            document.getElementById("sep_type_condensed").checked = true;  
+            hideInterface();
+        }  
+
+        //document.getElementById('sep_type').value = window.localStorage.getItem('sep_type')
 
         // EVENT SPECIFICS
         document.getElementById('ch_depth_value').value = window.localStorage.getItem('ch_depth_value')
@@ -538,13 +563,16 @@
         if (contentEvents.length < 100) {
             var validForm = true;            
             var is_valid_config = true;
-            var nit = Number(document.getElementById("nit").value);            
-            var saved_ts = Number(document.getElementById("saved_ts").value);            
-            var dt = Number(document.getElementById("dt").value);            
-            var mode = document.querySelector('input[name="mode"]:checked').value;            
-            var kv = Number(document.getElementById("kv").value);            
-            var kl = Number(document.getElementById("kl").value);                 
+            var nit = Number(document.getElementById("nit").value);
+            var saved_ts = Number(document.getElementById("saved_ts").value);
+            var dt = Number(document.getElementById("dt").value);
+            var mode = document.querySelector('input[name="mode"]:checked').value;
+            var kv = Number(document.getElementById("kv").value);
+            var kl = Number(document.getElementById("kl").value);
+            // Separator           
             var sep_thickness = Number(document.getElementById("sep_thickness").value);
+            var sep_type = document.querySelector('input[name="sep_type"]:checked').value;            
+
             var error_msg = "Please correct the following before creating an event:\n";
 
             if (checkValue(nit, 0, 10000) == false || checkValue(saved_ts, 0, 10000) == false ||
@@ -592,11 +620,13 @@
             contentEvent.aggr_props = listEventJson("aggr_props_values", 0.0, 1.0);
             contentEvent.aggr_sigmas = listEventJson("aggr_sigmas_values", 0.0, 100000);
             
-            if (mode == 'SEPARATOR') {                
+            if (mode == 'SEPARATOR') {
                 contentEvent.sep_thickness = sep_thickness;
+                contentEvent.sep_type = sep_type;
             }
             else {
                 contentEvent.sep_thickness = 0;
+                contentEvent.sep_type = 'CONDENSED_SECTION';
             }          
 
             for (var slope=0; slope < 6; slope++) {
@@ -799,7 +829,9 @@
         document.getElementById("mode_aggradation").checked = true;
         document.getElementById('kv').value = 0.01;
         document.getElementById('kl').value = 60;
+        // Separator
         document.getElementById('sep_thickness').value = 0.2;
+        document.getElementById('sep_type_condensed').checked = true;
 
         // EVENT SPECIFICS
         document.getElementById('ch_depth_value').value = "100; 80; 60; 40; 20; 0";
@@ -838,6 +870,9 @@
         document.getElementById('aggr_sigmas_values5').value = "2; 5; 10"; 
 
         window.localStorage.setItem('mode', document.querySelector('input[name="mode"]:checked').value);
+
+        // Separator
+        window.localStorage.setItem('sep_type', document.querySelector('input[name="sep_type"]:checked').value);
         
         mode = 'AGGRADATION';                 
         if (mode == document.getElementById('mode_aggradation').value) {            

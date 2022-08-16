@@ -411,7 +411,7 @@ class Channel:
         # Friction force is proportial to contact surface area
         area = np.clip(self.d, a_min = 0, a_max = None) * self.w / 2
 
-        R0 = kl * self.w * curv 
+        R0 = kl * self.w * curv
         R1 = compute_migration_rate(R0, Cf, self.d, ds, s[-1])
 
         RN = sinuosity**(-2/3.0) * R1 * (area / np.max(area))
@@ -885,6 +885,7 @@ class ChannelEvent:
         aggr_props = lambda slope: (0.333, 0.0, 0.0, 0.333, 0.0, 0.0, 0.333, 0.0),
         aggr_sigmas = lambda slope: (2, BIG_NUMBER, BIG_NUMBER, 5, BIG_NUMBER, BIG_NUMBER, 10, BIG_NUMBER),        
         sep_thickness = 0, #dennis: separator thickness from the SEPARADOR mode
+        sep_type = 'CONDENSED_SECTION', #dennis: separator type from the SEPARADOR mode
         dens = 1000, aggr_factor = 2):
         """       
         Initializes a ChannelEvent object.
@@ -953,6 +954,7 @@ class ChannelEvent:
         self.aggr_sigmas = aggr_sigmas
         
         self.sep_thickness = sep_thickness
+        self.sep_type = sep_type
         
         self.dens = dens
         self.aggr_factor = aggr_factor
@@ -1470,8 +1472,7 @@ class ChannelBelt:
             sand_surface   = scipy.ndimage.gaussian_filter(sand_surface, sigma = 10 / dx)
             fine_sand_surface   = scipy.ndimage.gaussian_filter(fine_sand_surface, sigma = 10 / dx)
             very_fine_sand_surface   = scipy.ndimage.gaussian_filter(very_fine_sand_surface, sigma = 10 / dx)
-            silt_surface   = scipy.ndimage.gaussian_filter(silt_surface, sigma = 10 / dx)
-                              
+            silt_surface   = scipy.ndimage.gaussian_filter(silt_surface, sigma = 10 / dx)                              
 
             '''
             gravel_surface += (gr_p / t_p) * aggr_map
@@ -1619,7 +1620,7 @@ class ChannelBelt3D():
         :param gravel_color: (list)
         """
 
-        SEPARATOR_TYPE = 2 # TODO: pegar do JSON
+        SEPARATOR_TYPE = 2 # TODO
         BASAL_SURFACE = 0
         INVERSION_SURFACE = 1
         CONDENSED_SECTION = 2
@@ -1641,26 +1642,15 @@ class ChannelBelt3D():
         
         xindex = int(xsec * sx)
 
+        max_num_layers = 0
+        for e in self.events:
+            if e.number_layers > max_num_layers:
+                max_num_layers = e.number_layers
+
         # gera as legendas para o Matplotlib
         # Added by Dennis: create the labels according to the number of layers in the events  
         # TODO: criar legenda para cada uma das cores, dependendo dos separadores que foram usados     
-        if self.events[0].number_layers == 3:
-            legend_elements = [
-                Line2D([0], [0], color=silt_color, lw=LINE_WIDTH, label='Silt'),                        
-                Line2D([0], [0], color=sand_color, lw=LINE_WIDTH, label='Sand'),                
-                Line2D([0], [0], color=gravel_color, lw=LINE_WIDTH, label='Gravel'),
-                #Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
-            ]
-        elif self.events[0].number_layers == 5:
-            legend_elements = [
-                Line2D([0], [0], color=silt_color, lw=LINE_WIDTH, label='Silt'),                
-                Line2D([0], [0], color=fine_sand_color, lw=LINE_WIDTH, label='Fine Sand'),            
-                Line2D([0], [0], color=sand_color, lw=LINE_WIDTH, label='Sand'),
-                Line2D([0], [0], color=coarse_sand_color, lw=LINE_WIDTH, label='Coarse Sand'),                
-                Line2D([0], [0], color=gravel_color, lw=LINE_WIDTH, label='Gravel'),
-                #Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
-            ]
-        elif self.events[0].number_layers == 7:
+        if max_num_layers == 7:
             legend_elements = [
                 Line2D([0], [0], color=silt_color, lw=LINE_WIDTH, label='Silt'),
                 Line2D([0], [0], color=very_fine_sand_color, lw=LINE_WIDTH, label='Very Fine Sand'),
@@ -1668,33 +1658,39 @@ class ChannelBelt3D():
                 Line2D([0], [0], color=sand_color, lw=LINE_WIDTH, label='Sand'),
                 Line2D([0], [0], color=coarse_sand_color, lw=LINE_WIDTH, label='Coarse Sand'),
                 Line2D([0], [0], color=very_coarse_sand_color, lw=LINE_WIDTH, label='Very Coarse Sand'),
-                Line2D([0], [0], color=gravel_color, lw=LINE_WIDTH, label='Gravel'),
-                #Line2D([0], [0], color=separator_color, lw=NUMBER_OF_LAYERS_PER_EVENT, label='Condensed Section'),
+                Line2D([0], [0], color=gravel_color, lw=LINE_WIDTH, label='Gravel'),                
+            ]            
+        elif max_num_layers == 5:
+            legend_elements = [
+                Line2D([0], [0], color=silt_color, lw=LINE_WIDTH, label='Silt'),                
+                Line2D([0], [0], color=fine_sand_color, lw=LINE_WIDTH, label='Fine Sand'),            
+                Line2D([0], [0], color=sand_color, lw=LINE_WIDTH, label='Sand'),
+                Line2D([0], [0], color=coarse_sand_color, lw=LINE_WIDTH, label='Coarse Sand'),                
+                Line2D([0], [0], color=gravel_color, lw=LINE_WIDTH, label='Gravel'),                
+            ]
+        elif max_num_layers == 3:
+            legend_elements = [
+                Line2D([0], [0], color=silt_color, lw=LINE_WIDTH, label='Silt'),                        
+                Line2D([0], [0], color=sand_color, lw=LINE_WIDTH, label='Sand'),                
+                Line2D([0], [0], color=gravel_color, lw=LINE_WIDTH, label='Gravel'),                
             ]
         else:
             raise Exception('Invalid number of layers.')
         
         # Dennis: We only include the separator in the figure legend if at least one of the events is a separator
-        # 
-        hasSeparator = False
         for e in self.events:
             if e.mode == 'SEPARATOR':
-                hasSeparator = True
-
-        if hasSeparator == True: #TODO
-            legend_elements.append(Line2D([0], [0], color=separator_color[BASAL_SURFACE], lw=LINE_WIDTH, label='Basal Surface'))
-            legend_elements.append(Line2D([0], [0], color=separator_color[INVERSION_SURFACE], lw=LINE_WIDTH, label='Inversion Surface'))
-            legend_elements.append(Line2D([0], [0], color=separator_color[CONDENSED_SECTION], lw=LINE_WIDTH, label='Condensed Section'))
+                if e.sep_type == 'BASAL_SURFACE':
+                    legend_elements.append(Line2D([0], [0], color=separator_color[BASAL_SURFACE], lw=LINE_WIDTH, label='Basal Surface'))
+                if e.sep_type == 'INVERSION':
+                    legend_elements.append(Line2D([0], [0], color=separator_color[INVERSION_SURFACE], lw=LINE_WIDTH, label='Inversion Surface'))
+                if e.sep_type == 'CONDENSED_SECTION':
+                    legend_elements.append(Line2D([0], [0], color=separator_color[CONDENSED_SECTION], lw=LINE_WIDTH, label='Condensed Section'))
 
         # Matplotlib
         fig1 = plt.figure(figsize=(20,6)) # Dennis: changed from (20,5) to (20,6) to increase the title height
-        ax1 = fig1.add_subplot(111)
-        ax1.set_title('{}Cross section at ({:.3f}) - {:.3f} km'.format(title, xsec, xindex * self.dx + self.xmin))
-
-        
-        # Dennis: Added a new caption text containing the main information regarding the events
-        #for e in self.events:
-            # todo
+        ax1 = fig1.add_subplot(211)
+        ax1.set_title('{}Cross section at ({:.3f}) - {:.3f} km'.format(title, xsec, xindex * self.dx + self.xmin))        
 
         # For now info is only displayed for the first event
         '''
@@ -1735,9 +1731,10 @@ class ChannelBelt3D():
             ax1.fill(X1, Y4, facecolor=sand_color)
             ax1.fill(X1, Y5, facecolor=fine_sand_color)
             ax1.fill(X1, Y6, facecolor=very_fine_sand_color)
-            ax1.fill(X1, Y7, facecolor=silt_color)                    
+            ax1.fill(X1, Y7, facecolor=silt_color)
             # TODO: testar o tipo do separador para criar a cor específica (vermelho, roxo, azul)
             # recuperar ele do JSON (buscar o tipo e indexar)
+            # QUAL RELAÇÃO DOS EVENTOS COM O STRAT e com o FOR acima?
             ax1.fill(X1, Y8, facecolor=separator_color[SEPARATOR_TYPE])
         
         if ve != 1: 
@@ -1749,6 +1746,32 @@ class ChannelBelt3D():
         ax1.set_ylabel('Elevation (m)')
         
         ax1.legend(handles=legend_elements, loc='upper right')
+
+
+        # Dennis: Added a new caption text containing the main information regarding the events
+        # Add a table at the bottom of the axes TODO        
+        # Still need to adjust the lenght of the rows to fix the table position
+        ax1 = fig1.add_subplot(212)   
+        ax1.get_xaxis().set_visible(False)
+        ax1.get_yaxis().set_visible(False)
+        plt.box(on=None)           
+        column_texts = ('saved_ts', 'dt', 'mode', 'kv', 'kl', 'number_layers')
+        row_texts = []
+        cell_texts = []
+        eventCount = 0
+        for e in self.events:
+            row_texts.append('Event ' + str(eventCount)) 
+            cell_texts.append((e.saved_ts,e.dt,e.mode,e.kv,e.kl,e.number_layers))
+            eventCount += 1
+
+        table = plt.table(cellText=cell_texts,
+                    cellLoc='center',
+                    rowLoc='center',
+                    colLoc='center',
+                    rowLabels=row_texts,                      
+                    colLabels=column_texts,
+                    loc='center')
+
         return fig1
 
     def plot(self, ve = 1, curvature = False, save = False):

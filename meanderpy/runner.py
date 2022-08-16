@@ -100,6 +100,7 @@ DEFAULT_EVENT_AGGR_SIGMAS = [
 ]
 
 DEFAULT_EVENT_SEP_THICKNESS = 0
+DEFAULT_EVENT_SEP_TYPE = 'CONDENSED_SECTION'
 
 ### -CONFIGS
 
@@ -281,7 +282,9 @@ for evt in events_json:
   aggr_props = evt.get('aggr_props', DEFAULT_EVENT_AGGR_PROPS)
   aggr_sigmas = evt.get('aggr_sigmas', DEFAULT_EVENT_AGGR_SIGMAS)
 
+  # Separator
   sep_thicnkess = evt.get('sep_thickness', DEFAULT_EVENT_SEP_THICKNESS)
+  sep_type = evt.get('sep_type', DEFAULT_EVENT_SEP_TYPE)
 
   event = mp.ChannelEvent(
     nit = nit,
@@ -300,12 +303,13 @@ for evt in events_json:
     dep_sigmas = create_tabular_param(dep_sigmas),
     aggr_props = create_tabular_param(aggr_props),
     aggr_sigmas = create_tabular_param(aggr_sigmas),
-    sep_thickness = sep_thicnkess
+    sep_thickness = sep_thicnkess,
+    sep_type = sep_type
   )
   events.append(event)
 
-for e in events:
-  print('e: ', e.mode)
+#for e in events:
+  #print('e: ', e.mode)
 
 ### RUN
 belt = mp.ChannelBelt(channel, basin)
