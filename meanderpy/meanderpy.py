@@ -1328,7 +1328,13 @@ class ChannelBelt:
         N = len(self.channels) # Dennis
         L = NUMBER_OF_LAYERS_PER_EVENT # atualizar
 
-        topo = np.zeros((mapper.rheight, mapper.rwidth, N*L))        
+        topo = np.zeros((mapper.rheight, mapper.rwidth, N*L))    
+
+        # Dennis
+        # separator_type contains the same number of layers as topo and stores the separator type (when one exists) at the proper layer.
+        # It was created as a separate array because topo is itself an array and not a structure to which we could add an aditional attribute.
+        #
+        separator_type = np.zeros((N*L), dtype=int)
 
         for i in range(0, N): # Dennis - Obs: if used range(1,N) we avoid drawing the layers of the first event twice but it draw the substract wrongly
             update_progress(i/N)
@@ -1337,7 +1343,7 @@ class ChannelBelt:
 
             firstEventIsSeparator = False
             if i == 0 and event.mode == 'SEPARATOR':
-                firstEventIsSeparator = True
+                firstEventIsSeparator = True            
 
             # Last iteration 
             # aggr_map: qual parte do terreno está sofrendo aggradation
@@ -1410,7 +1416,7 @@ class ChannelBelt:
             #if ((type(t_p) == np.ndarray and t_p.all() == 0) or (type(t_p) == int and t_p == 0)):
             #    t_p = 1
 
-            #print('event.sep_thickness = ', event.sep_thickness)
+            #print('event.sep_thickness = ', event.sep_thickness)            
 
             gravel_surface = (gr_p / t_p) * dh_map * gaussian_surface(gr_s, cld_map, hw_map)
             very_coarse_sand_surface = (vcsa_p / t_p) * dh_map * gaussian_surface(vcsa_s, cld_map, hw_map)
@@ -1419,7 +1425,8 @@ class ChannelBelt:
             fine_sand_surface = (fsa_p / t_p) * dh_map * gaussian_surface(fsa_s, cld_map, hw_map)
             very_fine_sand_surface = (vfsa_p / t_p) * dh_map * gaussian_surface(vfsa_s, cld_map, hw_map)
             silt_surface = (si_p / t_p) * dh_map * gaussian_surface(si_s, cld_map, hw_map)
-            separator_surface = (sep_p / t_p) * dh_map * event.sep_thickness
+            #separator_surface = (sep_p / t_p) * dh_map * event.sep_thickness # the separator height is also affected by deposition height
+            separator_surface = (sep_p / t_p) * 1 * event.sep_thickness
             
             '''
             gravel_surface = (gr_p / t_p) * dh_map * gaussian_surface(gr_s, cld_map, hw_map)
@@ -1432,11 +1439,19 @@ class ChannelBelt:
             separator_surface = (sep_p / t_p) * dh_map * event.sep_thickness
             '''
 
-            # reusing deposition variables for aggradation purposes
+            # reusing deposition variables for aggradation purposes           
+            # TODO: find problem here with respect to aggradation
             '''
             gr_p, vcsa_p, csa_p, sa_p, fsa_p, vfsa_p, si_p, sep_p = event.aggr_props(sl_map)
             gr_s, vcsa_s, csa_s, sa_s, fsa_s, vfsa_s, si_s, sep_s = event.aggr_sigmas(sl_map)
             t_p = gr_p + vcsa_p + csa_p + sa_p + fsa_p + vfsa_p + si_p + sep_p
+            gravel_surface += (gr_p / t_p) * aggr_map * gaussian_surface(gr_s, cld_map, hw_map)  # MANUEL
+            very_coarse_sand_surface   += (vcsa_p / t_p) * aggr_map * gaussian_surface(vcsa_s, cld_map, hw_map)    # MANUEL
+            coarse_sand_surface   += (csa_p / t_p) * aggr_map * gaussian_surface(csa_s, cld_map, hw_map)    # MANUEL
+            sand_surface   += (sa_p / t_p) * aggr_map * gaussian_surface(sa_s, cld_map, hw_map)    # MANUEL
+            fine_sand_surface   += (fsa_p / t_p) * aggr_map * gaussian_surface(fsa_s, cld_map, hw_map)    # MANUEL
+            very_fine_sand_surface   += (vfsa_p / t_p) * aggr_map * gaussian_surface(vfsa_s, cld_map, hw_map)    # MANUEL
+            silt_surface   += (si_p / t_p) * aggr_map * gaussian_surface(si_s, cld_map, hw_map) # MANUEL
             '''            
             
             # MANUEL: modulate the aggradation mapps in the case of gravel and sand by Gaussians with standard 
@@ -1451,19 +1466,21 @@ class ChannelBelt:
             #if isinstance(t_p, int) == True and t_p == 0: # check here (if isinstance is removed it does not work)
             #    t_p = 0.001
 
+            '''
             STD_FOR_GRAVEL_FALL_OFF = 0.1   # EXPERIMENTALLY_DEFINED_STD_FOR_GRAVEL_FALL_OFF
             STD_FOR_SAND_FALL_OFF   = 0.6   # EXPERIMENTALLY_DEFINED_STD_FOR_SAND_FALL_OFF
-            # The next block produces an ERROR when 0 is passed to sigma.
-            '''
+            STD_FOR_SILT_FALL_OFF   = 0.6   # EXPERIMENTALLY_DEFINED_STD_FOR_SILT_FALL_OFF
+            # The next block produces an ERROR when 0 is passed to sigma.            
             gravel_surface += (gr_p / t_p) * aggr_map * gaussian_surface(STD_FOR_GRAVEL_FALL_OFF, cld_map, hw_map)  # MANUEL
             very_coarse_sand_surface   += (vcsa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
             coarse_sand_surface   += (csa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
             sand_surface   += (sa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
             fine_sand_surface   += (fsa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
             very_fine_sand_surface   += (vfsa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
-            silt_surface   += (si_p / t_p) * aggr_map # CHECK WHETHER SILT NEEDS TO BE MODULATED BY A GAUSSIAN
-            separator_surface   += (sep_p / t_p) * event.sep_thickness
-            '''
+            silt_surface   += (si_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SILT_FALL_OFF, cld_map, hw_map) # MANUEL # CHECK WHETHER SILT NEEDS TO BE MODULATED BY A GAUSSIAN
+            #separator_surface   += (sep_p / t_p) * event.sep_thickness
+            '''    
+            
              
             # ADDED by MANUEL to smooth the aggradation maps due to their low resolutions
             gravel_surface = scipy.ndimage.gaussian_filter(gravel_surface, sigma = 10 / dx)
@@ -1502,7 +1519,21 @@ class ChannelBelt:
             surface += silt_surface
             topo[:,:,i*L + 7] = surface            
             surface += separator_surface
-            topo[:,:,i*L + 8] = surface
+            topo[:,:,i*L + 8] = surface            
+                
+            sep_type_number = 0
+            if (event.mode == 'SEPARATOR'):
+                if (event.sep_type == 'BASAL_SURFACE'):
+                    sep_type_number = 1
+                elif (event.sep_type == 'INVERSION'):
+                    sep_type_number = 2
+                elif (event.sep_type == 'CONDENSED_SECTION'):
+                    sep_type_number = 3                    
+                else:
+                    raise Exception("Separator type undefined.")
+
+                separator_type[i*L + 8] = sep_type_number
+
 
             '''
             if (event.mode != 'INCISION'):
@@ -1533,14 +1564,14 @@ class ChannelBelt:
                 topo[:,:,i*L + 8] = surface
             '''
             
-        return ChannelBelt3D(topo, xmin, ymin, dx, dx, self.events) # correto
+        return ChannelBelt3D(topo, xmin, ymin, dx, dx, self.events, separator_type) # Dennis: added separator_type
 
 class ChannelBelt3D():
     """
     Class for 3D models of channel belts. (Sylvester)
     """
 
-    def __init__(self, topo, xmin, ymin, dx, dy, events): # Added the events parameter by dennis
+    def __init__(self, topo, xmin, ymin, dx, dy, events, separator_type): # Added the events parameter by dennis
         """
         Initializes the ChannelBelt3D object.
 
@@ -1583,6 +1614,7 @@ class ChannelBelt3D():
         self.dy = dy
 
         self.events = events # Added the events parameter by dennis
+        self.separator_type = separator_type # Added the separator_type parameter by dennis
 
     def raw_plot_xsection(self, xsec, matrix):
         """
@@ -1606,7 +1638,7 @@ class ChannelBelt3D():
     def plot_xsection(self, xsec, ve = 1, substrat = True, title = '',
                     silt_color = [51/255, 51/255, 0], very_coarse_sand_color = [255/255, 153/255, 0], coarse_sand_color = [255/255, 204/255, 0],
                     sand_color = [255/255, 255/255, 0], fine_sand_color = [255/255, 255/255, 153/255], very_fine_sand_color = [255/255, 204/255, 153/255],
-                    gravel_color = [255/255, 102/255, 0], separator_color = [[255/255, 0/255, 0/255], [255/255, 0/255, 255/255], [0/255, 0/255, 255/255]]):
+                    gravel_color = [255/255, 102/255, 0], separator_color = [[0/255,0/255,0/255],[255/255, 0/255, 0/255], [255/255, 0/255, 255/255], [0/255, 0/255, 255/255]]):
         """
         Method for plotting a cross section through a 3D model; also plots map of 
         basal erosional surface and map of final geomorphic surface. [Sylvester]
@@ -1619,11 +1651,10 @@ class ChannelBelt3D():
         :param sand_color: (list)
         :param gravel_color: (list)
         """
-
-        SEPARATOR_TYPE = 2 # TODO
-        BASAL_SURFACE = 0
-        INVERSION_SURFACE = 1
-        CONDENSED_SECTION = 2
+        
+        BASAL_SURFACE = 1
+        INVERSION_SURFACE = 2
+        CONDENSED_SECTION = 3
 
         LINE_WIDTH = 4
         
@@ -1678,14 +1709,25 @@ class ChannelBelt3D():
             raise Exception('Invalid number of layers.')
         
         # Dennis: We only include the separator in the figure legend if at least one of the events is a separator
+        hasSeparatorBasalSurface = False
+        hasSeparatorInversionSurface = False
+        hasSeparatorCondensedSection = False
+
         for e in self.events:
             if e.mode == 'SEPARATOR':
                 if e.sep_type == 'BASAL_SURFACE':
-                    legend_elements.append(Line2D([0], [0], color=separator_color[BASAL_SURFACE], lw=LINE_WIDTH, label='Basal Surface'))
+                    hasSeparatorBasalSurface = True
                 if e.sep_type == 'INVERSION':
-                    legend_elements.append(Line2D([0], [0], color=separator_color[INVERSION_SURFACE], lw=LINE_WIDTH, label='Inversion Surface'))
+                    hasSeparatorInversionSurface = True
                 if e.sep_type == 'CONDENSED_SECTION':
-                    legend_elements.append(Line2D([0], [0], color=separator_color[CONDENSED_SECTION], lw=LINE_WIDTH, label='Condensed Section'))
+                    hasSeparatorCondensedSection = True
+
+        if (hasSeparatorCondensedSection):
+            legend_elements.append(Line2D([0], [0], color=separator_color[CONDENSED_SECTION], lw=LINE_WIDTH, label='Condensed Section'))
+        if (hasSeparatorInversionSurface):
+            legend_elements.append(Line2D([0], [0], color=separator_color[INVERSION_SURFACE], lw=LINE_WIDTH, label='Inversion Surface'))
+        if (hasSeparatorBasalSurface):
+            legend_elements.append(Line2D([0], [0], color=separator_color[BASAL_SURFACE], lw=LINE_WIDTH, label='Basal Surface'))        
 
         # Matplotlib
         fig1 = plt.figure(figsize=(20,6)) # Dennis: changed from (20,5) to (20,6) to increase the title height
@@ -1735,7 +1777,7 @@ class ChannelBelt3D():
             # TODO: testar o tipo do separador para criar a cor específica (vermelho, roxo, azul)
             # recuperar ele do JSON (buscar o tipo e indexar)
             # QUAL RELAÇÃO DOS EVENTOS COM O STRAT e com o FOR acima?
-            ax1.fill(X1, Y8, facecolor=separator_color[SEPARATOR_TYPE])
+            ax1.fill(X1, Y8, facecolor=separator_color[self.separator_type[i+8]])
         
         if ve != 1: 
             ax1.set_aspect(ve, adjustable='datalim')
@@ -1758,9 +1800,9 @@ class ChannelBelt3D():
         column_texts = ('saved_ts', 'dt', 'mode', 'kv', 'kl', 'number_layers')
         row_texts = []
         cell_texts = []
-        eventCount = 0
+        eventCount = 1
         for e in self.events:
-            row_texts.append('Event ' + str(eventCount)) 
+            row_texts.append('Event ' + str(eventCount))
             cell_texts.append((e.saved_ts,e.dt,e.mode,e.kv,e.kl,e.number_layers))
             eventCount += 1
 
