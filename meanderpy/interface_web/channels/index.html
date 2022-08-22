@@ -185,7 +185,7 @@ svg.append('line')
     .attr("y2", height/2);
 
 x.domain([0, 10000]);
-y.domain([-500, 500]);
+y.domain([500, -500]);
 yElevation.domain([0,500]);
 
 svg.append("text")
@@ -442,7 +442,7 @@ var widthInput = document.getElementById("width");
 widthInput.addEventListener("keyup", function(event) {
   if (event.keyCode === 13) {
    event.preventDefault(); 
-   y.domain([-widthInput.value, widthInput.value]);
+   y.domain([widthInput.value,-widthInput.value]);
    d3.select("g.y.axis")
     .call(yAxis)
   }
@@ -519,7 +519,9 @@ function pointTransformCoordinates(points, minCur, maxCur, minNew, maxNew, mode)
     newPoints[i][0] = (newPoints[i][0]) * (maxNew[0] - minNew[0]);
 
     if (mode == SINUOSITY)
-      newPoints[i][1] = -1*((newPoints[i][1]) * (maxNew[1] - minNew[1]) + minNew[1]);
+    // DENNIS
+      //newPoints[i][1] = -1*((newPoints[i][1]) * (maxNew[1] - minNew[1]) + minNew[1]);
+      newPoints[i][1] = ((newPoints[i][1]) * (maxNew[1] - minNew[1]) + minNew[1]); 
     else
       newPoints[i][1] = (maxNew[1] - ((newPoints[i][1]) * (maxNew[1] - minNew[1])));
   }

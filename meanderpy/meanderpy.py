@@ -28,6 +28,7 @@ import open3d as o3d
 import math
 import struct
 import os
+from datetime import datetime
 
 OMEGA = -1.0 # constant in curvature calculation (Howard and Knutson, 1984)
 GAMMA = 2.5  # from Ikeda et al., 1981 and Howard and Knutson, 1984
@@ -1633,6 +1634,45 @@ class ChannelBelt3D():
 
         plt.show()
 
+    # Dennis: Added a new caption text containing the main information regarding the events
+    # Added new parameters' information in a separate pdf file (table)
+    def plot_simulation_parameters(self, title = ''):        
+        fig = plt.figure(figsize=(20,6)) # Dennis: changed from (20,5) to (20,6) to increase the title height # TODO
+        
+        # datetime object containing current date and time
+        now = datetime.now()
+        # dd/mm/YY H:M:S
+        dt_string = now.strftime('%d/%m/%Y %H:%M:%S')
+        
+        ax = fig.add_subplot(1,1,1)
+        ax.set_title(title + ' (' + dt_string + ')')
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+        plt.box(on=None)
+        column_texts = ('Event type', 'Number of layers', 'Save simulation state every X iterations', 'Time of each iteration (years)', \
+                        'Aggradation/incision modulation (m/years)', 'Meandering modulation (m/years)')
+        row_texts = []
+        cell_texts = []
+        eventCount = 1
+        for e in self.events:
+            row_texts.append('Event ' + str(eventCount))
+
+            if e.mode == 'SEPARATOR':
+                cell_texts.append((e.sep_type,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl))
+            else:
+                cell_texts.append((e.mode,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl))
+            eventCount += 1    
+
+        table = plt.table(cellText=cell_texts,
+                    cellLoc='center',
+                    rowLoc='center',
+                    colLoc='center',
+                    rowLabels=row_texts,                      
+                    colLabels=column_texts,
+                    loc='upper center')
+
+        return fig
+
     # TODO: definir vetor de cores "separator_color"
     # separator: basal, inversion, condensed section
     def plot_xsection(self, xsec, ve = 1, substrat = True, title = '',
@@ -1730,8 +1770,9 @@ class ChannelBelt3D():
             legend_elements.append(Line2D([0], [0], color=separator_color[BASAL_SURFACE], lw=LINE_WIDTH, label='Basal Surface'))        
 
         # Matplotlib
-        fig1 = plt.figure(figsize=(20,6)) # Dennis: changed from (20,5) to (20,6) to increase the title height
-        ax1 = fig1.add_subplot(211)
+        fig1 = plt.figure(figsize=(20,6)) # Dennis: changed from (20,5) to (20,6) to increase the title height # TODO
+        #ax1 = fig1.add_subplot(4,1,(1,2))
+        ax1 = fig1.add_subplot(1,1,1)
         ax1.set_title('{}Cross section at ({:.3f}) - {:.3f} km'.format(title, xsec, xindex * self.dx + self.xmin))        
 
         # For now info is only displayed for the first event
@@ -1757,7 +1798,7 @@ class ChannelBelt3D():
         
         # atualizar: Y1...Y7
         # sz: numero total de camadas        
-        for i in range(0, sz, NUMBER_OF_LAYERS_PER_EVENT):            
+        for i in range(0, sz, NUMBER_OF_LAYERS_PER_EVENT):
             Y1 = np.concatenate((strat[:,xindex,i],   strat[::-1,xindex,i+1])) 
             Y2 = np.concatenate((strat[:,xindex,i+1], strat[::-1,xindex,i+2]))
             Y3 = np.concatenate((strat[:,xindex,i+2], strat[::-1,xindex,i+3]))
@@ -1779,40 +1820,22 @@ class ChannelBelt3D():
             # QUAL RELAÇÃO DOS EVENTOS COM O STRAT e com o FOR acima?
             ax1.fill(X1, Y8, facecolor=separator_color[self.separator_type[i+8]])
         
-        if ve != 1: 
+        if ve != 1:
             ax1.set_aspect(ve, adjustable='datalim')
-        ax1.set_xlim(self.ymin, self.ymin + sy * self.dy)
+        
+        # Still need to debug this... aparently ymin has no relation with the width from the interface
+        ax1.set_xlim(self.ymin, self.ymin + sy * self.dy) # TODO Dennis: check here the x limits
+        '''
+        print('self.ymin: ', self.ymin)
+        print('self.ymax: ', self.ymin + sy * self.dy)
+        ax1.set_xlim(-500, 500)
+        '''
 
         ax1.set_ylim(self.zmin, self.zmax)
         ax1.set_xlabel('Width (m)')
         ax1.set_ylabel('Elevation (m)')
         
         ax1.legend(handles=legend_elements, loc='upper right')
-
-
-        # Dennis: Added a new caption text containing the main information regarding the events
-        # Add a table at the bottom of the axes TODO        
-        # Still need to adjust the lenght of the rows to fix the table position
-        ax1 = fig1.add_subplot(212)   
-        ax1.get_xaxis().set_visible(False)
-        ax1.get_yaxis().set_visible(False)
-        plt.box(on=None)           
-        column_texts = ('saved_ts', 'dt', 'mode', 'kv', 'kl', 'number_layers')
-        row_texts = []
-        cell_texts = []
-        eventCount = 1
-        for e in self.events:
-            row_texts.append('Event ' + str(eventCount))
-            cell_texts.append((e.saved_ts,e.dt,e.mode,e.kv,e.kl,e.number_layers))
-            eventCount += 1
-
-        table = plt.table(cellText=cell_texts,
-                    cellLoc='center',
-                    rowLoc='center',
-                    colLoc='center',
-                    rowLabels=row_texts,                      
-                    colLabels=column_texts,
-                    loc='center')
 
         return fig1
 

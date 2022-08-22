@@ -359,6 +359,10 @@ if show_sections:
     plt.savefig(filename + '.pdf')
     plt.savefig(filename + '.svg')
     cross_section_count = cross_section_count + 1
+  
+  model.plot_simulation_parameters(title)
+  filename_sim_parameters = path.join(temp_dir, 'sim_parameters')
+  plt.savefig(filename_sim_parameters + '.pdf')
 
   # Compact in a zip file all the PDF files in filename folder
   zipfile = path.join(temp_dir, 'cross_sections_PDF.zip')
