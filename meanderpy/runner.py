@@ -226,6 +226,56 @@ def generateStringFromEventModes(eventModeList):
 
   return eventSimpleText
 
+# Dennis: Extracted from https://stackoverflow.com/questions/1157106/remove-all-occurrences-of-a-value-from-a-list
+def remove_values_from_list(the_list, val):
+  return [value for value in the_list if value != val]
+
+def round_values_from_list(the_list):
+  for i in range(len(the_list)):
+    if type(the_list[i]) is float:
+      the_list[i] = round(the_list[i],2)
+
+  return the_list
+
+def zero_values_from_list(the_list, val):
+  for i in range(len(the_list)):
+    if the_list[i] == val:
+      the_list[i] = 0
+  
+  round_values_from_list(the_list)
+
+  return the_list
+
+
+
+  
+
+# Dennis
+def preprocessSpecificEvents(ch_depth, ch_width, dep_height, dep_props, dep_sigmas, aggr_props, aggr_sigmas):
+  new_ch_depth = []
+  new_ch_width = []
+  new_dep_height = []
+  new_dep_props = []
+  new_dep_sigmas = []
+  new_aggr_props = []
+  new_aggr_sigmas = []
+
+  for i in range(len(dep_props)):    
+    dep_props[i]['value'] = zero_values_from_list(dep_props[i]['value'], 1e-06)      
+    dep_sigmas[i]['value'] = zero_values_from_list(dep_sigmas[i]['value'], 1e-06)
+    aggr_props[i]['value'] = zero_values_from_list(aggr_props[i]['value'], 1e-06)
+    aggr_sigmas[i]['value'] = zero_values_from_list(aggr_sigmas[i]['value'], 1e-06)
+    
+    new_ch_depth.append(ch_depth[i]['value'])
+    new_ch_width.append(ch_width[i]['value'])
+    new_dep_height.append(dep_height[i]['value'])
+    new_dep_props.append(dep_props[i]['value'])
+    new_dep_sigmas.append(dep_sigmas[i]['value'])
+    new_aggr_props.append(aggr_props[i]['value'])
+    new_aggr_sigmas.append(aggr_sigmas[i]['value'])
+   
+  return new_ch_depth, new_ch_width, new_dep_height, new_dep_props, new_dep_sigmas, new_aggr_props, new_aggr_sigmas  
+
 # MAIN
 
 channels_file = open(CHANNELS_FILE, 'r')
@@ -258,7 +308,13 @@ channel = mp.Channel(channel_x, channel_y)
 basin = mp.Basin(basin_x, basin_z)
 
 ### EVENTS
+# Dennis: create a new events variable called honestSpecificEvents, which contains the true values of
+# channel depth, channel width, deposition height, layer deposition, gaussian deposition, layer aggradation
+# and gaussian aggradation in string format instead of the ones created by create_tabular_param which become
+# in format "interp1d"
 events = [] 
+honestSpecificEvents = []
+
 for evt in events_json:
   nit = evt.get('nit', DEFAULT_EVENT_NIT)
   saved_ts = evt.get('saved_ts', DEFAULT_EVENT_SAVED_TS)
@@ -284,7 +340,15 @@ for evt in events_json:
 
   # Separator
   sep_thicnkess = evt.get('sep_thickness', DEFAULT_EVENT_SEP_THICKNESS)
-  sep_type = evt.get('sep_type', DEFAULT_EVENT_SEP_TYPE)
+  sep_type = evt.get('sep_type', DEFAULT_EVENT_SEP_TYPE)  
+
+  old_ch_depth = ch_depth
+  old_ch_width = ch_width
+  old_dep_height = dep_height
+  old_dep_props = dep_props
+  old_dep_sigmas = dep_sigmas
+  old_aggr_props = aggr_props
+  old_aggr_sigmas = aggr_sigmas
 
   event = mp.ChannelEvent(
     nit = nit,
@@ -308,11 +372,21 @@ for evt in events_json:
   )
   events.append(event)
 
+  # Dennis
+  # Preprocessing in the strings to substitute the '1e-06' to zero
+  ch_depth, ch_width, dep_height, dep_props, dep_sigmas, aggr_props , aggr_sigmas =  preprocessSpecificEvents(old_ch_depth, old_ch_width, \
+                                                                                                              old_dep_height, old_dep_props, \
+                                                                                                              old_dep_sigmas, old_aggr_props, \
+                                                                                                              old_aggr_sigmas)  
+  
+  honestSpecificEvent = mp.ChannelSpecifics(ch_depth, ch_width, dep_height, dep_props, dep_sigmas, aggr_props, aggr_sigmas)
+  honestSpecificEvents.append(honestSpecificEvent)
+
 #for e in events:
   #print('e: ', e.mode)
 
 ### RUN
-belt = mp.ChannelBelt(channel, basin)
+belt = mp.ChannelBelt(channel, basin, honestSpecificEvents)
 eventModeList = [] # Dennis: create a list of event modes (strings) to be incorpored into the title
 for i, event in enumerate(events):
   print('Simulating event {} of {}'.format(i, len(events)))    
@@ -360,7 +434,7 @@ if show_sections:
     plt.savefig(filename + '.svg')
     cross_section_count = cross_section_count + 1
   
-  model.plot_simulation_parameters(title)
+  model.plot_table_simulation_parameters(title)
   filename_sim_parameters = path.join(temp_dir, 'sim_parameters')
   plt.savefig(filename_sim_parameters + '.pdf')
 

@@ -1138,7 +1138,7 @@ class ChannelBelt:
     Class for ChannelBelt objects.
     """
 
-    def __init__(self, channel, basin):
+    def __init__(self, channel, basin, honestSpecificEvents):
         """
         Initializes the ChannelBelt object. Times in years.
 
@@ -1150,6 +1150,7 @@ class ChannelBelt:
         self.basins = [basin.copy()]
         self.times = [0.0]
         self.events = []
+        self.honestSpecificEvents = honestSpecificEvents
 
     # 2 progress bars: meandering + modeling
     # essa parte é simulação 2D
@@ -1297,12 +1298,6 @@ class ChannelBelt:
         :param margin: margin informed as "Channel Padding" in the "Channel Configuration" interface
         :return: TODO
         """
-
-        #print('LEN: ', len(self.events))
-        #print('MODE: ', self.events[0].mode)
-        #print('DEP PROPS: ', self.events[0].dep_props)
-        #print('MODE: ', self.events[1].mode)
-        #print('DEP PROPS: ', self.events[1].dep_props)
 
         xmax, xmin, ymax, ymin = [], [], [], []
         for channel in self.channels: # um canal para cada snapshot. Cada passo gera 4 malhas
@@ -1565,14 +1560,27 @@ class ChannelBelt:
                 topo[:,:,i*L + 8] = surface
             '''
             
-        return ChannelBelt3D(topo, xmin, ymin, dx, dx, self.events, separator_type) # Dennis: added separator_type
+        return ChannelBelt3D(topo, xmin, ymin, dx, dx, self.events, self.honestSpecificEvents, separator_type) # Dennis: added separator_type
+
+# Dennis
+class ChannelSpecifics():
+    ''
+
+    def __init__(self, ch_depth, ch_width, dep_height, dep_props, dep_sigmas, aggr_props, aggr_sigmas):
+        self.ch_depth = ch_depth
+        self.ch_width = ch_width
+        self.dep_height = dep_height
+        self.dep_props = dep_props
+        self.dep_sigmas = dep_sigmas
+        self.aggr_props = aggr_props
+        self.aggr_sigmas = aggr_sigmas
 
 class ChannelBelt3D():
     """
     Class for 3D models of channel belts. (Sylvester)
     """
 
-    def __init__(self, topo, xmin, ymin, dx, dy, events, separator_type): # Added the events parameter by dennis
+    def __init__(self, topo, xmin, ymin, dx, dy, events, honestSpecificEvents, separator_type): # Added the events parameter by dennis
         """
         Initializes the ChannelBelt3D object.
 
@@ -1587,7 +1595,7 @@ class ChannelBelt3D():
         #self.raw_plot_xsection(0.1, topo)
         #print('Entering topostrat from ChannelBelt3D INIT')
         #print('self.topo[:,:,-1]: (before topostrat) ', topo[:,:,-1])
-        self.strat = topostrat(topo)      
+        self.strat = topostrat(topo)
         #self.raw_plot_xsection(0.1, self.strat)
         self.topo = topo
         #self.raw_plot_xsection(0.1, self.topo)
@@ -1615,6 +1623,8 @@ class ChannelBelt3D():
         self.dy = dy
 
         self.events = events # Added the events parameter by dennis
+        self.honestSpecificEvents = honestSpecificEvents # Dennis
+        
         self.separator_type = separator_type # Added the separator_type parameter by dennis
 
     def raw_plot_xsection(self, xsec, matrix):
@@ -1636,7 +1646,9 @@ class ChannelBelt3D():
 
     # Dennis: Added a new caption text containing the main information regarding the events
     # Added new parameters' information in a separate pdf file (table)
-    def plot_simulation_parameters(self, title = ''):        
+    def plot_table_simulation_parameters(self, title = ''):
+        TABLE_FONT_SIZE = 2
+
         fig = plt.figure(figsize=(20,6)) # Dennis: changed from (20,5) to (20,6) to increase the title height # TODO
         
         # datetime object containing current date and time
@@ -1649,19 +1661,26 @@ class ChannelBelt3D():
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
         plt.box(on=None)
-        column_texts = ('Event type', 'Number of layers', 'Save simulation state every X iterations', 'Time of each iteration (years)', \
-                        'Aggradation/incision modulation (m/years)', 'Meandering modulation (m/years)')
+        column_texts = ('Event type', 'Num. of layers', 'Iter. saving simul.', 'Time of each iter. (years)', \
+                        'Agg./Inc. modul. (m/years)', 'Meandering modul. (m/years)', 'Channel depth (m)', 'Channel width (m)', \
+                        'Deposition. height (m)', 'Layer deposition (%)', 'Gaussian deposition (%)', 'Layer aggradation (%)', \
+                        'Gaussian aggradation (%)', 'Sep. thick. (m)')
         row_texts = []
         cell_texts = []
         eventCount = 1
-        for e in self.events:
+        for e, h in zip(self.events, self.honestSpecificEvents):
             row_texts.append('Event ' + str(eventCount))
 
             if e.mode == 'SEPARATOR':
-                cell_texts.append((e.sep_type,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl))
+                line = [e.sep_type]
+                #cell_texts.append((e.sep_type,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,'x'))
             else:
-                cell_texts.append((e.mode,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl))
-            eventCount += 1    
+                line = [e.mode]
+                #cell_texts.append((e.mode,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,'x'))
+
+            line += [e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,h.ch_depth,h.ch_width,h.dep_height,h.dep_props,h.dep_sigmas,h.aggr_props,h.aggr_sigmas]            
+            cell_texts.append(line)
+            eventCount += 1 
 
         table = plt.table(cellText=cell_texts,
                     cellLoc='center',
@@ -1670,6 +1689,9 @@ class ChannelBelt3D():
                     rowLabels=row_texts,                      
                     colLabels=column_texts,
                     loc='upper center')
+        
+        table.set_fontsize(TABLE_FONT_SIZE)
+        table.auto_set_column_width(col=list(range(len(column_texts))))
 
         return fig
 
@@ -1719,8 +1741,8 @@ class ChannelBelt3D():
                 max_num_layers = e.number_layers
 
         # gera as legendas para o Matplotlib
-        # Added by Dennis: create the labels according to the number of layers in the events  
-        # TODO: criar legenda para cada uma das cores, dependendo dos separadores que foram usados     
+        # Added by Dennis: create the labels according to the number of layers in the events
+        # TODO: criar legenda para cada uma das cores, dependendo dos separadores que foram usados
         if max_num_layers == 7:
             legend_elements = [
                 Line2D([0], [0], color=silt_color, lw=LINE_WIDTH, label='Silt'),
@@ -1797,7 +1819,7 @@ class ChannelBelt3D():
             legend_elements.append(Line2D([0], [0], color=substract_color, lw=LINE_WIDTH, label='Substract'))
         
         # atualizar: Y1...Y7
-        # sz: numero total de camadas        
+        # sz: numero total de camadas
         for i in range(0, sz, NUMBER_OF_LAYERS_PER_EVENT):
             Y1 = np.concatenate((strat[:,xindex,i],   strat[::-1,xindex,i+1])) 
             Y2 = np.concatenate((strat[:,xindex,i+1], strat[::-1,xindex,i+2]))
