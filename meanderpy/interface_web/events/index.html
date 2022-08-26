@@ -56,22 +56,44 @@
         background-color: #ddd;
     }
 
-    /* Tooltip text */
+    /* Added to support a help button with hover */
+
+    .tooltip {
+        position: relative;
+        display: inline-block;  
+    }
+
     .tooltip .tooltiptext {
         visibility: hidden;
         width: 120px;
-        background-color: black;
+        background-color: #555;
         color: #fff;
         text-align: center;
-        padding: 5px 0;
         border-radius: 6px;
+        padding: 5px 0;
         position: absolute;
         z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -60px;
+        opacity: 0;
+        transition: opacity 0.3s;
     }
 
-    /* Show the tooltip text when you mouse over the tooltip container */
+    .tooltip .tooltiptext::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #555 transparent transparent transparent;
+    }
+
     .tooltip:hover .tooltiptext {
         visibility: visible;
+        opacity: 1;
     }
 
     input[type='number'] {
@@ -109,7 +131,8 @@
 
 <head>
     <title>Channel Events</title>
-    <script src="https://code.jquery.com/jquery-3.5.0.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.0.js"></script>    
+    <script src="https://kit.fontawesome.com/e6a5392faa.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -179,19 +202,36 @@
         <div class="column2">
             <div class="specifics_properties">
                 <h2>Event Specifics</h2>
-                <label for="ch_depth"><b>Channel depth (m):</b></label> <br />
+                <label for="ch_depth"><b>Channel depth (m):</b>
+                    <div class="tooltip">
+                        <i class="fa-regular fa-circle-question"></i>
+                        </i><span class="tooltiptext">Tooltip text</span>
+                    </div>
+                </label> <br />
                 <div id="div_ch_depth">
                     <label for="ch_depth_slope">Slopes: -5º; -4º; -3º; -2º; -1º; 0º</label> &nbsp;
                     <label for="ch_depth_value">Values:</label>
                     <input type="text" id="ch_depth_value"  />
                 </div> <br /> <br />
-                <label for="ch_width"><b>Channel width (m):</b></label> <br />
+
+                <label for="ch_width"><b>Channel width (m):</b>
+                    <div class="tooltip">
+                        <i class="fa-regular fa-circle-question"></i>
+                        </i><span class="tooltiptext">Tooltip text</span>
+                    </div>
+                </label> <br />
                 <div id="div_ch_width">
                     <label for="ch_width_slope">Slopes: -5º; -4º; -3º; -2º; -1º; 0º</label> &nbsp;
                     <label for="ch_width_value">Values:</label>
                     <input type="text" id="ch_width_value"  />
                 </div> <br /> <br />
-                <label for="dep_height"><b>Deposition height (m):</b></label> <br />
+
+                <label for="dep_height"><b>Deposition height (m):</b>
+                    <div class="tooltip">
+                        <i class="fa-regular fa-circle-question"></i>
+                        </i><span class="tooltiptext">Tooltip text</span>
+                    </div>
+                </label> <br />
                 <div id="div_dep_height">
                     <label for="dep_height_slope">Slopes: -5º; -4º; -3º; -2º; -1º; 0º</label> &nbsp;
                     <label for="dep_height_value">Values:</label>
@@ -208,7 +248,12 @@
                 <label for="number_layers">7 (G, VCS, CS, MS, FS, VFS, M)</label> <br /> <br />
 
                 <div class="aggr_properties">
-                    <label for="aggr_props"><b>Aggradation per layer (%):</b></label> <br />
+                    <label for="aggr_props"><b>Aggradation per layer (%):</b>
+                        <div class="tooltip">
+                            <i class="fa-regular fa-circle-question"></i>
+                            </i><span class="tooltiptext">Tooltip text</span>
+                        </div>
+                    </label> <br />
                     <div class="number_layers_info"></div> <br />
                     <div id="div_aggr_props">
                         <label for="aggr_props_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
@@ -238,7 +283,12 @@
                             placeholder="E.g. 33.3; 33.3; 33.3" /><br />
                     </div> <br /> <br />
 
-                    <label for="aggr_sigmas"><b>Gaussian standard deviation of aggradation per layer (%):</b></label> <br />
+                    <label for="aggr_sigmas"><b>Gaussian standard deviation of aggradation per layer (%):</b>
+                        <div class="tooltip">
+                            <i class="fa-regular fa-circle-question"></i>
+                            </i><span class="tooltiptext">Tooltip text</span>
+                        </div>
+                    </label> <br />
                     <div class="number_layers_info"></div> <br />
                     <div id="div_aggr_sigmas">
                         <label for="aggr_sigmas_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
@@ -267,7 +317,12 @@
         </div>        
         <div class="column3">            
             <div class="specifics_properties">
-                <label for="dep_props"><b>Layer deposition (%):</b></label> <br />
+                <label for="dep_props"><b>Layer deposition (%):</b>
+                    <div class="tooltip">
+                        <i class="fa-regular fa-circle-question"></i>
+                        </i><span class="tooltiptext">Tooltip text</span>
+                    </div>
+                </label> <br />
                 <div class="number_layers_info"></div><br />
                     <div id="div_dep_props">
                         <label for="dep_props_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
@@ -290,7 +345,12 @@
                         <input type="text" id="dep_props_values5" placeholder="E.g. 30; 50; 20" /><br />
                     </div> <br /> <br />
 
-                    <label for="dep_sigmas"><b>Gaussian standard deviation of deposition per layer (%):</b></label> <br />
+                    <label for="dep_sigmas"><b>Gaussian standard deviation of deposition per layer (%):</b>
+                        <div class="tooltip">
+                            <i class="fa-regular fa-circle-question"></i>
+                            </i><span class="tooltiptext">Tooltip text</span>
+                        </div>
+                    </label> <br />
                     <div class="number_layers_info"></div> <br />
                     <div id="div_dep_sigmas">
                         <label for="dep_sigmas_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
