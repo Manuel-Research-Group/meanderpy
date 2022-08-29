@@ -1355,13 +1355,6 @@ class ChannelBelt:
             dh_map = event.dep_height(sl_map)
             cd_map = event.ch_depth(sl_map)
 
-            '''
-            if (event.mode != 'SEPARATOR'):            
-                channel_surface = erosional_surface(cld_map, cz_map, hw_map, cd_map)
-            else:
-                channel_surface = surface
-            '''
-
             if (event.mode != 'SEPARATOR' or firstEventIsSeparator):            
                 channel_surface = erosional_surface(cld_map, cz_map, hw_map, cd_map) # parte do cut
             else:
@@ -1389,30 +1382,12 @@ class ChannelBelt:
             # si_p: silt proportions. si_s: silt sigma.  
             # sep_p: separator proportions. sep_s: separator sigma.
 
-            print('event mode:', event.mode)
-            #print('event dep props:', event.dep_props(sl_map))
-            #print('event dep props (len):', len(event.dep_props(sl_map)))
+            print('event mode:', event.mode)            
             print('----------')
             
             gr_p, vcsa_p, csa_p, sa_p, fsa_p, vfsa_p, si_p, sep_p = event.dep_props(sl_map)
             gr_s, vcsa_s, csa_s, sa_s, fsa_s, vfsa_s, si_s, sep_s = event.dep_sigmas(sl_map)
-            t_p = gr_p + vcsa_p + csa_p + sa_p + fsa_p + vfsa_p + si_p + sep_p
-
-            #print('gr_p: ', gr_p)
-            #print('vcsa_p: ', vcsa_p)
-            #print('csa_p: ', csa_p)
-            #print('sa_p: ', sa_p)
-            #print('fsa_p: ', fsa_p)
-            #print('vfsa_p: ', vfsa_p)
-            #print('si_p: ', si_p)
-            #print('sep_p: ', sep_p)
-            #print('t_p: ', t_p)
-            
-            # t_p equals zero in case of a SEPARATOR event - NEED TO CHECK HERE
-            #if ((type(t_p) == np.ndarray and t_p.all() == 0) or (type(t_p) == int and t_p == 0)):
-            #    t_p = 1
-
-            #print('event.sep_thickness = ', event.sep_thickness)            
+            t_p = gr_p + vcsa_p + csa_p + sa_p + fsa_p + vfsa_p + si_p + sep_p                        
 
             gravel_surface = (gr_p / t_p) * dh_map * gaussian_surface(gr_s, cld_map, hw_map)
             very_coarse_sand_surface = (vcsa_p / t_p) * dh_map * gaussian_surface(vcsa_s, cld_map, hw_map)
@@ -1420,63 +1395,30 @@ class ChannelBelt:
             sand_surface = (sa_p / t_p) * dh_map * gaussian_surface(sa_s, cld_map, hw_map)
             fine_sand_surface = (fsa_p / t_p) * dh_map * gaussian_surface(fsa_s, cld_map, hw_map)
             very_fine_sand_surface = (vfsa_p / t_p) * dh_map * gaussian_surface(vfsa_s, cld_map, hw_map)
-            silt_surface = (si_p / t_p) * dh_map * gaussian_surface(si_s, cld_map, hw_map)
-            #separator_surface = (sep_p / t_p) * dh_map * event.sep_thickness # the separator height is also affected by deposition height
-            separator_surface = (sep_p / t_p) * 1 * event.sep_thickness
-            
-            '''
-            gravel_surface = (gr_p / t_p) * dh_map * gaussian_surface(gr_s, cld_map, hw_map)
-            very_coarse_sand_surface = (vcsa_p / t_p) * dh_map * gaussian_surface(vcsa_s, cld_map, hw_map)
-            coarse_sand_surface = (csa_p / t_p) * dh_map * gaussian_surface(csa_s, cld_map, hw_map)
-            sand_surface = (sa_p / t_p) * dh_map * gaussian_surface(sa_s, cld_map, hw_map)
-            fine_sand_surface = (fsa_p / t_p) * dh_map * gaussian_surface(fsa_s, cld_map, hw_map)
-            very_fine_sand_surface = (vfsa_p / t_p) * dh_map * gaussian_surface(vfsa_s, cld_map, hw_map)
-            silt_surface = (si_p / t_p) * dh_map * gaussian_surface(si_s, cld_map, hw_map)
-            separator_surface = (sep_p / t_p) * dh_map * event.sep_thickness
-            '''
+            silt_surface = (si_p / t_p) * dh_map * gaussian_surface(si_s, cld_map, hw_map)            
+            separator_surface = (sep_p / t_p) * 1 * event.sep_thickness            
 
-            # reusing deposition variables for aggradation purposes           
-            # TODO: find problem here with respect to aggradation
-            '''
+            # Reusing deposition variables for aggradation purposes                       
+            # AGGRADATION
             gr_p, vcsa_p, csa_p, sa_p, fsa_p, vfsa_p, si_p, sep_p = event.aggr_props(sl_map)
             gr_s, vcsa_s, csa_s, sa_s, fsa_s, vfsa_s, si_s, sep_s = event.aggr_sigmas(sl_map)
-            t_p = gr_p + vcsa_p + csa_p + sa_p + fsa_p + vfsa_p + si_p + sep_p
-            gravel_surface += (gr_p / t_p) * aggr_map * gaussian_surface(gr_s, cld_map, hw_map)  # MANUEL
+            t_p = gr_p + vcsa_p + csa_p + sa_p + fsa_p + vfsa_p + si_p + sep_p            
+            
+            gravel_surface += (gr_p / t_p) * aggr_map * gaussian_surface(gr_s, cld_map, hw_map)  # MANUEL            
             very_coarse_sand_surface   += (vcsa_p / t_p) * aggr_map * gaussian_surface(vcsa_s, cld_map, hw_map)    # MANUEL
             coarse_sand_surface   += (csa_p / t_p) * aggr_map * gaussian_surface(csa_s, cld_map, hw_map)    # MANUEL
             sand_surface   += (sa_p / t_p) * aggr_map * gaussian_surface(sa_s, cld_map, hw_map)    # MANUEL
             fine_sand_surface   += (fsa_p / t_p) * aggr_map * gaussian_surface(fsa_s, cld_map, hw_map)    # MANUEL
             very_fine_sand_surface   += (vfsa_p / t_p) * aggr_map * gaussian_surface(vfsa_s, cld_map, hw_map)    # MANUEL
-            silt_surface   += (si_p / t_p) * aggr_map * gaussian_surface(si_s, cld_map, hw_map) # MANUEL
-            '''            
+            silt_surface   += (si_p / t_p) * aggr_map * gaussian_surface(si_s, cld_map, hw_map) # MANUEL                        
+            separator_surface += (sep_p / t_p) * 1 * event.sep_thickness # MANUEL
             
             # MANUEL: modulate the aggradation mapps in the case of gravel and sand by Gaussians with standard 
             #         deviations defined experimentally to avoid gravel and sand moving up walls of the channel.
             #         This actually works as a way of implementing a smooth cutoff for these material depositions.
             #         The function gaussian_surface defines a Gaussian inside the channel, thus returning zero
             #         only at the channels boarders. To force a quicker fall off (although only reaching zero at the channel's
-            #         boarder) we used these experimentally defined standard deviations when accumulating the results of aggradation. 
-            #    
-            # DENNIS: corrected the value of t_p to avoid division by zero. t_p can be either an array or an integer           
-
-            #if isinstance(t_p, int) == True and t_p == 0: # check here (if isinstance is removed it does not work)
-            #    t_p = 0.001
-
-            '''
-            STD_FOR_GRAVEL_FALL_OFF = 0.1   # EXPERIMENTALLY_DEFINED_STD_FOR_GRAVEL_FALL_OFF
-            STD_FOR_SAND_FALL_OFF   = 0.6   # EXPERIMENTALLY_DEFINED_STD_FOR_SAND_FALL_OFF
-            STD_FOR_SILT_FALL_OFF   = 0.6   # EXPERIMENTALLY_DEFINED_STD_FOR_SILT_FALL_OFF
-            # The next block produces an ERROR when 0 is passed to sigma.            
-            gravel_surface += (gr_p / t_p) * aggr_map * gaussian_surface(STD_FOR_GRAVEL_FALL_OFF, cld_map, hw_map)  # MANUEL
-            very_coarse_sand_surface   += (vcsa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
-            coarse_sand_surface   += (csa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
-            sand_surface   += (sa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
-            fine_sand_surface   += (fsa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
-            very_fine_sand_surface   += (vfsa_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SAND_FALL_OFF, cld_map, hw_map)    # MANUEL
-            silt_surface   += (si_p / t_p) * aggr_map * gaussian_surface(STD_FOR_SILT_FALL_OFF, cld_map, hw_map) # MANUEL # CHECK WHETHER SILT NEEDS TO BE MODULATED BY A GAUSSIAN
-            #separator_surface   += (sep_p / t_p) * event.sep_thickness
-            '''    
-            
+            #         boarder) we used these experimentally defined standard deviations when accumulating the results of aggradation.             
              
             # ADDED by MANUEL to smooth the aggradation maps due to their low resolutions
             gravel_surface = scipy.ndimage.gaussian_filter(gravel_surface, sigma = 10 / dx)
@@ -1486,12 +1428,6 @@ class ChannelBelt:
             fine_sand_surface   = scipy.ndimage.gaussian_filter(fine_sand_surface, sigma = 10 / dx)
             very_fine_sand_surface   = scipy.ndimage.gaussian_filter(very_fine_sand_surface, sigma = 10 / dx)
             silt_surface   = scipy.ndimage.gaussian_filter(silt_surface, sigma = 10 / dx)                              
-
-            '''
-            gravel_surface += (gr_p / t_p) * aggr_map
-            sand_surface += (sa_p / t_p) * aggr_map
-            silt_surface += (si_p / t_p) * aggr_map
-            '''
 
             # CUTTING CHANNEL
             surface = scipy.ndimage.gaussian_filter(np.minimum(surface, channel_surface), sigma = 10 / dx)
@@ -1529,36 +1465,6 @@ class ChannelBelt:
                     raise Exception("Separator type undefined.")
 
                 separator_type[i*L + 8] = sep_type_number
-
-
-            '''
-            if (event.mode != 'INCISION'):
-                surface += gravel_surface
-                topo[:,:,i*L + 1] = surface
-                surface += very_coarse_sand_surface
-                topo[:,:,i*L + 2] = surface
-                surface += coarse_sand_surface
-                topo[:,:,i*L + 3] = surface
-                surface += sand_surface
-                topo[:,:,i*L + 4] = surface
-                surface += fine_sand_surface
-                topo[:,:,i*L + 5] = surface
-                surface += very_fine_sand_surface
-                topo[:,:,i*L + 6] = surface
-                surface += silt_surface
-                topo[:,:,i*L + 7] = surface            
-                surface += separator_surface
-                topo[:,:,i*L + 8] = surface
-            else:
-                topo[:,:,i*L + 1] = surface
-                topo[:,:,i*L + 2] = surface
-                topo[:,:,i*L + 3] = surface
-                topo[:,:,i*L + 4] = surface
-                topo[:,:,i*L + 5] = surface
-                topo[:,:,i*L + 6] = surface
-                topo[:,:,i*L + 7] = surface
-                topo[:,:,i*L + 8] = surface
-            '''
             
         return ChannelBelt3D(topo, xmin, ymin, dx, dx, self.events, self.honestSpecificEvents, separator_type) # Dennis: added separator_type
 
@@ -1602,22 +1508,13 @@ class ChannelBelt3D():
 
         self.xmin = xmin
         self.ymin = ymin        
-
-        zmin, zmax = np.amin(self.strat[:,:,0]), np.amax(self.strat[:,:,-1])
-
-        #print('self.strat[:,:,0]: ', self.strat[:,:,0])
-        #print('self.topo[:,:,0]: (after topostrat)', self.topo[:,:,0])
-
-        #print('zmin (1): ', zmin)
-        #print('zmax (1): ', zmax)
+        
+        zmin, zmax = np.amin(self.strat[:,:,0]), np.amax(self.strat[:,:,-1])        
 
         dz = zmax - zmin
         
         self.zmin = zmin - dz * 0.1
-        self.zmax = zmax + dz * 0.1   
-
-        #print('self.zmin INIT: ', self.zmin)
-        #print('self.zmax INIT: ', self.zmax)
+        self.zmax = zmax + dz * 0.1           
     
         self.dx = dx
         self.dy = dy
@@ -1852,8 +1749,8 @@ class ChannelBelt3D():
         print('self.ymax: ', self.ymin + sy * self.dy)
         ax1.set_xlim(-500, 500)
         '''
-
-        ax1.set_ylim(self.zmin, self.zmax)
+        
+        ax1.set_ylim(self.zmin, self.zmax)        
         ax1.set_xlabel('Width (m)')
         ax1.set_ylabel('Elevation (m)')
         
