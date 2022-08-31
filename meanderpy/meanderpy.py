@@ -1311,6 +1311,8 @@ class ChannelBelt:
         ymax = max(ymax)
         ymin = min(ymin)
 
+        print('xmax, xmin, ymax, ymin, margin: ', xmax, xmin, ymax, ymin, margin)
+
         # cria mapas
         mapper = ChannelMapper(xmin + margin, xmax - margin, ymin - margin, ymax + margin, dx, dx)
 
@@ -1624,9 +1626,10 @@ class ChannelBelt3D():
         #print('strat[-1]: ', strat[:,:,-1])
         #print('strat[-2]: ', strat[:,:,-2])
         #print('strat[-3]: ', strat[:,:,-3])
-        #print('strat[-4]: ', strat[:,:,-4])
+        #print('strat[-4]: ', strat[:,:,-4])        
 
         sy, sx, sz = np.shape(strat)
+        
         if title != '': 
             title += '\n'
         
@@ -1744,6 +1747,7 @@ class ChannelBelt3D():
         
         # Still need to debug this... aparently ymin has no relation with the width from the interface
         ax1.set_xlim(self.ymin, self.ymin + sy * self.dy) # TODO Dennis: check here the x limits
+        #ax1.set_xlim(-500, 500)
         '''
         print('self.ymin: ', self.ymin)
         print('self.ymax: ', self.ymin + sy * self.dy)
