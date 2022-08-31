@@ -244,11 +244,7 @@ def zero_values_from_list(the_list, val):
   
   round_values_from_list(the_list)
 
-  return the_list
-
-
-
-  
+  return the_list  
 
 # Dennis
 def preprocessSpecificEvents(ch_depth, ch_width, dep_height, dep_props, dep_sigmas, aggr_props, aggr_sigmas):

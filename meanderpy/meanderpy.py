@@ -1309,9 +1309,7 @@ class ChannelBelt:
         xmax = max(xmax)
         xmin = min(xmin)
         ymax = max(ymax)
-        ymin = min(ymin)
-
-        print('xmax, xmin, ymax, ymin, margin: ', xmax, xmin, ymax, ymin, margin)
+        ymin = min(ymin)        
 
         # cria mapas
         mapper = ChannelMapper(xmin + margin, xmax - margin, ymin - margin, ymax + margin, dx, dx)
@@ -1570,16 +1568,21 @@ class ChannelBelt3D():
         for e, h in zip(self.events, self.honestSpecificEvents):
             row_texts.append('Event ' + str(eventCount))
 
+            # First element of the list
             if e.mode == 'SEPARATOR':
-                line = [e.sep_type]
+                line = [e.sep_type, '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', e.sep_thickness]
                 #cell_texts.append((e.sep_type,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,'x'))
-            else:
-                line = [e.mode]
+            elif e.mode == 'INCISION':
+                line = [e.mode,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,h.ch_depth,h.ch_width,h.dep_height,h.dep_props,h.dep_sigmas,'-','-','-']
                 #cell_texts.append((e.mode,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,'x'))
+            elif e.mode == 'AGGRADATION':
+                line = [e.mode,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,h.ch_depth,h.ch_width,h.dep_height,h.dep_props,h.dep_sigmas,h.aggr_props,h.aggr_sigmas, e.sep_thickness]
 
-            line += [e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,h.ch_depth,h.ch_width,h.dep_height,h.dep_props,h.dep_sigmas,h.aggr_props,h.aggr_sigmas]            
+
+            # Remaining elements of the list
+            #line += [e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,h.ch_depth,h.ch_width,h.dep_height,h.dep_props,h.dep_sigmas,h.aggr_props,h.aggr_sigmas, e.sep_thickness]            
             cell_texts.append(line)
-            eventCount += 1 
+            eventCount += 1
 
         table = plt.table(cellText=cell_texts,
                     cellLoc='center',
