@@ -3,7 +3,7 @@ from cmath import nan
 from zipfile import ZipFile
 import tempfile
 from os import path, walk
-from shutil import copyfile
+from shutil import copyfile, rmtree
 import trimesh
 import bisect
 import numpy as np
@@ -251,13 +251,6 @@ class Basin:
         K = kv * density * 9.81 * dt
         self.z += K *(slope - aggr_factor*np.mean(slope)) # Sylvester's Method
         #self.z += K *(slope - aggr_factor*np.min(slope)) # NEW METHOD
-
-        #print('-----------------')        
-        #print('aggr_factor: ', aggr_factor)
-        #print('mean(slope): ', np.mean(slope))
-        #print('slope: ', slope)
-        #print('self.z: ', self.z)
-        #print('-----------------')
         #self.z += -K* slope # BEUREN'S SUGGESTION
         #self.z += -K* (slope + aggr_factor*np.mean(slope)) # NEW EXPERIMENTAL METHOD
 
@@ -430,8 +423,7 @@ class Channel:
         :param ds: TODO  
         :return: TODO              
         """
-
-        #print('inside cut_cutoffs')   
+        
         cuts = []   
         
         diag_blank_width = int((crdist+20*ds)/ds)
@@ -778,11 +770,11 @@ def topostrat(topo, N = None):
 
     T = N if N is not None else ts # added to solve the incision problem    
 
-    strat = np.copy(topo)    
-    #print('(D) topo: ', topo[:,:,-2])    
+    strat = np.copy(topo)     
+
     for i in (range(0,T)): # the layer 0 is the bottom one
         strat[:,:,i] = np.amin(topo[:,:,i:], axis=2)        
-    #print('(E) strat: ', strat)
+    
     return strat # matriz com todos os pontos (armazenado valor do z mínimo)
 
 def plot2D(x, y, title, ylabel, fileName, save=True):
@@ -1196,14 +1188,14 @@ class ChannelBelt:
             channel.refit(basin, event.ch_width, event.ch_depth) # avaliação da elevação (z) do canal a cada ponto com base na bacia              
             
             if event.mode == 'INCISION':
-                print('INCISION!!!')
+                #print('INCISION!')
                 basin.incise(event.dens, event.kv / YEAR, event.dt * YEAR)
             if event.mode == 'AGGRADATION':
-                print('AGGRADATION!!!')
+                #print('AGGRADATION!')
                 basin.aggradate(event.dens, event.kv / YEAR, event.dt * YEAR, event.aggr_factor)
             # TODO Dennis: SEPARATE must be included as a function from basin            
-            if event.mode == 'SEPARATOR':
-                print('SIMULATE/SEPARATOR')    
+            #if event.mode == 'SEPARATOR':
+                #print('SIMULATE/SEPARATOR!')    
 
             # número de canais = time stamp
             # Save if it is not the first event or if it is the first event we avoid saving the first saved_ts layers because
@@ -1382,8 +1374,8 @@ class ChannelBelt:
             # si_p: silt proportions. si_s: silt sigma.  
             # sep_p: separator proportions. sep_s: separator sigma.
 
-            print('event mode:', event.mode)            
-            print('----------')
+            #print('event mode:', event.mode)            
+            #print('----------')
             
             gr_p, vcsa_p, csa_p, sa_p, fsa_p, vfsa_p, si_p, sep_p = event.dep_props(sl_map)
             gr_s, vcsa_s, csa_s, sa_s, fsa_s, vfsa_s, si_s, sep_s = event.dep_sigmas(sl_map)
@@ -1498,9 +1490,7 @@ class ChannelBelt3D():
         :return: TODO
         """
 
-        #self.raw_plot_xsection(0.1, topo)
-        #print('Entering topostrat from ChannelBelt3D INIT')
-        #print('self.topo[:,:,-1]: (before topostrat) ', topo[:,:,-1])
+        #self.raw_plot_xsection(0.1, topo)        
         self.strat = topostrat(topo)
         #self.raw_plot_xsection(0.1, self.strat)
         self.topo = topo
@@ -1576,8 +1566,7 @@ class ChannelBelt3D():
                 line = [e.mode,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,h.ch_depth,h.ch_width,h.dep_height,h.dep_props,h.dep_sigmas,'-','-','-']
                 #cell_texts.append((e.mode,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,'x'))
             elif e.mode == 'AGGRADATION':
-                line = [e.mode,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,h.ch_depth,h.ch_width,h.dep_height,h.dep_props,h.dep_sigmas,h.aggr_props,h.aggr_sigmas, e.sep_thickness]
-
+                line = [e.mode,e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,h.ch_depth,h.ch_width,h.dep_height,h.dep_props,h.dep_sigmas,h.aggr_props,h.aggr_sigmas, '-']
 
             # Remaining elements of the list
             #line += [e.number_layers,e.saved_ts,e.dt,e.kv,e.kl,h.ch_depth,h.ch_width,h.dep_height,h.dep_props,h.dep_sigmas,h.aggr_props,h.aggr_sigmas, e.sep_thickness]            
@@ -1625,11 +1614,6 @@ class ChannelBelt3D():
         # DENNIS: modificado aqui
         #strat = self.topo
         strat = self.strat # aqui apenas strat final
-
-        #print('strat[-1]: ', strat[:,:,-1])
-        #print('strat[-2]: ', strat[:,:,-2])
-        #print('strat[-3]: ', strat[:,:,-3])
-        #print('strat[-4]: ', strat[:,:,-4])        
 
         sy, sx, sz = np.shape(strat)
         
@@ -1751,11 +1735,6 @@ class ChannelBelt3D():
         # Still need to debug this... aparently ymin has no relation with the width from the interface
         ax1.set_xlim(self.ymin, self.ymin + sy * self.dy) # TODO Dennis: check here the x limits
         #ax1.set_xlim(-500, 500)
-        '''
-        print('self.ymin: ', self.ymin)
-        print('self.ymax: ', self.ymin + sy * self.dy)
-        ax1.set_xlim(-500, 500)
-        '''
         
         ax1.set_ylim(self.zmin, self.zmax)        
         ax1.set_xlabel('Width (m)')
@@ -1971,9 +1950,11 @@ class ChannelBelt3D():
         grid.points = np.vstack((top, bottom))
         grid.dimensions = [*grid.dimensions[0:2], 2]
         plotter = pv.Plotter()
-        plotter.add_mesh(grid)#, scalars="colors", rgb=True) # add to scene                
-        plotter.export_obj(filename) # export two independent meshes: top and bottom            
-        data = trimesh.load(filename + '.obj', force='mesh') # load two triangle meshes: top and bottom                
+        plotter.add_mesh(grid)#, scalars="colors", rgb=True) # add to scene           
+        
+        plotter.export_obj(filename + '.obj') # export two independent meshes: top and bottom
+        data = trimesh.load(filename + '.obj', force='mesh') # load two triangle meshes: top and bottom
+
         vertices = data.vertices
         faces = np.ones((data.faces.shape[0], data.faces.shape[1]+1)) * data.faces.shape[1]                
         faces[:,1:] = data.faces
@@ -2090,7 +2071,7 @@ class ChannelBelt3D():
         for event_top_layer in range(0, sz, NUMBER_OF_LAYERS_PER_EVENT):
             update_progress(event_top_layer/sz)            
             #filename = 'model{}'.format(int(i/3) + 1) # local folder
-            filename = path.join(dir, '{}'.format((int)(event_top_layer/NUMBER_OF_LAYERS_PER_EVENT) + 1)) # temp folder, all models
+            filename = path.join(dir, '{}'.format((int)(event_top_layer/NUMBER_OF_LAYERS_PER_EVENT) + 1)) # temp folder, all models            
 
             #print('Entering topostrat from export_objs')
             strat = topostrat(self.topo, event_top_layer)
@@ -2103,7 +2084,7 @@ class ChannelBelt3D():
 
             # Export one mesh
             self.export_top_layer(stratCp, strat_colors, event_top_layer, NUMBER_OF_LAYERS_PER_EVENT, grid, top, filename, plant_view, \
-                        reduction, colored_mesh=True)            
+                        reduction, colored_mesh=True)
 
             mesh_iterator = mesh_iterator + 1
 
@@ -2112,15 +2093,8 @@ class ChannelBelt3D():
         zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
         copyfile(zipfile, top_event_layers_zipname)
 
-        # Compact in a zip file all the ply files in filename folder
-        # Removed for now
-        '''
-        zipfile = path.join(dir, 'plant_views.zip')
-        zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.png')
-        copyfile(zipfile, 'plant_views.zip')
-        '''
-
-        # EXPORT ALL THE LAYERS OF THE FINAL MESH
+        rmtree(dir) # remove the temporary folder created to contain the mesh files before zipping
+        
         dir = tempfile.mkdtemp()
         mesh_iterator = 0
         for event_top_layer in range(sz-NUMBER_OF_LAYERS_PER_EVENT, sz):
@@ -2140,13 +2114,7 @@ class ChannelBelt3D():
 
             mesh_iterator = mesh_iterator + 1
         
-        # Compact in a zip file all the ply files in filename folder
-        # Removed for now
-        '''
-        zipfile = path.join(dir, 'final_layers.zip')
-        zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
-        copyfile(zipfile, 'final_layers.zip')
-        '''
+        rmtree(dir) # remove the temporary folder created to contain the mesh files before zipping        
 
     def export(self, ve = 3):
         """

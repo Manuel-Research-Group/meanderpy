@@ -8,7 +8,7 @@ import json
 import tempfile # DENNIS
 from os import path, walk #DENNIS
 from zipfile import ZipFile # DENNIS
-from shutil import copyfile # DENNIS
+from shutil import copyfile, rmtree # DENNIS
 import sys
 
 ### FILES
@@ -378,9 +378,6 @@ for evt in events_json:
   honestSpecificEvent = mp.ChannelSpecifics(ch_depth, ch_width, dep_height, dep_props, dep_sigmas, aggr_props, aggr_sigmas)
   honestSpecificEvents.append(honestSpecificEvent)
 
-#for e in events:
-  #print('e: ', e.mode)
-
 ### RUN
 belt = mp.ChannelBelt(channel, basin, honestSpecificEvents)
 eventModeList = [] # Dennis: create a list of event modes (strings) to be incorpored into the title
@@ -413,10 +410,10 @@ if len(cross_sections) > 0:
 # DENNIS: generate and organize the new matplotlib figures into a zip
 if show_sections:
   cross_section_count = 0
-  temp_dir = tempfile.mkdtemp()
+  dir = tempfile.mkdtemp()
   for xsec in cross_sections:
     #filename = path.join(temp_dir, '{}'.format((int)(cross_section_count)+1)) # temp folder, all models
-    filename = path.join(temp_dir, '{}'.format((int)(cross_section_count) + 1)) # temp folder, all models
+    filename = path.join(dir, '{}'.format((int)(cross_section_count) + 1)) # temp folder, all models
 
     print('- Cross-section @ {}'.format(xsec))
     model.plot_xsection(
@@ -430,13 +427,15 @@ if show_sections:
     plt.savefig(filename + '.svg')
     cross_section_count = cross_section_count + 1
   
+
+  
   model.plot_table_simulation_parameters(title)
-  filename_sim_parameters = path.join(temp_dir, 'sim_parameters')
+  filename_sim_parameters = path.join(dir, 'sim_parameters')
   plt.savefig(filename_sim_parameters + '.pdf')
 
   # Compact in a zip file all the PDF files in filename folder
-  zipfile = path.join(temp_dir, 'cross_sections_PDF.zip')
-  zipFilesInDir(temp_dir, zipfile, lambda fn: path.splitext(fn)[1] == '.pdf')
+  zipfile = path.join(dir, 'cross_sections_PDF.zip')
+  zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.pdf')
   copyfile(zipfile, 'cross_sections_PDF.zip')
 
   # Compact in a zip file all the SVG files in filename folder
@@ -447,6 +446,8 @@ if show_sections:
   zipFilesInDir(temp_dir, zipfile, lambda fn: path.splitext(fn)[1] == '.svg')
   copyfile(zipfile, 'cross_sections_SVG.zip')
   '''
+
+  rmtree(dir) # remove the temporary folder created to contain the cross section files before zipping
 
 if export:
   print('Exporting 3D model')

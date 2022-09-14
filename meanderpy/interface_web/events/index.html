@@ -189,29 +189,21 @@
                 <input type="text" id="kv" value=0.01 maxlength="6" size="4" />
                 <div class="tooltip">
                     <i class="fa-regular fa-circle-question"></i>
-                    </i><span class="tooltiptext">Tooltip text.</span>
+                    </i><span class="tooltiptext">Coefficient used to modulate aggregation/incision aggressiveness in the equilibrium profile.</span>
                 </div>
                 <br /><br />
                 <label for="kl">Meandering modulation (m/years): </label>
                 <div class="tooltip">
                     <i class="fa-regular fa-circle-question"></i>
-                    </i><span class="tooltiptext">Tooltip text.</span>
+                    </i><span class="tooltiptext">Coefficient used to modulate channel migration aggressiveness.</span>
                 </div>
                 <input type="number" id="kl" value=60 maxlength="6" />
             </div>
             <div class="separator_properties"> <br/>
                 <label for="sep_thickness">Separator thickness (m):</label>
-                <div class="tooltip">
-                    <i class="fa-regular fa-circle-question"></i>
-                    </i><span class="tooltiptext">Tooltip text.</span>
-                </div>
                 <input type="number" id="sep_thickness" value=1.0 maxlength="1" /><br /><br />         
                 <div class="set_type">
-                    <label for="sep_type">Separator Type:</label>
-                    <div class="tooltip">
-                        <i class="fa-regular fa-circle-question"></i>
-                        </i><span class="tooltiptext">Tooltip text.</span>
-                    </div>
+                    <label for="sep_type">Separator Type:</label>                    
                     <br /> &emsp; &emsp; &emsp;
                     <label for="sep_type">Basal surface</label>
                     <input type="radio" id="sep_type_basal" name="sep_type" value="BASAL_SURFACE" /> <br /> &emsp; &emsp; &emsp;
@@ -994,7 +986,7 @@
         }
 
         var number_layers_explanation = document.getElementById("number_layers_explanation");        
-        number_layers_explanation.innerHTML = "<label>" + "Number of layers (G: Gravel, MS: Medium Sand, M: Mud):" + "</label>";
+        number_layers_explanation.innerHTML = "<label>" + "<b>Number of layers:</b> <br>(G: Gravel, MS: Medium Sand, M: Mud):" + "</label>";
 
         // Fill the Layers' initial examples in the boxes according to the number of slopes
         for (let i = 0; i < NUMBER_OF_SLOPES; i++) {
@@ -1016,7 +1008,7 @@
         }
 
         var number_layers_explanation = document.getElementById("number_layers_explanation");        
-        number_layers_explanation.innerHTML = "<label>" + "Number of layers (G: Gravel, CS: C. Sand, MS: Medium Sand, FS: F. Sand, M: Mud):" + "</label>";
+        number_layers_explanation.innerHTML = "<label>" + "<b>Number of layers:</b> <br>(G: Gravel, CS: C. Sand, MS: Medium Sand, FS: F. Sand, M: Mud):" + "</label>";
 
         // Fill the Layers' initial examples in the boxes according to the number of slopes
         for (let i = 0; i < NUMBER_OF_SLOPES; i++) {
@@ -1038,7 +1030,7 @@
         }
 
         var number_layers_explanation = document.getElementById("number_layers_explanation");        
-        number_layers_explanation.innerHTML = "<label>" + "Number of layers (G: Gravel, VCS: Very C. Sand, CS: C. Sand, MS: Medium Sand, FS: F. Sand, VFS: Very F. Sand, M: Mud):" + "</label>";
+        number_layers_explanation.innerHTML = "<label>" + "<b>Number of layers:</b> <br>(G: Gravel, VCS: Very C. Sand, CS: C. Sand, MS: Medium Sand, FS: F. Sand, VFS: Very F. Sand, M: Mud):" + "</label>";
 
         // Fill the Layers' initial examples in the boxes according to the number of slopes
         for (let i = 0; i < NUMBER_OF_SLOPES; i++) {
