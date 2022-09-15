@@ -261,6 +261,13 @@ def preprocessSpecificEvents(ch_depth, ch_width, dep_height, dep_props, dep_sigm
     dep_sigmas[i]['value'] = zero_values_from_list(dep_sigmas[i]['value'], 1e-06)
     aggr_props[i]['value'] = zero_values_from_list(aggr_props[i]['value'], 1e-06)
     aggr_sigmas[i]['value'] = zero_values_from_list(aggr_sigmas[i]['value'], 1e-06)
+
+    # Remove the 0 values (which were placeholders) from the lists
+    #TODO
+    dep_props[i]['value'] = remove_values_from_list(dep_props[i]['value'], 0)
+    dep_sigmas[i]['value'] = remove_values_from_list(dep_sigmas[i]['value'], 0)
+    aggr_props[i]['value'] = remove_values_from_list(aggr_props[i]['value'], 0)
+    aggr_sigmas[i]['value'] = remove_values_from_list(aggr_sigmas[i]['value'], 0)
     
     new_ch_depth.append(ch_depth[i]['value'])
     new_ch_width.append(ch_width[i]['value'])
@@ -426,8 +433,6 @@ if show_sections:
     plt.savefig(filename + '.pdf')
     plt.savefig(filename + '.svg')
     cross_section_count = cross_section_count + 1
-  
-
   
   model.plot_table_simulation_parameters(title)
   filename_sim_parameters = path.join(dir, 'sim_parameters')
