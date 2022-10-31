@@ -192,12 +192,12 @@
                     </i><span class="tooltiptext">Coefficient used to modulate aggregation/incision aggressiveness in the equilibrium profile.</span>
                 </div>
                 <br /><br />
-                <label for="kl">Meandering modulation (m/years): </label>
+                <label for="kl">Meandering modulation (m/years): </label>                
+                <input type="number" id="kl" value=60 maxlength="6" />
                 <div class="tooltip">
                     <i class="fa-regular fa-circle-question"></i>
                     </i><span class="tooltiptext">Coefficient used to modulate channel migration aggressiveness.</span>
                 </div>
-                <input type="number" id="kl" value=60 maxlength="6" />
             </div>
             <div class="separator_properties"> <br/>
                 <label for="sep_thickness">Separator thickness (m):</label>
@@ -253,18 +253,19 @@
                     <input type="text" id="dep_height_value"  /> <br /><br />
                 </div> <br />
 
-                <label for="number_layers"><b><div id="number_layers_explanation">Number of layers (G: Gravel, MS: Medium Sand, M: Mud):</b></div>
+                <label for="number_layers"><b>Number of layers: </b>
                 <div class="tooltip">
                     <i class="fa-regular fa-circle-question"></i>
                     </i><span class="tooltiptext">Number of layers for the current event.</span>
-                </div>      
+                </div><br>
+                <div id="number_layers_explanation"> </div>                      
                 </label> <!--Number of layers (G: Gravel, S: Sand, M: Mud):-->                
                 
                 </label> <br />
-                &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;<input type="radio" id="number_layer_3" name="number_layers" value="num_3" checked />
-                <label for="number_layers">3 (G, MS, M)</label> <br /> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                &emsp; &emsp; &emsp; &emsp; &emsp; <input type="radio" id="number_layer_3" name="number_layers" value="num_3" checked />
+                <label for="number_layers">3 (G, MS, M)</label> <br /> &emsp; &emsp; &emsp; &emsp; &emsp;
                 <input type="radio" id="number_layer_5" name="number_layers" value="num_5"/>
-                <label for="number_layers">5 (G, CS, MS, FS, M)</label> <br /> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                <label for="number_layers">5 (G, CS, MS, FS, M)</label> <br /> &emsp; &emsp; &emsp; &emsp; &emsp;
                 <input type="radio" id="number_layer_7" name="number_layers" value="num_7"/>
                 <label for="number_layers">7 (G, VCS, CS, MS, FS, VFS, M)</label> <br /> <br />
 
@@ -986,7 +987,7 @@
         }
 
         var number_layers_explanation = document.getElementById("number_layers_explanation");        
-        number_layers_explanation.innerHTML = "<label>" + "<b>Number of layers:</b> <br>(G: Gravel, MS: Medium Sand, M: Mud):" + "</label>";
+        number_layers_explanation.innerHTML = "<label>" + "(G: Gravel, MS: Medium Sand, M: Mud):" + "</label>";
 
         // Fill the Layers' initial examples in the boxes according to the number of slopes
         for (let i = 0; i < NUMBER_OF_SLOPES; i++) {
@@ -1008,7 +1009,7 @@
         }
 
         var number_layers_explanation = document.getElementById("number_layers_explanation");        
-        number_layers_explanation.innerHTML = "<label>" + "<b>Number of layers:</b> <br>(G: Gravel, CS: C. Sand, MS: Medium Sand, FS: F. Sand, M: Mud):" + "</label>";
+        number_layers_explanation.innerHTML = "<label>" + "(G: Gravel, CS: C. Sand, MS: Medium Sand, FS: F. Sand, M: Mud):" + "</label>";
 
         // Fill the Layers' initial examples in the boxes according to the number of slopes
         for (let i = 0; i < NUMBER_OF_SLOPES; i++) {
@@ -1030,7 +1031,7 @@
         }
 
         var number_layers_explanation = document.getElementById("number_layers_explanation");        
-        number_layers_explanation.innerHTML = "<label>" + "<b>Number of layers:</b> <br>(G: Gravel, VCS: Very C. Sand, CS: C. Sand, MS: Medium Sand, FS: F. Sand, VFS: Very F. Sand, M: Mud):" + "</label>";
+        number_layers_explanation.innerHTML = "<label>" + "(G: Gravel, VCS: Very C. Sand, CS: C. Sand, MS: Medium Sand, FS: F. Sand, VFS: Very F. Sand, M: Mud):" + "</label>";
 
         // Fill the Layers' initial examples in the boxes according to the number of slopes
         for (let i = 0; i < NUMBER_OF_SLOPES; i++) {
