@@ -1,5 +1,0 @@
-AGR, SEP, AGR, SEP (3, 5, 7 camadas)
-AGR, SEP, AGR, SEP, AGR, SEP, AGR, SEP, AGR, SEP, INC (7 camadas)
-INC, INC, INC, SEP, AGR (7 camadas)
-
-salvar perfis, modelo 3D

@@ -1,7 +1,0 @@
-main00 module
-=============
-
-.. automodule:: main00
-   :members:
-   :undoc-members:
-   :show-inheritance:
