@@ -1206,8 +1206,8 @@ class ChannelBelt:
                 self.channels.append(channel.copy())
                 self.basins.append(basin.copy())
                 self.events.append(event)
-                # Used to create the gif files containing the basin animation
-                plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)', 'basin_' + str(eventOrder) +'-' + str(itn) + '.png', save=True) # vista lateral
+                # Used to create the gif files containing the basin animation (OFF FOR NOW - Dennis)
+                #plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)', 'basin_' + str(eventOrder) +'-' + str(itn) + '.png', save=True) # vista lateral
                 #plot2D(channel.x, channel.y, 'Channel Preview', 'Elevation (m)', 'channel_' + str(eventOrder) + '-' + str(itn) + '.png', save=True) # vista superior
             
         # DENNIS: saves a single layer of separator
@@ -1952,7 +1952,8 @@ class ChannelBelt3D():
         plotter = pv.Plotter()
         plotter.add_mesh(grid)#, scalars="colors", rgb=True) # add to scene           
         
-        plotter.export_obj(filename + '.obj') # export two independent meshes: top and bottom
+        # CAREFUL: check the next line (filename + '.obj') if the following error appears:
+        plotter.export_obj(filename) # export two independent meshes: top and bottom 
         data = trimesh.load(filename + '.obj', force='mesh') # load two triangle meshes: top and bottom
 
         vertices = data.vertices
