@@ -1953,11 +1953,29 @@ class ChannelBelt3D():
         plotter.add_mesh(grid)#, scalars="colors", rgb=True) # add to scene                   
 
         # Depending on the PC's setup, the export_obj from plotter may or may not include the suffix '.obj'
-        plotter.export_obj(filename)        
-        if filename[:-4] != '.obj':            
-            data = trimesh.load(filename + '.obj', force='mesh')
+        if filename[-4:] != '.obj':
+            filename = filename + '.obj'
+
+        plotter.export_obj(filename)
+        data = trimesh.load(filename, force='mesh')
+
+        # Use only if the above does not work
+        '''
+        print("FILENAME HERE 1:", filename) 
+        if filename[-4:] == '.obj':
+            plotter.export_obj(filename)
         else:
+            plotter.export_obj(filename + '.obj')   
+
+        print("FILENAME HERE 2:", filename)     
+            
+        if filename[-4:] == '.obj':  
             data = trimesh.load(filename, force='mesh')
+        else:
+            data = trimesh.load(filename + '.obj', force='mesh')
+        '''
+        
+        
 
         vertices = data.vertices
         faces = np.ones((data.faces.shape[0], data.faces.shape[1]+1)) * data.faces.shape[1]                
@@ -2099,6 +2117,9 @@ class ChannelBelt3D():
 
         rmtree(dir) # remove the temporary folder created to contain the mesh files before zipping
         
+
+        # This seems to be a duplicate: please confirm it before erasing
+        '''
         dir = tempfile.mkdtemp()
         mesh_iterator = 0
         for event_top_layer in range(sz-NUMBER_OF_LAYERS_PER_EVENT, sz):
@@ -2118,7 +2139,8 @@ class ChannelBelt3D():
 
             mesh_iterator = mesh_iterator + 1
         
-        rmtree(dir) # remove the temporary folder created to contain the mesh files before zipping        
+        rmtree(dir) # remove the temporary folder created to contain the mesh files before zipping    
+        '''    
 
     def export(self, ve = 3):
         """
