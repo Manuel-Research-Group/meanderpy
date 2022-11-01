@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    div {
+        display: inline-block;
+    }
+
+    body {
+        font: 14px arial;
+        position: relative;
+    }
+
+    #dt {
+        width: 60px;
+    }
+
+    #kv {
+        width: 60px;
+    }
+
+    #generate_event {
+        background-color: rgb(200, 200, 200);
+        border:solid 1px;        
+    }
+
+    /* Create three equal columns that floats next to each other */
+    .column1 {
+        float: left;
+        width: 25%;
+        padding: 10px;
+    }
+
+    .column2 {
+        float: left;
+        width: 30%;
+        padding: 10px;
+    }
+
+    .column3 {
+        float: left;
+        width: 30%;
+        padding: 10px;
+    }
+
+    /* Clear floats after the columns */
+    .row {
+        content: "";
+        display: table;
+        clear: both;
+        display: flex;
+        background-color: #ddd;
+    }
+
+    /* Added to support a help button with hover */
+
+    .tooltip {
+        position: relative;
+        display: inline-block;  
+    }
+
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: #555;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px 0;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -60px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .tooltip .tooltiptext::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #555 transparent transparent transparent;
+    }
+
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    input[type='number'] {
+        width: 60px;
+    }
+
+    input[type='text'] {
+        width: 250px;
+    }
+
+    .topnav {
+        overflow: hidden;
+        background-color: #333;
+    }
+
+    .topnav a {
+        float: left;
+        color: #f2f2f2;
+        text-align: center;
+        padding: 14px 16px;
+        text-decoration: none;
+        font-size: 17px;
+    }
+
+    .topnav a:hover {
+        background-color: #ddd;
+        color: black;
+    }
+
+    .topnav a.active {
+        background-color: #04AA6D;
+        color: white;
+    }
+</style>
+
+<head>
+    <title>Channel Events</title>
+    <script src="https://code.jquery.com/jquery-3.5.0.js"></script>    
+    <script src="https://kit.fontawesome.com/e6a5392faa.js" crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <div class="topnav">
+        <a href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/">Home</a>
+        <a href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/channels">Channel Profile</a>
+        <a href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/config">Channel Configuration</a>
+        <a class="active" href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/events">Channel Events</a>
+    </div>
+
+    <h1>Channel Events</h1>
+
+    <div class="row">   
+        <div class="column1">
+            <h2>Event General</h2>
+            <div class="mode">
+                <label for="mode">Type:</label> <!-- Previous known as "mode" -->
+                <label for="mode">Aggradation</label>
+                <input type="radio" id="mode_aggradation" name="mode" value="AGGRADATION" checked /> &emsp;
+                <label for="mode">Incision</label>
+                <input type="radio" id="mode_incision" name="mode" value="INCISION" /> &emsp;
+                <label for="mode">Separator</label>
+                <input type="radio" id="mode_separator" name="mode" value="SEPARATOR" /><br /><br />
+            </div>
+            <div id="generate_event">
+                <button onclick="generateEvent(); ">Create Event</button>
+                <button onclick="removeLastEvent(); ">Remove Last Event</button>
+                <button onclick="saveEvents(); ">Save Events</button>                
+                <br /><br />
+    
+                <div id="mode_number">
+                    <label for="mode">Number of events: 0</label>
+                </div> <br />
+                <div id="mode_event"> </div> <br /> <br />                
+            </div>
+            <div>
+                <br /><button onclick="restoreDefaultValues(); ">Restore Default Values</button>
+            </div><br />
+            <div class="general_properties"><br/>                
+                <label for="nit">Number of iterations:</label>
+                <input type="number" id="nit" maxlength="6" />
+                <div class="tooltip">
+                    <i class="fa-regular fa-circle-question"></i>
+                    </i><span class="tooltiptext">Total number of iterations for the simulation.</span>
+                </div>
+                <br /><br /> <!-- min="0" max="100" -->
+                <label for="saved_ts">Save simulation state every </label>
+                <input type="number" id="saved_ts" value=25 maxlength="6" />
+                <label for="saved_ts"> iterations </label>
+                <br /><br />
+                <label for="dt">Time of each iteration (in years):</label>
+                <input type="text" id="dt" value=0.1 maxlength="6" size="4" /><br /><br />
+                <label for="kv">Aggradation/incision modulation (m/years):</label>                
+                <input type="text" id="kv" value=0.01 maxlength="6" size="4" />
+                <div class="tooltip">
+                    <i class="fa-regular fa-circle-question"></i>
+                    </i><span class="tooltiptext">Coefficient used to modulate aggregation/incision aggressiveness in the equilibrium profile.</span>
+                </div>
+                <br /><br />
+                <label for="kl">Meandering modulation (m/years): </label>                
+                <input type="number" id="kl" value=60 maxlength="6" />
+                <div class="tooltip">
+                    <i class="fa-regular fa-circle-question"></i>
+                    </i><span class="tooltiptext">Coefficient used to modulate channel migration aggressiveness.</span>
+                </div>
+            </div>
+            <div class="separator_properties"> <br/>
+                <label for="sep_thickness">Separator thickness (m):</label>
+                <input type="number" id="sep_thickness" value=1.0 maxlength="1" /><br /><br />         
+                <div class="set_type">
+                    <label for="sep_type">Separator Type:</label>                    
+                    <br /> &emsp; &emsp; &emsp;
+                    <label for="sep_type">Basal surface</label>
+                    <input type="radio" id="sep_type_basal" name="sep_type" value="BASAL_SURFACE" /> <br /> &emsp; &emsp; &emsp;
+                    <label for="sep_type">Inversion</label>
+                    <input type="radio" id="sep_type_inversion" name="sep_type" value="INVERSION" /> &emsp; <br /> &emsp; &emsp; &emsp;
+                    <label for="sep_type">Condensed section</label>
+                    <input type="radio" id="sep_type_condensed" name="sep_type" value="CONDENSED_SECTION" checked/><br /><br />                
+                </div>
+            </div>
+        </div>
+        <div class="column2">
+            <div class="specifics_properties">
+                <h2>Event Specifics</h2>
+                <label for="ch_depth"><b>Channel depth (m):</b>
+                    <div class="tooltip">
+                        <i class="fa-regular fa-circle-question"></i>
+                        </i><span class="tooltiptext">Depth of the channel centerline in meters, per slope.</span>
+                    </div>
+                </label> <br />
+                <div id="div_ch_depth">
+                    <label for="ch_depth_slope">Slopes: -5º; -4º; -3º; -2º; -1º; 0º</label> &nbsp;
+                    <label for="ch_depth_value">Values:</label>
+                    <input type="text" id="ch_depth_value"  />
+                </div> <br /> <br />
+
+                <label for="ch_width"><b>Channel width (m):</b>
+                    <div class="tooltip">
+                        <i class="fa-regular fa-circle-question"></i>
+                        </i><span class="tooltiptext">Width of the channel in meters, per slope.</span>
+                    </div>
+                </label> <br />
+                <div id="div_ch_width">
+                    <label for="ch_width_slope">Slopes: -5º; -4º; -3º; -2º; -1º; 0º</label> &nbsp;
+                    <label for="ch_width_value">Values:</label>
+                    <input type="text" id="ch_width_value"  />
+                </div> <br /> <br />
+
+                <label for="dep_height"><b>Deposition height (m):</b>
+                    <div class="tooltip">
+                        <i class="fa-regular fa-circle-question"></i>
+                        </i><span class="tooltiptext">Deposition height in meters for the cut and fill process, per slope.</span>
+                    </div>
+                </label> <br />
+                <div id="div_dep_height">
+                    <label for="dep_height_slope">Slopes: -5º; -4º; -3º; -2º; -1º; 0º</label> &nbsp;
+                    <label for="dep_height_value">Values:</label>
+                    <input type="text" id="dep_height_value"  /> <br /><br />
+                </div> <br />
+
+                <label for="number_layers"><b>Number of layers: </b>
+                <div class="tooltip">
+                    <i class="fa-regular fa-circle-question"></i>
+                    </i><span class="tooltiptext">Number of layers for the current event.</span>
+                </div><br>
+                <div id="number_layers_explanation"> </div>                      
+                </label> <!--Number of layers (G: Gravel, S: Sand, M: Mud):-->                
+                
+                </label> <br />
+                &emsp; &emsp; &emsp; &emsp; &emsp; <input type="radio" id="number_layer_3" name="number_layers" value="num_3" checked />
+                <label for="number_layers">3 (G, MS, M)</label> <br /> &emsp; &emsp; &emsp; &emsp; &emsp;
+                <input type="radio" id="number_layer_5" name="number_layers" value="num_5"/>
+                <label for="number_layers">5 (G, CS, MS, FS, M)</label> <br /> &emsp; &emsp; &emsp; &emsp; &emsp;
+                <input type="radio" id="number_layer_7" name="number_layers" value="num_7"/>
+                <label for="number_layers">7 (G, VCS, CS, MS, FS, VFS, M)</label> <br /> <br />
+
+                <div class="aggr_properties">
+                    <label for="aggr_props"><b>Layer deposition distribution (%) during aggradation:</b>
+                        <div class="tooltip">
+                            <i class="fa-regular fa-circle-question"></i>
+                            </i><span class="tooltiptext">Distribution of the layers (%) in the aggradation process, per slope.</span>
+                        </div>
+                    </label> <br />
+                    <div class="number_layers_info"></div> <br />
+                    <div id="div_aggr_props">
+                        <label for="aggr_props_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="aggr_props_values">Values:</label>
+                        <input type="text" id="aggr_props_values0"
+                            placeholder="E.g. 33.3; 33.3; 33.3" /><br />
+                        <label for="aggr_props_slope">Slope: -4º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="aggr_props_values">Values:</label>
+                        <input type="text" id="aggr_props_values1"
+                            placeholder="E.g. 33.3; 33.3; 33.3" /><br />
+                        <label for="aggr_props_slope">Slope: -3º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="aggr_props_values">Values:</label>
+                        <input type="text" id="aggr_props_values2" 
+                            placeholder="E.g. 33.3; 33.3; 33.3" /><br />
+                        <label for="aggr_props_slope">Slope: -2º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="aggr_props_values">Values:</label>
+                        <input type="text" id="aggr_props_values3" 
+                            placeholder="E.g. 33.3; 33.3; 33.3" /><br />
+                        <label for="aggr_props_slope">Slope: -1º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="aggr_props_values">Values:</label>
+                        <input type="text" id="aggr_props_values4" 
+                            placeholder="E.g. 33.3; 33.3; 33.3" /><br />
+                        <label for="aggr_props_slope">Slope: 0º</label> &nbsp; &emsp; &emsp; &emsp; &emsp; &emsp; &nbsp;
+                        &nbsp;
+                        <label for="aggr_props_values">Values:</label>
+                        <input type="text" id="aggr_props_values5" 
+                            placeholder="E.g. 33.3; 33.3; 33.3" /><br />
+                    </div> <br /> <br />
+
+                    <label for="aggr_sigmas"><b>Gaussian standard deviation of aggradation per layer:</b>
+                        <div class="tooltip">
+                            <i class="fa-regular fa-circle-question"></i>
+                            </i><span class="tooltiptext">Gaussian standard deviation of aggradation process per layer, per slope.</span>
+                        </div>
+                    </label> <br />
+                    <div class="number_layers_info"></div> <br />
+                    <div id="div_aggr_sigmas">
+                        <label for="aggr_sigmas_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="aggr_sigmas_values">Values:</label>
+                        <input type="text" id="aggr_sigmas_values0" placeholder="E.g. 2; 5; 10" /><br />
+                        <label for="aggr_sigmas_slope">Slope: -4º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="aggr_sigmas_values">Values:</label>
+                        <input type="text" id="aggr_sigmas_values1" placeholder="E.g. 2; 5; 10" /><br />
+                        <label for="aggr_sigmas_slope">Slope: -3º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="aggr_sigmas_values">Values:</label>
+                        <input type="text" id="aggr_sigmas_values2" placeholder="E.g. 2; 5; 10" /><br />
+                        <label for="aggr_sigmas_slope">Slope: -2º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="aggr_sigmas_values">Values:</label>
+                        <input type="text" id="aggr_sigmas_values3" placeholder="E.g. 2; 5; 10" /><br />
+                        <label for="aggr_sigmas_slope">Slope: -1º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="aggr_sigmas_values">Values:</label>
+                        <input type="text" id="aggr_sigmas_values4" placeholder="E.g. 2; 5; 10" /><br />
+                        <label for="aggr_sigmas_slope">Slope: 0º</label> &nbsp; &emsp; &emsp; &emsp; &emsp; &emsp; &nbsp;
+                        &nbsp;
+                        <label for="aggr_sigmas_values">Values:</label>
+                        <input type="text" id="aggr_sigmas_values5" placeholder="E.g. 2; 5; 10" /><br />
+                    </div>
+                    <br /><br />
+                </div>
+            </div>            
+        </div>        
+        <div class="column3">            
+            <div class="specifics_properties">
+                <label for="dep_props"><b>Layer deposition distribution (%) during the cut and fill:</b>
+                    <div class="tooltip">
+                        <i class="fa-regular fa-circle-question"></i>
+                        </i><span class="tooltiptext">Layer deposition distribution (%) during the cut and fill process, per slope.</span>
+                    </div>
+                </label> <br />
+                <div class="number_layers_info"></div><br />
+                    <div id="div_dep_props">
+                        <label for="dep_props_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="dep_props_values">Values:</label>
+                        <input type="text" id="dep_props_values0" placeholder="E.g. 30; 50; 20" /><br />
+                        <label for="dep_props_slope">Slope: -4º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="dep_props_values">Values:</label>
+                        <input type="text" id="dep_props_values1" placeholder="E.g. 30; 50; 20" /><br />
+                        <label for="dep_props_slope">Slope: -3º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="dep_props_values">Values:</label>
+                        <input type="text" id="dep_props_values2" placeholder="E.g. 30; 50; 20" /><br />
+                        <label for="dep_props_slope">Slope: -2º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="dep_props_values">Values:</label>
+                        <input type="text" id="dep_props_values3" placeholder="E.g. 30; 50; 20" /><br />
+                        <label for="dep_props_slope">Slope: -1º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="dep_props_values">Values:</label>
+                        <input type="text" id="dep_props_values4" placeholder="E.g. 30; 50; 20" /><br />
+                        <label for="dep_props_slope">Slope: 0º</label> &nbsp; &emsp; &emsp; &emsp; &emsp; &emsp; &nbsp; &nbsp;
+                        <label for="dep_props_values">Values:</label>
+                        <input type="text" id="dep_props_values5" placeholder="E.g. 30; 50; 20" /><br />
+                    </div> <br /> <br />
+
+                    <label for="dep_sigmas"><b>Gaussian standard deviation of deposition during cut and fill, per layer:</b>
+                        <div class="tooltip">
+                            <i class="fa-regular fa-circle-question"></i>
+                            </i><span class="tooltiptext">Gaussian standard deviation of deposition process during the cut and fill process per layer, per slope.</span>
+                        </div>
+                    </label> <br />
+                    <div class="number_layers_info"></div> <br />
+                    <div id="div_dep_sigmas">
+                        <label for="dep_sigmas_slope">Slope: -5º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="dep_sigmas_values">Values:</label>
+                        <input type="text" id="dep_sigmas_values0" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                        <label for="dep_sigmas_slope">Slope: -4º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="dep_sigmas_values">Values:</label>
+                        <input type="text" id="dep_sigmas_values1" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                        <label for="dep_sigmas_slope">Slope: -3º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="dep_sigmas_values">Values:</label>
+                        <input type="text" id="dep_sigmas_values2" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                        <label for="dep_sigmas_slope">Slope: -2º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="dep_sigmas_values">Values:</label>
+                        <input type="text" id="dep_sigmas_values3" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                        <label for="dep_sigmas_slope">Slope: -1º</label> &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;
+                        <label for="dep_sigmas_values">Values:</label>
+                        <input type="text" id="dep_sigmas_values4" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                        <label for="dep_sigmas_slope">Slope: 0º</label> &nbsp; &emsp; &emsp; &emsp; &emsp; &emsp; &nbsp; &nbsp;
+                        <label for="dep_sigmas_values">Values:</label>
+                        <input type="text" id="dep_sigmas_values5" placeholder="E.g. 0.25; 0.5; 2" /><br />
+                    </div> <br /><br />
+                </div>                
+            </div>            
+        </div>
+    </div>
+</body>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+<script>
+    // Constants:
+    const NUMBER_OF_SLOPES = 6;
+
+    // Function called as soon as the window is loaded
+    window.onload = function () {        
+
+        //restoreDefaultValues();
+
+        // Autosave session feature: info regarding the formularies are stored from TIME to TIME
+        const TIME = 500;         
+        setInterval(myTimer, TIME);
+
+        function myTimer() {
+            // EVENT GENERAL
+            window.localStorage.setItem('nit', document.getElementById("nit").value);
+            window.localStorage.setItem('saved_ts', document.getElementById("saved_ts").value);
+            window.localStorage.setItem('dt', document.getElementById("dt").value);            
+            window.localStorage.setItem('mode', document.querySelector('input[name="mode"]:checked').value);
+            window.localStorage.setItem('kv', document.getElementById("kv").value);
+            window.localStorage.setItem('kl', document.getElementById("kl").value);
+            // Separator
+            window.localStorage.setItem('sep_thickness', document.getElementById("sep_thickness").value); 
+            window.localStorage.setItem('sep_type', document.querySelector('input[name="sep_type"]:checked').value);
+            
+            // EVENT SPECIFICS
+            window.localStorage.setItem('ch_depth_value', document.getElementById("ch_depth_value").value);
+            window.localStorage.setItem('ch_width_value', document.getElementById("ch_width_value").value);
+            window.localStorage.setItem('dep_height_value', document.getElementById("dep_height_value").value);           
+
+            window.localStorage.setItem('number_layers', document.querySelector('input[name="number_layers"]:checked').value);            
+
+            window.localStorage.setItem('dep_props_values0', document.getElementById("dep_props_values0").value);
+            window.localStorage.setItem('dep_props_values1', document.getElementById("dep_props_values1").value);
+            window.localStorage.setItem('dep_props_values2', document.getElementById("dep_props_values2").value);
+            window.localStorage.setItem('dep_props_values3', document.getElementById("dep_props_values3").value);
+            window.localStorage.setItem('dep_props_values4', document.getElementById("dep_props_values4").value);
+            window.localStorage.setItem('dep_props_values5', document.getElementById("dep_props_values5").value);
+
+            window.localStorage.setItem('dep_sigmas_values0', document.getElementById("dep_sigmas_values0").value);
+            window.localStorage.setItem('dep_sigmas_values1', document.getElementById("dep_sigmas_values1").value);
+            window.localStorage.setItem('dep_sigmas_values2', document.getElementById("dep_sigmas_values2").value);
+            window.localStorage.setItem('dep_sigmas_values3', document.getElementById("dep_sigmas_values3").value);
+            window.localStorage.setItem('dep_sigmas_values4', document.getElementById("dep_sigmas_values4").value);
+            window.localStorage.setItem('dep_sigmas_values5', document.getElementById("dep_sigmas_values5").value);
+
+            window.localStorage.setItem('aggr_props_values0', document.getElementById("aggr_props_values0").value);
+            window.localStorage.setItem('aggr_props_values1', document.getElementById("aggr_props_values1").value);
+            window.localStorage.setItem('aggr_props_values2', document.getElementById("aggr_props_values2").value);
+            window.localStorage.setItem('aggr_props_values3', document.getElementById("aggr_props_values3").value);
+            window.localStorage.setItem('aggr_props_values4', document.getElementById("aggr_props_values4").value);
+            window.localStorage.setItem('aggr_props_values5', document.getElementById("aggr_props_values5").value);
+
+            window.localStorage.setItem('aggr_sigmas_values0', document.getElementById("aggr_sigmas_values0").value);
+            window.localStorage.setItem('aggr_sigmas_values1', document.getElementById("aggr_sigmas_values1").value);
+            window.localStorage.setItem('aggr_sigmas_values2', document.getElementById("aggr_sigmas_values2").value);
+            window.localStorage.setItem('aggr_sigmas_values3', document.getElementById("aggr_sigmas_values3").value);
+            window.localStorage.setItem('aggr_sigmas_values4', document.getElementById("aggr_sigmas_values4").value);
+            window.localStorage.setItem('aggr_sigmas_values5', document.getElementById("aggr_sigmas_values5").value);
+
+            
+        }
+
+        // Fill the stored formularies according to the autosave feature when the page is loaded
+        // EVENT GENERAL
+        document.getElementById('nit').value = window.localStorage.getItem('nit')
+        document.getElementById('saved_ts').value = window.localStorage.getItem('saved_ts')
+        document.getElementById('dt').value = window.localStorage.getItem('dt')  
+
+        mode = window.localStorage.getItem('mode');              
+        if (mode == document.getElementById('mode_aggradation').value) {            
+            document.getElementById("mode_aggradation").checked = true;
+            hideInterface();
+        }            
+        else if (mode == document.getElementById('mode_incision').value) {
+            document.getElementById("mode_incision").checked = true;
+            hideInterface();
+        }            
+        else if (mode == document.getElementById('mode_separator').value) {
+            document.getElementById("mode_separator").checked = true;  
+            hideInterface();
+        }
+
+        //document.querySelector('input[name="mode"]:checked').value = window.localStorage.getItem('mode') // CHECK HERE
+        document.getElementById('kv').value = window.localStorage.getItem('kv')
+        document.getElementById('kl').value = window.localStorage.getItem('kl')
+
+        // Separator
+        document.getElementById('sep_thickness').value = window.localStorage.getItem('sep_thickness')
+
+        sep_type = window.localStorage.getItem('sep_type');
+        if (sep_type == document.getElementById('sep_type_basal').value) {            
+            document.getElementById("sep_type_basal").checked = true;
+            hideInterface();
+        }            
+        else if (sep_type == document.getElementById('sep_type_inversion').value) {
+            document.getElementById("mode_incision").checked = true;
+            hideInterface();
+        }            
+        else if (sep_type == document.getElementById('sep_type_condensed').value) {
+            document.getElementById("sep_type_condensed").checked = true;  
+            hideInterface();
+        }  
+
+        //document.getElementById('sep_type').value = window.localStorage.getItem('sep_type')
+
+        // EVENT SPECIFICS
+        document.getElementById('ch_depth_value').value = window.localStorage.getItem('ch_depth_value')
+        document.getElementById('ch_width_value').value = window.localStorage.getItem('ch_width_value')
+        document.getElementById('dep_height_value').value = window.localStorage.getItem('dep_height_value')           
+        
+        number_layers = window.localStorage.getItem('number_layers');
+        if (number_layers == document.getElementById('number_layer_3').value) {
+            document.getElementById("number_layer_3").checked = true;
+            writeLabelNumberLayer3();
+        }            
+        else if (number_layers == document.getElementById('number_layer_5').value) {
+            document.getElementById("number_layer_5").checked = true;
+            writeLabelNumberLayer5();
+        }
+            
+        else if (number_layers == document.getElementById('number_layer_7').value) {
+            document.getElementById("number_layer_7").checked = true;
+            writeLabelNumberLayer7();
+        }            
+
+        document.getElementById('dep_props_values0').value = window.localStorage.getItem('dep_props_values0')
+        document.getElementById('dep_props_values1').value = window.localStorage.getItem('dep_props_values1')
+        document.getElementById('dep_props_values2').value = window.localStorage.getItem('dep_props_values2')
+        document.getElementById('dep_props_values3').value = window.localStorage.getItem('dep_props_values3')
+        document.getElementById('dep_props_values4').value = window.localStorage.getItem('dep_props_values4')
+        document.getElementById('dep_props_values5').value = window.localStorage.getItem('dep_props_values5')
+
+        document.getElementById('dep_sigmas_values0').value = window.localStorage.getItem('dep_sigmas_values0')
+        document.getElementById('dep_sigmas_values1').value = window.localStorage.getItem('dep_sigmas_values1')
+        document.getElementById('dep_sigmas_values2').value = window.localStorage.getItem('dep_sigmas_values2')
+        document.getElementById('dep_sigmas_values3').value = window.localStorage.getItem('dep_sigmas_values3')
+        document.getElementById('dep_sigmas_values4').value = window.localStorage.getItem('dep_sigmas_values4')
+        document.getElementById('dep_sigmas_values5').value = window.localStorage.getItem('dep_sigmas_values5')
+
+        document.getElementById('aggr_props_values0').value = window.localStorage.getItem('aggr_props_values0')
+        document.getElementById('aggr_props_values1').value = window.localStorage.getItem('aggr_props_values1')
+        document.getElementById('aggr_props_values2').value = window.localStorage.getItem('aggr_props_values2')
+        document.getElementById('aggr_props_values3').value = window.localStorage.getItem('aggr_props_values3')
+        document.getElementById('aggr_props_values4').value = window.localStorage.getItem('aggr_props_values4')
+        document.getElementById('aggr_props_values5').value = window.localStorage.getItem('aggr_props_values5')
+
+        document.getElementById('aggr_sigmas_values0').value = window.localStorage.getItem('aggr_sigmas_values0')
+        document.getElementById('aggr_sigmas_values1').value = window.localStorage.getItem('aggr_sigmas_values1')
+        document.getElementById('aggr_sigmas_values2').value = window.localStorage.getItem('aggr_sigmas_values2')
+        document.getElementById('aggr_sigmas_values3').value = window.localStorage.getItem('aggr_sigmas_values3')
+        document.getElementById('aggr_sigmas_values4').value = window.localStorage.getItem('aggr_sigmas_values4')
+        document.getElementById('aggr_sigmas_values5').value = window.localStorage.getItem('aggr_sigmas_values5')
+
+        var nLayer3 = document.getElementById('number_layer_3');
+        var nLayer5 = document.getElementById('number_layer_5');
+        var nLayer7 = document.getElementById('number_layer_7');
+
+        nLayer3.onclick = writeLabelNumberLayer3;
+        nLayer5.onclick = writeLabelNumberLayer5;
+        nLayer7.onclick = writeLabelNumberLayer7;
+
+        // Hide aggradation interface when incision button is clicked. All the previous values are preserved.
+        $('input[type=radio][name=mode]').change(function() {
+            if (this.value == 'AGGRADATION')
+            {                
+                $(".general_properties").show()
+                $(".specifics_properties").show()
+                $(".aggr_properties").show()
+                $(".separator_properties").hide()
+            }
+            else if (this.value == 'INCISION'){
+                $(".general_properties").show()
+                $(".specifics_properties").show()
+                $(".aggr_properties").hide()                
+                $(".separator_properties").hide()
+            }
+            else if (this.value == 'SEPARATOR') {
+                $(".general_properties").hide()
+                $(".specifics_properties").hide()
+                $(".aggr_properties").hide()     
+                $(".separator_properties").show()           
+            }            
+        });
+    }
+
+    function hideInterface() {
+        mode = window.localStorage.getItem('mode');            
+        if (mode == document.getElementById('mode_aggradation').value) {                
+            $(".general_properties").show()
+            $(".specifics_properties").show()
+            $(".aggr_properties").show()
+            $(".separator_properties").hide()
+        }
+        else if (mode == document.getElementById('mode_incision').value) {
+            $(".general_properties").show()
+            $(".specifics_properties").show()
+            $(".aggr_properties").hide()                
+            $(".separator_properties").hide()
+        }
+        else if (mode == document.getElementById('mode_separator').value) {
+            $(".general_properties").hide()
+            $(".specifics_properties").hide()
+            $(".aggr_properties").hide()     
+            $(".separator_properties").show()           
+        }
+    }
+
+    function handler() {
+        alert('clicked');
+    }
+
+    function eventSymbol(eventName) {
+        var symbol;
+        if (eventName == 'AGGRADATION')
+            symbol = '[AGG]';
+        else if (eventName == 'INCISION')
+            symbol = '[INC]';
+        else if (eventName == 'SEPARATOR')
+            symbol = '[SEP]';
+
+        return symbol;
+    }
+
+    var margin = { top: 40, right: 40, bottom: 50, left: 70 },
+        width = 960 - margin.left - margin.right,
+        height = 500 - margin.top - margin.bottom;
+
+    var contentEvents = [];
+    var eventModes = [];
+    var contentType = "application/json";
+    var count_div_ch_depth = 0;
+    var count_div_ch_width = 0;
+    var count_div_dep_height = 0;
+
+    const NUM_EVENT_ATTRIBUTES = 6;
+    const BIG_NUMBER = 10**6;
+    const LITTLE_NUMBER = 10**-6;
+
+    // EVENTS
+    function generateEvent() {
+        if (contentEvents.length < 100) {
+            var validForm = true;            
+            var is_valid_config = true;
+            var nit = Number(document.getElementById("nit").value);
+            var saved_ts = Number(document.getElementById("saved_ts").value);
+            var dt = Number(document.getElementById("dt").value);
+            var mode = document.querySelector('input[name="mode"]:checked').value;
+            var kv = Number(document.getElementById("kv").value);
+            var kl = Number(document.getElementById("kl").value);
+            // Separator           
+            var sep_thickness = Number(document.getElementById("sep_thickness").value);
+            var sep_type = document.querySelector('input[name="sep_type"]:checked').value;            
+
+            var error_msg = "Please correct the following before creating an event:\n";
+
+            if (checkValue(nit, 0, 10000) == false || checkValue(saved_ts, 0, 10000) == false ||
+                checkValue(dt, 0, 10000) == false || isNaN(dt) == true || checkValue(kv, 0, 10000) == false || isNaN(kv) == true ||
+                checkValue(kl, 0, 10000) == false)
+                validForm = false;
+
+            var number_layers;
+            if (document.getElementById("number_layer_3").checked == true)
+                number_layers = 3;
+            else if (document.getElementById("number_layer_5").checked == true)
+                number_layers = 5;
+            else
+                number_layers = 7;            
+
+            var ch_depth_value = document.getElementById("ch_depth_value").value;
+            ch_depth_value_array = splitAppendValues(ch_depth_value, 0.0, 100000);             
+
+            var ch_width_value = document.getElementById("ch_width_value").value;
+            ch_width_value_array = splitAppendValues(ch_width_value, 0.0, 100000);            
+
+            var dep_height_value = document.getElementById("dep_height_value").value;
+            dep_height_value_array = splitAppendValues(dep_height_value, 0.0, 100000);
+
+            // Guarantee the depth, width and height have exactly 6 elements
+            if (ch_depth_value_array.length != 6 || ch_width_value_array.length != 6 || dep_height_value_array.length != 6)
+                validForm = false;
+
+            var contentEvent = {};
+
+            // Group all the events into variable contentEvent
+            
+            contentEvent.nit = nit;
+            contentEvent.saved_ts = saved_ts;
+            contentEvent.dt = dt;
+            contentEvent.mode = mode;
+            contentEvent.kv = kv;
+            contentEvent.kl = kl;            
+            contentEvent.number_layers = number_layers;                
+            contentEvent.ch_depth = simpleEventJson(ch_depth_value_array);
+            contentEvent.ch_width = simpleEventJson(ch_width_value_array);
+            contentEvent.dep_height = simpleEventJson(dep_height_value_array);                
+            contentEvent.dep_props = listEventJson("dep_props_values", 0.0, 1.0);
+            contentEvent.dep_sigmas = listEventJson("dep_sigmas_values", 0.0, 100000);
+            contentEvent.aggr_props = listEventJson("aggr_props_values", 0.0, 1.0);
+            contentEvent.aggr_sigmas = listEventJson("aggr_sigmas_values", 0.0, 100000);
+            
+            if (mode == 'SEPARATOR') {
+                contentEvent.sep_thickness = sep_thickness;
+                contentEvent.sep_type = sep_type;
+            }
+            else {
+                contentEvent.sep_thickness = 0;
+                contentEvent.sep_type = 'CONDENSED_SECTION';
+            }          
+
+            for (var slope=0; slope < 6; slope++) {
+                // DENNIS: CHANGED HERE SEPARATOR - CHECK
+                if (mode == 'SEPARATOR') {
+                    contentEvent.dep_props[slope].value = [0,0,0,0,0,0,0,1];
+                    contentEvent.dep_sigmas[slope].value = [LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER]; // sigma==1 to avoid division by zero
+                    contentEvent.aggr_props[slope].value = [0,0,0,0,0,0,0,1];
+                    contentEvent.aggr_sigmas[slope].value = [LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER,LITTLE_NUMBER]; // sigma==1 to avoid division by zero
+                }
+                else { // INCISION OR AGGRADATION
+                    //if (mode == 'INCISION') {
+                    //    contentEvent.aggr_props[slope].value = [0,0,0,0,0,0,0,0];
+                    //    contentEvent.aggr_sigmas[slope].value = [BIG_NUMBER,BIG_NUMBER,BIG_NUMBER,BIG_NUMBER,BIG_NUMBER,BIG_NUMBER,BIG_NUMBER,BIG_NUMBER]; // sigma==1 to avoid division by zero
+                    //}
+
+                    var dep_props_copy = contentEvent.dep_props[slope].value;
+                    var dep_sigmas_copy = contentEvent.dep_sigmas[slope].value;                    
+                    var aggr_props_copy = contentEvent.aggr_props[slope].value;
+                    var aggr_sigmas_copy = contentEvent.aggr_sigmas[slope].value;                    
+
+                    if (contentEvent.number_layers == 3) {
+                        contentEvent.dep_props[slope].value = [dep_props_copy[0],LITTLE_NUMBER,LITTLE_NUMBER,dep_props_copy[1],LITTLE_NUMBER,LITTLE_NUMBER,dep_props_copy[2],LITTLE_NUMBER];
+                        contentEvent.dep_sigmas[slope].value = [dep_sigmas_copy[0],LITTLE_NUMBER,LITTLE_NUMBER,dep_sigmas_copy[1],LITTLE_NUMBER,LITTLE_NUMBER,dep_sigmas_copy[2],LITTLE_NUMBER];
+                        contentEvent.aggr_props[slope].value = [aggr_props_copy[0],LITTLE_NUMBER,LITTLE_NUMBER,aggr_props_copy[1],LITTLE_NUMBER,LITTLE_NUMBER,aggr_props_copy[2],LITTLE_NUMBER];
+                        contentEvent.aggr_sigmas[slope].value = [aggr_sigmas_copy[0],LITTLE_NUMBER,LITTLE_NUMBER,aggr_sigmas_copy[1],LITTLE_NUMBER,LITTLE_NUMBER,aggr_sigmas_copy[2],LITTLE_NUMBER];
+                    }
+                    else if (contentEvent.number_layers == 5) {
+                        contentEvent.dep_props[slope].value = [dep_props_copy[0],LITTLE_NUMBER,dep_props_copy[1],dep_props_copy[2],dep_props_copy[3],LITTLE_NUMBER,dep_props_copy[4],LITTLE_NUMBER];
+                        contentEvent.dep_sigmas[slope].value = [dep_sigmas_copy[0],LITTLE_NUMBER,dep_sigmas_copy[1],dep_sigmas_copy[2],dep_sigmas_copy[3],LITTLE_NUMBER,dep_sigmas_copy[4],LITTLE_NUMBER];
+                        contentEvent.aggr_props[slope].value = [aggr_props_copy[0],LITTLE_NUMBER,aggr_props_copy[1],aggr_props_copy[2],aggr_props_copy[3],LITTLE_NUMBER,aggr_props_copy[4],LITTLE_NUMBER];
+                        contentEvent.aggr_sigmas[slope].value = [aggr_sigmas_copy[0],LITTLE_NUMBER,aggr_sigmas_copy[1],aggr_sigmas_copy[2],aggr_sigmas_copy[3],LITTLE_NUMBER,aggr_sigmas_copy[4],LITTLE_NUMBER];                        
+                    }    
+                    else if (contentEvent.number_layers == 7) {
+                        contentEvent.dep_props[slope].value = [dep_props_copy[0],dep_props_copy[1],dep_props_copy[2],dep_props_copy[3],dep_props_copy[4],dep_props_copy[5],dep_props_copy[6],LITTLE_NUMBER];
+                        contentEvent.dep_sigmas[slope].value = [dep_sigmas_copy[0],dep_sigmas_copy[1],dep_sigmas_copy[2],dep_sigmas_copy[3],dep_sigmas_copy[4],dep_sigmas_copy[5],dep_sigmas_copy[6],LITTLE_NUMBER];                        
+                        contentEvent.aggr_props[slope].value = [aggr_props_copy[0],aggr_props_copy[1],aggr_props_copy[2],aggr_props_copy[3],aggr_props_copy[4],aggr_props_copy[5],aggr_props_copy[6],LITTLE_NUMBER];
+                        contentEvent.aggr_sigmas[slope].value = [aggr_sigmas_copy[0],aggr_sigmas_copy[1],aggr_sigmas_copy[2],aggr_sigmas_copy[3],aggr_sigmas_copy[4],aggr_sigmas_copy[5],aggr_sigmas_copy[6],LITTLE_NUMBER];                        
+                    }
+                }
+            }            
+
+            if (((mode == 'INCISION' || mode == 'AGGRADATION') && (contentEvent.dep_props.length == 0 || contentEvent.dep_sigmas.length == 0)) ||
+                    (mode == 'AGGRADATION' && (contentEvent.aggr_props.length == 0 || contentEvent.aggr_sigmas.length == 0)))
+                validForm = false;
+
+            if (validForm == true) {
+                contentEvents.push(contentEvent);
+                eventModes.push(contentEvent.mode);
+                var divMode = document.getElementById("mode_number");
+                divMode.innerHTML = "<label for=\"mode\">Number of events: </label>" + contentEvents.length;
+                var divList = document.getElementById("mode_event");
+                divList.innerHTML = "";
+                for (var i = 0; i < contentEvents.length; i++) {
+                    var symbol = eventSymbol(eventModes[i])
+                    if (i == 0)
+                        divList.innerHTML += "<label for=\"mode\">  </label>" + eventSymbol(eventModes[i]);
+                    else
+                        divList.innerHTML += "<label for=\"mode\">  </label>" + " &#8594; " + eventSymbol(eventModes[i]);
+                }
+            }
+            else { // Formulary items are incomplete or inconsistent
+                //alert("Formulary items are incomplete or inconsistent. Please correct them and try again.");
+                if(checkValue(nit, 0, 10000) == false) error_msg += "- Number of iterations must be an integer between 0 and 10000.\n";
+                if(checkValue(saved_ts, 0, 10000) == false) error_msg += "- Save simulation state every _ iterations must be an integer between 0 and 10000.\n";
+                if(checkValue(dt, 0.001, 1) == false) error_msg += "- Time of each iteration must be a decimal between 0.001 and 1.\n";
+                if(checkValue(kv, 0.001, 1) == false) error_msg += "- Aggradation/incision modulation must be a decimal between 0.001 and 1.\n";
+                if(checkValue(kl, 0, 10000) == false) error_msg += "- Meandering modulation must be an integer between 0 and 10000.\n";
+                if(ch_depth_value_array.length != 6) error_msg += "- Channel depth must have six values separated with commas.\n";
+                if(ch_width_value_array.length != 6) error_msg += "- Channel width must have six values separated with commas.\n";
+                if(dep_height_value_array.length != 6) error_msg += "- Channel height must have six values separated with commas.\n";
+
+                number_layers = window.localStorage.getItem('number_layers');
+                if(number_layers == 'num_3') number_layers_int = 3;
+                if(number_layers == 'num_5') number_layers_int = 5;
+                if(number_layers == 'num_7') number_layers_int = 7;                
+                if((mode == 'INCISION' || mode == 'AGGRADATION') && contentEvent.dep_props.length == 0)
+                    error_msg += "- Layer deposition must have " + number_layers_int + " values separated with commas.\n";
+                if((mode == 'INCISION' || mode == 'AGGRADATION') && contentEvent.dep_sigmas.length == 0)
+                    error_msg += "- Gaussian standard deviation of deposition per layer must have " + number_layers_int + " values separated with commas.\n";
+                if(mode == 'AGGRADATION' && contentEvent.aggr_props.length == 0)
+                    error_msg += "- Aggradation per layer must have " + number_layers_int + " values separated with commas.\n";
+                if(mode == 'AGGRADATION' && contentEvent.aggr_sigmas.length == 0)
+                    error_msg += "- Gaussian standard deviation of aggradation per layer must have " + number_layers_int + " values separated with commas.\n";
+
+                
+                //if(number_layers == document.getElementById('number_layer_3').value)
+                
+
+                alert(error_msg);
+            }
+                
+        }
+        else
+            alert("Max number of events has been reached. Please remove at least one event to create more.")
+
+
+                           
+    }
+
+    function removeLastEvent() {
+        if (contentEvents.length > 0) {
+            contentEvents.pop();
+            eventModes.pop();
+            var divMode = document.getElementById("mode_number");
+            divMode.innerHTML = "<label for=\"mode\">Number of events: </label>" + contentEvents.length;
+            var divList = document.getElementById("mode_event");
+            divList.innerHTML = "";
+            for (var i = 0; i < contentEvents.length; i++) {
+                if (i == 0)
+                        divList.innerHTML += "<label for=\"mode\">  </label>" + eventSymbol(eventModes[i]);
+                else
+                    divList.innerHTML += "<label for=\"mode\">  </label>" + " &#8594; " + eventSymbol(eventModes[i]);
+            }
+        }
+        else
+            alert("There are no events to remove.")
+
+    }
+
+    function simpleEventJson(valueArray) {
+        var eventArray = [];
+        var slopeArray = [-5, -4, -3, -2, -1, 0];
+        for (var i = 0; i < valueArray.length; i++) {
+            eventArray.push({ "slope": Number(slopeArray[i]), "value": Number(valueArray[i]) });
+        }
+
+        return eventArray;
+    }
+
+    function listEventJson(mainEventId, min, max) {
+        var eventArray = [];
+        var eventIdValue;
+        var valuesArray = []; // check this
+        var slopeArray = [-5, -4, -3, -2, -1, 0];
+
+        for (var i = 0; i < NUM_EVENT_ATTRIBUTES; i++) {
+            eventIdValue = document.getElementById(mainEventId + i.toString()).value;
+            valuesArray = splitAppendValues(eventIdValue, min, max);
+            if (valuesArray.length != 0)
+                eventArray.push({ "slope": Number(slopeArray[i]), "value": valuesArray });
+            else {
+                eventArray = [];
+                break;
+            }
+        }
+
+        return eventArray;
+    }
+
+    function splitAppendValues(values, min, max) {
+        var valuesArray = values.split(";");
+        var valueAux;
+        isValidConfig = true;
+        for (var i = 0; i < valuesArray.length; i++) {
+            if (min == 0 && max == 1.0) { // check if this is a percentage field
+                valueAux = parseFloat(valuesArray[i]) / 100;
+            }
+            else
+                valueAux = parseFloat(valuesArray[i]);
+
+            if (checkValue(valueAux, min, max)) {
+                valuesArray[i] = valueAux;
+            }
+            else {
+                isValidConfig = false;
+                break;
+            }
+        }
+        if (isValidConfig == false)
+            valuesArray = [];
+
+        return valuesArray;
+    }
+
+    // Receives a list of "events" as arguments
+    function saveEvents() {
+        if (contentEvents.length > 0) {
+            var fileName = "events.json", contentType = "application/json";
+            var a = document.createElement("a");
+            var file = new Blob([JSON.stringify(contentEvents, null, 2)], { type: contentType });
+            a.href = URL.createObjectURL(file);
+            a.download = fileName;
+            a.click();
+        }
+        else
+            alert("Please create at least one event.")
+
+    }
+
+    // Function to restore the original values from the interface
+    function restoreDefaultValues() {
+
+        writeLabelNumberLayer3(); // initializes the dynamic labels with three layers (Gr, Sa, Si) -> (G, S, M)
+
+        // EVENT GENERAL
+        document.getElementById('nit').value = 100;
+        document.getElementById('saved_ts').value = 25;
+        document.getElementById('dt').value = 0.1;
+        document.getElementById("mode_aggradation").checked = true;
+        document.getElementById('kv').value = 0.01;
+        document.getElementById('kl').value = 60;
+        // Separator
+        document.getElementById('sep_thickness').value = 1.0;
+        document.getElementById('sep_type_condensed').checked = true;
+
+        // EVENT SPECIFICS
+        document.getElementById('ch_depth_value').value = "100; 80; 60; 40; 20; 0";
+        document.getElementById('ch_width_value').value = "100; 125; 150; 250; 400; 800";
+        document.getElementById('dep_height_value').value = "25; 20; 15; 10; 5; 0";
+
+        document.getElementById("number_layer_3").checked = true;
+
+        // Assuming a 3-layers mode as the default values
+        document.getElementById('dep_props_values0').value = "30; 50; 20";
+        document.getElementById('dep_props_values1').value = "30; 50; 20";
+        document.getElementById('dep_props_values2').value = "30; 50; 20";
+        document.getElementById('dep_props_values3').value = "30; 50; 20";
+        document.getElementById('dep_props_values4').value = "30; 50; 20";
+        document.getElementById('dep_props_values5').value = "30; 50; 20";
+
+        document.getElementById('dep_sigmas_values0').value = "0.25; 0.5; 2";
+        document.getElementById('dep_sigmas_values1').value = "0.25; 0.5; 2";
+        document.getElementById('dep_sigmas_values2').value = "0.25; 0.5; 2";
+        document.getElementById('dep_sigmas_values3').value = "0.25; 0.5; 2";
+        document.getElementById('dep_sigmas_values4').value = "0.25; 0.5; 2";
+        document.getElementById('dep_sigmas_values5').value = "0.25; 0.5; 2";
+
+        document.getElementById('aggr_props_values0').value = "33.3; 33.3; 33.3";
+        document.getElementById('aggr_props_values1').value = "33.3; 33.3; 33.3";
+        document.getElementById('aggr_props_values2').value = "33.3; 33.3; 33.3";
+        document.getElementById('aggr_props_values3').value = "33.3; 33.3; 33.3";
+        document.getElementById('aggr_props_values4').value = "33.3; 33.3; 33.3";
+        document.getElementById('aggr_props_values5').value = "33.3; 33.3; 33.3";
+
+        document.getElementById('aggr_sigmas_values0').value = "2; 5; 10";
+        document.getElementById('aggr_sigmas_values1').value = "2; 5; 10";
+        document.getElementById('aggr_sigmas_values2').value = "2; 5; 10";
+        document.getElementById('aggr_sigmas_values3').value = "2; 5; 10";
+        document.getElementById('aggr_sigmas_values4').value = "2; 5; 10";
+        document.getElementById('aggr_sigmas_values5').value = "2; 5; 10"; 
+
+        window.localStorage.setItem('mode', document.querySelector('input[name="mode"]:checked').value);
+
+        // Separator
+        window.localStorage.setItem('sep_type', document.querySelector('input[name="sep_type"]:checked').value);
+        
+        mode = 'AGGRADATION';                 
+        if (mode == document.getElementById('mode_aggradation').value) {            
+            document.getElementById("mode_aggradation").checked = true;            
+            hideInterface();            
+        }
+    }
+
+    function checkValue(val, min, max) {
+        if (val >= min && val < max)
+            return true;
+        else
+            return false;
+    }
+
+    function createSpaceStr(numberOfSpaces) {
+        spaceStr = "";
+
+        for (let i = 0; i < numberOfSpaces; i++) {
+            spaceStr = spaceStr + "&nbsp;";
+        }
+
+        return spaceStr;
+    }
+
+    function writeLabelNumberLayer3() {
+        var divNumberLayersInfo = document.getElementsByClassName("number_layers_info"); //document.getElementById("number_layers_info"); 
+        for (let i = 0; i < divNumberLayersInfo.length; i++) {
+            divNumberLayersInfo[i].innerHTML = "<label>" + createSpaceStr(57) + "G; MS; M" + "</label>";
+        }
+
+        var number_layers_explanation = document.getElementById("number_layers_explanation");        
+        number_layers_explanation.innerHTML = "<label>" + "(G: Gravel, MS: Medium Sand, M: Mud):" + "</label>";
+
+        // Fill the Layers' initial examples in the boxes according to the number of slopes
+        for (let i = 0; i < NUMBER_OF_SLOPES; i++) {
+            idAux = "dep_props_values" + i.toString();
+            document.getElementById(idAux).value = "30; 50; 20";
+            idAux = "dep_sigmas_values" + i.toString();
+            document.getElementById(idAux).value = "0.25; 0.5; 2";
+            idAux = "aggr_props_values" + i.toString();
+            document.getElementById(idAux).value = "33.3; 33.3; 33.3";
+            idAux = "aggr_sigmas_values" + i.toString();
+            document.getElementById(idAux).value = "2; 5; 10";
+        }
+    }
+
+    function writeLabelNumberLayer5() {
+        var divNumberLayersInfo = document.getElementsByClassName("number_layers_info");
+        for (let i = 0; i < divNumberLayersInfo.length; i++) {
+            divNumberLayersInfo[i].innerHTML = "<label>" + createSpaceStr(57) + "G; CS; MS; FS; M" + "</label>";
+        }
+
+        var number_layers_explanation = document.getElementById("number_layers_explanation");        
+        number_layers_explanation.innerHTML = "<label>" + "(G: Gravel, CS: C. Sand, MS: Medium Sand, FS: F. Sand, M: Mud):" + "</label>";
+
+        // Fill the Layers' initial examples in the boxes according to the number of slopes
+        for (let i = 0; i < NUMBER_OF_SLOPES; i++) {
+            idAux = "dep_props_values" + i.toString();
+            document.getElementById(idAux).value = "30; 20; 10; 20; 20";
+            idAux = "dep_sigmas_values" + i.toString();
+            document.getElementById(idAux).value = "0.25; 0.5; 0.75; 1.5; 2";
+            idAux = "aggr_props_values" + i.toString();
+            document.getElementById(idAux).value = "20.0; 20.0; 20.0; 20.0; 20.0";
+            idAux = "aggr_sigmas_values" + i.toString();
+            document.getElementById(idAux).value = "2; 5; 10; 20; 40";
+        }
+    }
+
+    function writeLabelNumberLayer7() {
+        var divNumberLayersInfo = document.getElementsByClassName("number_layers_info");
+        for (let i = 0; i < divNumberLayersInfo.length; i++) {
+            divNumberLayersInfo[i].innerHTML = "<label>" + createSpaceStr(57) + "G; VCS; CS; MS; FS; VFS; M" + "</label>";
+        }
+
+        var number_layers_explanation = document.getElementById("number_layers_explanation");        
+        number_layers_explanation.innerHTML = "<label>" + "(G: Gravel, VCS: Very C. Sand, CS: C. Sand, MS: Medium Sand, FS: F. Sand, VFS: Very F. Sand, M: Mud):" + "</label>";
+
+        // Fill the Layers' initial examples in the boxes according to the number of slopes
+        for (let i = 0; i < NUMBER_OF_SLOPES; i++) {
+            idAux = "dep_props_values" + i.toString();
+            document.getElementById(idAux).value = "30; 10; 10; 10; 10; 10; 20";
+            idAux = "dep_sigmas_values" + i.toString();
+            document.getElementById(idAux).value = "0.25; 0.5; 0.75; 1.0; 1.25; 1.5; 2";
+            idAux = "aggr_props_values" + i.toString();
+            document.getElementById(idAux).value = "14.2; 14.2; 14.2; 14.2; 14.2; 14.2; 14.2";
+            idAux = "aggr_sigmas_values" + i.toString();
+            document.getElementById(idAux).value = "2; 5; 10; 20; 40; 60; 90";
+        }
+    }
+
+</script>
+
+</html>

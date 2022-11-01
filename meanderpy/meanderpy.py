@@ -1950,11 +1950,14 @@ class ChannelBelt3D():
         grid.points = np.vstack((top, bottom))
         grid.dimensions = [*grid.dimensions[0:2], 2]
         plotter = pv.Plotter()
-        plotter.add_mesh(grid)#, scalars="colors", rgb=True) # add to scene           
-        
-        # CAREFUL: check the next line (filename + '.obj') if the following error appears:
-        plotter.export_obj(filename) # export two independent meshes: top and bottom 
-        data = trimesh.load(filename + '.obj', force='mesh') # load two triangle meshes: top and bottom
+        plotter.add_mesh(grid)#, scalars="colors", rgb=True) # add to scene                   
+
+        # Depending on the PC's setup, the export_obj from plotter may or may not include the suffix '.obj'
+        plotter.export_obj(filename)        
+        if filename[:-4] != '.obj':            
+            data = trimesh.load(filename + '.obj', force='mesh')
+        else:
+            data = trimesh.load(filename, force='mesh')
 
         vertices = data.vertices
         faces = np.ones((data.faces.shape[0], data.faces.shape[1]+1)) * data.faces.shape[1]                

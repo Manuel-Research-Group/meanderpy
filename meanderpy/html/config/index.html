@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        font: 14px arial;
+        position: relative;                
+    }
+
+    #general {        
+        padding: 10px;
+        left: 20px;
+        width : 25%;        
+        float: left;
+        display: inline-block;
+        background-color: #ddd;
+    }
+
+    input[type='number']{
+        width: 60px;
+    } 
+
+    /* Tooltip container */
+    .tooltip {
+        position: relative;
+        display: inline-block;
+        border-bottom: 1px dotted black;        
+    }
+
+    /* Tooltip text */
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        padding: 5px 0;
+        border-radius: 6px;        
+        position: absolute;
+        z-index: 1;
+    }
+
+    /* Show the tooltip text when you mouse over the tooltip container */
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+    }    
+
+    .topnav {
+        overflow: hidden;
+        background-color: #333;
+    }
+
+    .topnav a {
+        float: left;
+        color: #f2f2f2;
+        text-align: center;
+        padding: 14px 16px;
+        text-decoration: none;
+        font-size: 17px;
+    }
+
+    .topnav a:hover {
+        background-color: #ddd;
+        color: black;
+    }
+
+    .topnav a.active {
+        background-color: #04AA6D;
+        color: white;
+    }
+
+</style> 
+
+<head>
+    <title>Channel Configuration</title>
+    <script src="https://code.jquery.com/jquery-3.5.0.js"></script>
+</head>
+
+<body>
+    <div class="topnav">
+        <a href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/">Home</a>
+        <a href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/channels">Channel Profile</a>
+        <a class="active" href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/config">Channel Configuration</a>
+        <a href="https://www.inf.ufrgs.br/~dgbalreira/turbidite/events">Channel Events</a>
+    </div>
+    <h1>Channel Configuration</h1>
+    <div id="general">
+        <h2>General</h2>
+
+        <label for="margin">Channel Padding: </label>
+        <input type="number" id="margin" onchange="handleChanged(this.id, this.value)" value=500 maxlength="6" />
+        <label for="margin"> m </label><br /><br />        
+
+        <label for="ve">Vertical Exaggeration (values from 1 to 8):</label>
+        <input type="number" id="ve" onchange="handleChanged(this.id, this.value)" value=1 min="1" max="8" maxlength="6" /><br /><br />
+
+        <label for="dxdy">Map Scale (1 : </label>
+        <input type="number" id="dxdy" onchange="handleChanged(this.id, this.value)" value=25 maxlength="6" />
+        <label for="dxdy">) m </label><br /><br />        
+
+        <label for="preview">Display Initial Channel and Elevation Profile:</label>
+        <input type="checkbox" id="preview" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
+
+        <label for="render">Display Final Layer of 3D Mesh:</label>
+        <input type="checkbox" id="render" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
+
+        <label for="cross_sections">Cross Sections (separated by ;):</label>
+        <input type="text" id="cross_sections" onchange="handleChanged(this.id, this.value)" value="10; 40; 70" placeholder="E.g. 10; 40; 70" />
+        <label for="cross_sections"> % </label><br /><br />
+        
+        <label for="title">Title of the Cross Sections:</label>
+        <input type="text" id="title" onchange="handleChanged(this.id, this.value)" value="Title of the cross-sections" /><br /><br />
+
+        <label for="show_sections">Show Cross Sections:</label>
+        <input type="checkbox" id="show_sections" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
+
+        <label for="export_3d">Export 3D Mesh:</label>
+        <input type="checkbox" id="export_3d" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
+
+        <br />
+
+        <button onclick="downloadConfig(); return false;">Save Configurations</button><br /><br />
+
+    </div>
+
+</body>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+<script>
+
+/*
+    let allInputs = document.getElementsByTagName("input");
+
+    for(var i=0;i<allInputs.length; i++) {
+        //console.log(allInputs[i].id);
+        if(!sessionStorage.getItem(allInputs[i].id)) {
+            var val = localStorage[allInputs[i].id];
+            console.log("-> ", val);
+
+            if(allInputs[i].type == "checkbox")
+                document.getElementById(allInputs[i].id).checked = val == "true";            
+            else
+                document.getElementById(allInputs[i].id).value = val;
+            
+        }
+        //console.log(allInputs[i].id);
+
+    }
+*/
+    /*
+    if(!localStorage.margin) {
+        populateStorage();
+    } else {
+        setStyles();
+    }
+    */
+
+    function populateStorage() {
+        localStorage.margin = document.getElementById('margin').value;
+
+        setStyles();
+    }
+
+    function setStyles() {
+        var currentMargin = localStorage.margin;        
+
+        document.getElementById('margin').value = currentMargin;  
+        //console.log(currentMargin);
+    }       
+
+    function handleChanged (id, value) {                
+        localStorage.setItem(id, value);
+        console.log(localStorage.getItem(id));
+        //console.log(id, value);        
+    }
+
+    function handleChangedCheckbox (id, checked) {
+        //alert("id e value:", id, checked);
+        if (checked)
+            localStorage.setItem(id, "true");        
+        else
+            localStorage.setItem(id, "false");
+        
+        //console.log(id, checked);
+    }
+
+    function setFormValues() {
+
+
+
+        /*
+        let allSelects = document.getElementsByTagName("input");
+        for (var i=0; i< allSelects.length; i++){           
+            allSelects[i].value = "default";
+          }
+        */
+
+        for (var key in localStorage){            
+            var val = localStorage[key];
+            document.getElementsByName(key)[0].value = val;
+        }
+    }
+
+    //onChange={handleChanged.bind(this)}
+
+    var margin = { top: 40, right: 40, bottom: 50, left: 70 },
+        width = 960 - margin.left - margin.right,
+        height = 500 - margin.top - margin.bottom;
+
+    // CONFIGS
+    function downloadConfig() {
+        var fileName = "config.json";        
+        var contentConfig = {};
+        var is_valid_config = true;
+
+        var ve = Number(document.getElementById("ve").value);        
+        contentConfig.ve = ve;
+        var dxdy = Number(document.getElementById("dxdy").value);
+        contentConfig.dxdy = dxdy;
+        var margin = Number(document.getElementById("margin").value);
+        contentConfig.margin = margin;
+        if (!checkValue(ve,1,9) || !checkValue(dxdy) || !checkValue(margin))
+            is_valid_config = false;
+        var cross_sections = document.getElementById("cross_sections").value;
+        cross_sections_array = cross_sections.split(";");
+        var new_value;
+        for (var i = 0; i < cross_sections_array.length; i++) {
+            new_value = parseFloat(cross_sections_array[i])/100;                     
+            if (checkValue(new_value,0.0,1.0)) {
+                cross_sections_array[i] = new_value;                  
+            }
+            else {
+                is_valid_config = false;
+                break;
+            }
+        }
+
+        if(is_valid_config) {
+            contentConfig.cross_sections = cross_sections_array;        
+            var show_sections = document.getElementById("show_sections").checked;
+            contentConfig.show_sections = show_sections;
+            var render = document.getElementById("render").checked;
+            contentConfig.render = render;
+            var preview = document.getElementById("preview").checked;
+            contentConfig.preview = preview;
+            var title = document.getElementById("title").value;
+            contentConfig.title = title;
+            var export_3d = document.getElementById("export_3d").checked;
+            contentConfig.export = export_3d;            
+
+            var a = document.createElement("a");
+            var file = new Blob([JSON.stringify(contentConfig, null, 2)], { type: "application/json" });
+            a.href = URL.createObjectURL(file);
+            a.download = fileName;
+            a.click();
+        }
+        else
+            alert("Formulary items are incomplete or inconsistent. Please correct them and try again.");
+
+            
+    }
+
+    function checkValue(val, min=0, max=100000) {
+        if (val >= min && val < max)
+            return true;
+        else
+            return false;
+    }
+
+
+</script>
+
+</html>

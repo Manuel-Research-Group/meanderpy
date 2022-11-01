@@ -389,7 +389,7 @@ for evt in events_json:
 belt = mp.ChannelBelt(channel, basin, honestSpecificEvents)
 eventModeList = [] # Dennis: create a list of event modes (strings) to be incorpored into the title
 for i, event in enumerate(events):
-  print('Simulating event {} of {}'.format(i, len(events)))    
+  print('Simulating event {} of {}'.format(i+1, len(events)))    
   belt.simulate(event, i)
   eventModeList.append(event.mode) # Dennis: create a list of event modes (strings) to be incorpored into the title
   # basin, channel, time, events information inside belt object
