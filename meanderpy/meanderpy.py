@@ -923,8 +923,7 @@ class ChannelEvent:
             dep_sigmas = lambda slope: (0, 0, 0, 0, 0, 0, 0, 1)
             aggr_props = lambda slope: (0, 0, 0, 0, 0, 0, 0, 1)
             aggr_sigmas = lambda slope: (0, 0, 0, 0, 0, 0, 0, 1)
-        '''
-        
+        '''        
 
         self.mode = mode
         self.nit = nit
@@ -952,178 +951,6 @@ class ChannelEvent:
         self.dens = dens
         self.aggr_factor = aggr_factor
         self.start_time = -1
-    
-    
-    # DEBUG methods
-    '''
-    def plot_ch_depth(self, slope = np.linspace(-5, 0, 20), axis = None):
-        """
-        [DEBUG] Plots the channel depth for debugging.
-
-        :param slope: TODO
-        :param axis: TODO
-        :return: figure which can be shown by the matplotlib.
-        """
-
-        if axis is None:
-            fig, axis = plt.subplots(1, 1)
-        else:
-            fig = None
-
-        axis.set_xlabel('Slope(°)')
-        axis.set_ylabel('Channel Depth')
-        axis.plot(slope, self.ch_depth(slope))
-        return fig
-
-    def plot_ch_width(self, slope = np.linspace(-5, 0, 20), axis = None):
-        """
-        [DEBUG] Plots the channel width for debugging.
-
-        :param slope: TODO
-        :param axis: TODO
-        :return: figure which can be shown by the matplotlib.
-        """
-
-        if axis is None:
-            fig, axis = plt.subplots(1, 1)
-        else:
-            fig = None
-            
-        axis.set_xlabel('Slope(°)')
-        axis.set_ylabel('Channel Width(m)')
-        axis.plot(slope, self.ch_width(slope))
-        return fig
-
-    def plot_dep_height(self, slope = np.linspace(-5, 0, 20), axis = None):
-        """
-        [DEBUG] Plots the channel width for debugging.
-
-        :param slope: TODO
-        :param axis: TODO
-        :return: figure which can be shown by the matplotlib.
-        """
-
-        if axis is None:
-            fig, axis = plt.subplots(1, 1)
-        else:
-            fig = None
-            
-        axis.set_xlabel('Slope(°)')
-        axis.set_ylabel('Deposition Height(m)')
-        axis.plot(slope, self.dep_height(slope))
-        return fig
-
-    def plot_dep_props(self, slope = np.linspace(-5, 0, 20), axis = None):
-        """
-        [DEBUG] Plots the deposition proportions of the material filling the deposition depth.
-
-        :param slope: TODO
-        :param axis: TODO
-        :return: figure which can be shown by the matplotlib.
-        """
-
-        if axis is None:
-            fig, axis = plt.subplots(1, 1)
-        else:
-            fig = None
-        
-        L = len(slope)
-        gr_p, sa_p, si_p = self.dep_props(slope)
-        t_p = gr_p + sa_p + si_p
-        axis.set_ylim(0, 1) 
-        axis.set_xlabel('Slope(°)')
-        axis.set_ylabel('Deposition Proportions')
-        axis.plot(slope, gr_p / t_p * np.ones(L), slope, sa_p / t_p * np.ones(L), slope, si_p / t_p * np.ones(L))
-        axis.legend(['% gravel', '% sand', '% silt'])
-        return fig
-
-    def plot_dep_sigmas(self, slope = np.linspace(-5, 0, 20), axis = None):
-        """
-        [DEBUG] Plots the deposition sigmas for debugging.
-
-        :param slope: TODO
-        :param axis: TODO
-        :return: figure which can be shown by the matplotlib.
-        """
-
-        if axis is None:
-            fig, axis = plt.subplots(1, 1)
-        else:
-            fig = None
-        
-        L = len(slope)
-        gr_s, sa_s, si_s = self.dep_sigmas(slope)
-        axis.set_xlabel('Slope(°)')
-        axis.set_ylabel('Deposition Sigmas')
-        axis.plot(slope, gr_s * np.ones(L), slope, sa_s * np.ones(L), slope, si_s * np.ones(L))
-        axis.legend(['gravel', ' sand', 'silt'])
-        return fig
-
-    def plot_aggr_props(self, slope = np.linspace(-5, 0, 20), axis = None):        
-        """
-        [DEBUG] Plots the aggradation proportions for debugging.
-
-        :param slope: TODO
-        :param axis: TODO
-        :return: figure which can be shown by the matplotlib.
-        """
-
-        if axis is None:
-            fig, axis = plt.subplots(1, 1)
-        else:
-            fig = None
-        
-        L = len(slope)
-        gr_p, sa_p, si_p = self.aggr_props(slope)
-        t_p = gr_p + sa_p + si_p
-        axis.set_ylim(0, 1)
-        axis.set_xlabel('Slope(°)')
-        axis.set_ylabel('Aggradation Proportions')
-        axis.plot(slope, gr_p / t_p * np.ones(L), slope, sa_p / t_p * np.ones(L), slope, si_p / t_p * np.ones(L))
-        axis.legend(['gravel', ' sand', 'silt'])
-        return fig
-
-    def plot_aggr_sigmas(self, slope = np.linspace(-5, 0, 20), axis = None):        
-        """
-        [DEBUG] Plots the aggradation sigmas for debugging.
-
-        :param slope: TODO
-        :param axis: TODO
-        :return: figure which can be shown by the matplotlib.
-        """
-
-        if axis is None:
-            fig, axis = plt.subplots(1, 1)
-        else:
-            fig = None
-        
-        L = len(slope)
-        gr_s, sa_s, si_s = self.aggr_sigmas(slope)
-        axis.set_xlabel('Slope(°)')
-        axis.set_ylabel('Aggradation Sigmas')
-        axis.plot(slope, gr_s * np.ones(L), slope, sa_s * np.ones(L), slope, si_s * np.ones(L))
-        axis.legend(['gravel', ' sand', 'silt'])
-        return fig
-
-    def plot_all_relations(self):        
-        """
-        [DEBUG] Plots all the previous plot methods together.
-        
-        :return: figure which can be shown by the matplotlib.
-        """
-
-        fig, axes = plt.subplots(4, 2)
-
-        self.plot_ch_depth(axis = axes[0][0])
-        self.plot_ch_width(axis = axes[0][1])
-        self.plot_dep_height(axis = axes[1][0])
-        self.plot_dep_props(axis = axes[2][0])
-        self.plot_dep_sigmas(axis = axes[2][1])
-        self.plot_aggr_props(axis = axes[3][0])
-        self.plot_aggr_sigmas(axis = axes[3][1])
-
-        return fig
-    '''
 
 class ChannelBelt:
     """
@@ -1542,11 +1369,21 @@ class ChannelBelt3D():
         now = datetime.now()
         # dd/mm/YY H:M:S
         dt_string = now.strftime('%d/%m/%Y %H:%M:%S')
+
+        fig.suptitle(title + ' (' + dt_string + ')')
+
+        # TODO: continue here the new subplot containing information of the setup from channels.json and setup.json
+        axGeneral = fig.add_subplot(8,1,1)
+        #axGeneral.set_title(title + ' (' + dt_string + ')')
+        axGeneral.get_xaxis().set_visible(False)
+        axGeneral.get_yaxis().set_visible(False)
+        plt.box(on=None)
+        column_texts = ('','')
         
-        ax = fig.add_subplot(1,1,1)
-        ax.set_title(title + ' (' + dt_string + ')')
-        ax.get_xaxis().set_visible(False)
-        ax.get_yaxis().set_visible(False)
+        axEvents = fig.add_subplot(8,1,2)
+        #axEvents.set_title(title + ' (' + dt_string + ')')
+        axEvents.get_xaxis().set_visible(False)
+        axEvents.get_yaxis().set_visible(False)
         plt.box(on=None)
         column_texts = ('Event type', 'Num. of layers', 'Iter. saving simul.', 'Time of each iter. (years)', \
                         'Agg./Inc. modul. (m/years)', 'Meandering modul. (m/years)', 'Channel depth (m)', 'Channel width (m)', \
