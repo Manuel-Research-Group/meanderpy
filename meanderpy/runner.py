@@ -1,6 +1,4 @@
-from scipy.interpolate import interp1d, splrep, splev
 import scipy.interpolate as si
-
 import matplotlib.pyplot as plt
 import meanderpy as mp
 import numpy as np
@@ -9,8 +7,6 @@ import tempfile
 from os import path, walk
 from zipfile import ZipFile
 from shutil import copyfile, rmtree
-import sys
-import time # for debugging purposes only
 
 # DEBUG code:
 # print('DEBUG1:', type(xCoordPoints[0]))
@@ -39,6 +35,7 @@ DEFAULT_CONFIG_TITLE = ''
 DEFAULT_CONFIG_PREVIEW = False
 DEFAULT_CONFIG_RENDER = False
 DEFAULT_CONFIG_EXPORT = False
+DEFAULT_CONFIG_PLANT_VIEW = False
 
 ### DEFAULT CHANNEL EVENTS: these values are used if no values are found in the input file "events.json"
 DEFAULT_EVENT_NIT = 100               # Number of iterations: total number of iterations for the simulation
@@ -133,7 +130,7 @@ def create_tabular_param(par):
     value = [p['value'] for p in par]
     return si.interp1d(slope, value, fill_value="extrapolate")    
 
-def correctRoots(rootsX, rootsY, yMin, yMax):
+def correct_roots(rootsX, rootsY, yMin, yMax):
   """
     Auxiliary function for b_spline_eval. Decides the correct root values from sy(u0) given by si.Poly.from_spline function
 
@@ -208,11 +205,11 @@ def b_spline_eval(p, l, dx, degree=3):
     xEval.append(sx(u0))
     yEval.append(sy(u0))
 
-  xEvalNew, yEvalNew = correctRoots(xEval, yEval, yMin, yMax)  
+  xEvalNew, yEvalNew = correct_roots(xEval, yEval, yMin, yMax)  
   
   return xEvalNew, yEvalNew
  
-def plotChannelProfile2D(xCoordPoints, yCoordPoints, viewType):  
+def plot_channel_profile2D(xCoordPoints, yCoordPoints, viewType):  
   """
     Code to plot two lists of 2D points representing a channe information given their x and y coordinates and its view type.
     The x label is fixed as the length in meters. The plot can represent either the channel top or side view.
@@ -238,7 +235,7 @@ def plotChannelProfile2D(xCoordPoints, yCoordPoints, viewType):
   plt.ylabel(yLabel)
   plt.savefig(fileName + '.png')
 
-def zipFilesInDir(dirName, zipFileName, filter):
+def zip_files_in_dir(dirName, zipFileName, filter):
   """
     Compress all the files in a given directory to a zip file.
 
@@ -253,7 +250,7 @@ def zipFilesInDir(dirName, zipFileName, filter):
               filePath = path.join(folderName, filename)
               zipObj.write(filePath, filename)
 
-def generateStringFromEventModes(eventModeList):
+def generate_string_from_event_modes(eventModeList):
   """
     Create a list of event modes (strings) to be incorpored into the title
 
@@ -314,7 +311,7 @@ def zero_values_from_list(the_list, val):
 
   return the_list
 
-def preprocessSpecificEvents(ch_depth, ch_width, dep_height, dep_props, dep_sigmas, aggr_props, aggr_sigmas):
+def preprocess_specific_events(ch_depth, ch_width, dep_height, dep_props, dep_sigmas, aggr_props, aggr_sigmas):
   """  
     Set the zero all the occurrences of the values specified by val in the list
 
@@ -352,7 +349,9 @@ def preprocessSpecificEvents(ch_depth, ch_width, dep_height, dep_props, dep_sigm
     new_aggr_props.append(aggr_props[i]['value'])
     new_aggr_sigmas.append(aggr_sigmas[i]['value'])
    
-  return new_ch_depth, new_ch_width, new_dep_height, new_dep_props, new_dep_sigmas, new_aggr_props, new_aggr_sigmas  
+  return new_ch_depth, new_ch_width, new_dep_height, new_dep_props, new_dep_sigmas, new_aggr_props, new_aggr_sigmas
+
+# END OF FUNCTIONS      
 
 # MAIN
 
@@ -379,8 +378,8 @@ basin_x, basin_z = b_spline_eval(slope, length, DEFAULT_SAMPLE_RATE)
 preview = config_json.get('preview', DEFAULT_CONFIG_PREVIEW)
 
 if(preview):
-  plotChannelProfile2D(channel_x, channel_y, 'TOP')
-  plotChannelProfile2D(basin_x, basin_z, 'SIDE')
+  plot_channel_profile2D(channel_x, channel_y, 'TOP')
+  plot_channel_profile2D(basin_x, basin_z, 'SIDE')
 
 channel = mp.Channel(channel_x, channel_y)
 basin = mp.Basin(basin_x, basin_z)
@@ -428,8 +427,6 @@ for evt in events_json:
   old_aggr_props = aggr_props
   old_aggr_sigmas = aggr_sigmas
 
-  
-
   event = mp.ChannelEvent(
     nit = nit,
     saved_ts = saved_ts,
@@ -450,16 +447,14 @@ for evt in events_json:
     sep_thickness = sep_thicnkess,
     sep_type = sep_type
   )
-  events.append(event)
-
-  
+  events.append(event)  
 
   # Dennis
   # Preprocessing in the strings to substitute the '1e-06' to zero
-  ch_depth, ch_width, dep_height, dep_props, dep_sigmas, aggr_props , aggr_sigmas =  preprocessSpecificEvents(old_ch_depth, old_ch_width, \
+  ch_depth, ch_width, dep_height, dep_props, dep_sigmas, aggr_props , aggr_sigmas =  preprocess_specific_events(old_ch_depth, old_ch_width, \
                                                                                                               old_dep_height, old_dep_props, \
                                                                                                               old_dep_sigmas, old_aggr_props, \
-                                                                                                              old_aggr_sigmas)  
+                                                                                                              old_aggr_sigmas)
   
   honestSpecificEvent = mp.ChannelSpecifics(ch_depth, ch_width, dep_height, dep_props, dep_sigmas, aggr_props, aggr_sigmas)
   honestSpecificEvents.append(honestSpecificEvent)
@@ -473,7 +468,7 @@ for i, event in enumerate(events):
   eventModeList.append(event.mode) # Dennis: create a list of event modes (strings) to be incorpored into the title
   # basin, channel, time, events information inside belt object
 
-eventSimpleText = generateStringFromEventModes(eventModeList)
+eventSimpleText = generate_string_from_event_modes(eventModeList)
 
 ### CONFIG
 ve = config_json.get('ve', DEFAULT_CONFIG_VE)
@@ -485,6 +480,7 @@ preview = config_json.get('preview', DEFAULT_CONFIG_PREVIEW)
 title = config_json.get('title', DEFAULT_CONFIG_TITLE)
 render = config_json.get('render', DEFAULT_CONFIG_RENDER)
 export = config_json.get('export', DEFAULT_CONFIG_EXPORT)
+plant_view = config_json.get('plant_view', DEFAULT_CONFIG_PLANT_VIEW)
 
 print('Building 3D model using {} meters grid'.format(grid))
 model = belt.build_3d_model(grid, margin)
@@ -494,48 +490,14 @@ if len(cross_sections) > 0:
 
 # Variable introduced to show the cross sections
 # Generate and organize the new matplotlib figures into a zip
+'''
 if show_sections:
-  cross_section_count = 0
-  dir = tempfile.mkdtemp()
-  for xsec in cross_sections:
-    #filename = path.join(temp_dir, '{}'.format((int)(cross_section_count)+1)) # temp folder, all models
-    filename = path.join(dir, '{}'.format((int)(cross_section_count) + 1)) # temp folder, all models
-
-    print('- Cross-section @ {}'.format(xsec))
-    model.plot_xsection(
-      xsec = xsec, 
-      ve = ve, 
-      title = title + '\n' + eventSimpleText # Dennis: added here to contain information regarding the event order
-    )    
-    #plt.show()
-    # DENNIS: added to save the figures instead of just showing them in a separate window
-    plt.savefig(filename + '.pdf')
-    plt.savefig(filename + '.svg')
-    cross_section_count = cross_section_count + 1
-  
-  model.plot_table_simulation_parameters(title)
-  filename_sim_parameters = path.join(dir, 'sim_parameters')
-  plt.savefig(filename_sim_parameters + '.pdf')
-
-  # Compact in a zip file all the PDF files in filename folder
-  zipfile = path.join(dir, 'cross_sections_PDF.zip')
-  zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.pdf')
-  copyfile(zipfile, 'cross_sections_PDF.zip')
-
-  # Compact in a zip file all the SVG files in filename folder
-  # Need to check here if the SVG file is consistent
-  # Removed for now
-  '''
-  zipfile = path.join(temp_dir, 'cross_sections_SVG.zip')
-  zipFilesInDir(temp_dir, zipfile, lambda fn: path.splitext(fn)[1] == '.svg')
-  copyfile(zipfile, 'cross_sections_SVG.zip')
-  '''
-
-  rmtree(dir) # remove the temporary folder created to contain the cross section files before zipping
+  generate_cross_sections(cross_sections, model, 'Saving Point Runner', True)
+'''
 
 if export:
   print('Exporting 3D model')
-  model.export_objs(ve = ve)
+  model.export_objs('event_layers.zip', plant_view, 'plant_view.zip', None, 3)
 
 if render:
   print('Rendering 3D model')

@@ -118,8 +118,14 @@
         <label for="show_sections">Show Cross Sections:</label>
         <input type="checkbox" id="show_sections" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
 
-        <label for="export_3d">Export 3D Mesh:</label>
-        <input type="checkbox" id="export_3d" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
+        <label for="export_3d_ply">Export 3D Mesh (as .ply):</label>
+        <input type="checkbox" id="export_3d_ply" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
+
+        <label for="export_3d_xyz">Export 3D Points (as .xyz):</label>
+        <input type="checkbox" id="export_3d_xyz" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
+
+        <label for="export_plant_view">Export Plant View:</label>
+        <input type="checkbox" id="export_plant_view" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
 
         <br />
 
@@ -249,8 +255,12 @@
             contentConfig.preview = preview;
             var title = document.getElementById("title").value;
             contentConfig.title = title;
-            var export_3d = document.getElementById("export_3d").checked;
-            contentConfig.export = export_3d;            
+            var export_3d_ply = document.getElementById("export_3d_ply").checked;
+            contentConfig.export_ply = export_3d_ply;
+            var export_3d_xyz = document.getElementById("export_3d_xyz").checked;
+            contentConfig.export_xyz = export_3d_xyz;            
+            var export_plant_view = document.getElementById("export_plant_view").checked;
+            contentConfig.plant_view = export_plant_view;
 
             var a = document.createElement("a");
             var file = new Blob([JSON.stringify(contentConfig, null, 2)], { type: "application/json" });
