@@ -151,20 +151,3 @@ def gaussian_surface(sigma_map, cld_map, hw_map):
     """
 
     return np.exp(- 1 / 2 * ((cld_map / hw_map) / sigma_map) ** 2)
-
-# GRAVEYARD
-'''
-def topostrat_evolution(topo):
-    """
-    Function for converting a stack of geomorphic surfaces into stratigraphic surfaces.
-
-    :param topo: 3D numpy array of geomorphic surfaces
-    :return: strat: 3D numpy array of stratigraphic surfaces
-    """
-    N = 4
-    r,c,ts = np.shape(topo)
-    strat = np.zeros((r,c,int(ts/N)))
-    for i in (range(0,ts, N)):
-        strat[:,:,int((i+1)/N)] = np.amin(topo[:,:,i:i+N], axis=2)
-    return strat
-'''

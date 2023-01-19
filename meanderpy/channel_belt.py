@@ -189,9 +189,10 @@ class ChannelBelt:
             ve = 3      
             )    
             #plt.show()
-            # DENNIS: added to save the figures instead of just showing them in a separate window
+            # DENNIS: added to save the figures instead of just showing them in a separate window            
             plt.savefig(filename + '.pdf')
-            #plt.savefig(filename + '.svg')
+            plt.savefig(filename + '.svg')
+            plt.savefig(filename + '.jpg')
             cross_section_count = cross_section_count + 1
 
         if generateTableSimulator:
@@ -200,7 +201,7 @@ class ChannelBelt:
             filename_sim_parameters = path.join(dir, 'sim_parameters')
             plt.savefig(filename_sim_parameters + '.pdf')
         
-        # Remove any invalid character for the file name in windows operating systems  
+        # Remove any invalid character for the file name in windows operating systems
         invalid = '<>:"/\|?* '
         for c in invalid:
             eventName = eventName.replace(c, '')
@@ -210,15 +211,20 @@ class ChannelBelt:
         zip_files_in_dir(dir, zipfileName, lambda fn: path.splitext(fn)[1] == '.pdf')
         copyfile(zipfileName, 'cross_sections_PDF-' + eventName + '.zip')
 
+        # Compact in a zip file all the JPG cross section files in filename folder
+        zipfileName = path.join(dir, 'cross_sections_JPG-' + eventName + '.zip')  
+        zip_files_in_dir(dir, zipfileName, lambda fn: path.splitext(fn)[1] == '.jpg')
+        copyfile(zipfileName, 'cross_sections_JPG-' + eventName + '.zip')
+
         # Compact in a zip file all the SVG files in filename folder  
         # Removed for now since SVG file is not vectorized
-        #zipfile = path.join(temp_dir, 'cross_sections_SVG.zip')
-        #zipFilesInDir(temp_dir, zipfile, lambda fn: path.splitext(fn)[1] == '.svg')
-        #copyfile(zipfile, 'cross_sections_SVG.zip')
+        zipfileName = path.join(dir, 'cross_sections_SVG' + eventName + '.zip')
+        zipFilesInDir(dir, zipfileName, lambda fn: path.splitext(fn)[1] == '.svg')
+        copyfile(zipfileName, 'cross_sections_SVG-' + eventName + '.zip')
 
         rmtree(dir)
 
-    def build_3d_model(self, dx, margin = 500): # recebe lista de bacias e lista de canais
+    def build_3d_model(self, dx, margin = 500, width=500, elevation=500): # recebe lista de bacias e lista de canais
         """
         TODO
 
@@ -401,9 +407,9 @@ class ChannelBelt:
         CONFIG_FILE = './config.json'
         config_file = open(CONFIG_FILE, 'r')
         config_json = json.load(config_file)
-        generateTable = False  
-        saveAll = False              
-        saveLast = True
+        generateTable = False
+        saveAll = True              
+        saveLast = False
         saveNone = False
 
         if saveAll:
@@ -415,11 +421,11 @@ class ChannelBelt:
 
         for i in range(startPrintingAt, N):
             topo_tmp = topo[:,:,:i*L]
-            model_tmp = ChannelBelt3D(topo_tmp, xmin, ymin, dx, dx, self.events, self.honestSpecificEvents, separator_type)
+            model_tmp = ChannelBelt3D(topo_tmp, xmin, ymin, dx, dx, self.events, self.honestSpecificEvents, separator_type, width, elevation)
             cross_sections = config_json.get('cross_sections', DEFAULT_CONFIG_CROSS_SECTIONS)
             if i == N-1:
                 generateTable = True            
             self.generate_cross_sections(cross_sections, model_tmp, 'Saving Point ' + str(i), generateTable)
 
         # retorna em topo modelo com todas as camadas    
-        return ChannelBelt3D(topo, xmin, ymin, dx, dx, self.events, self.honestSpecificEvents, separator_type) # Dennis: added separator_type
+        return ChannelBelt3D(topo, xmin, ymin, dx, dx, self.events, self.honestSpecificEvents, separator_type, width, elevation) # Dennis: added separator_type

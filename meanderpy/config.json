@@ -17,6 +17,5 @@
   "render": false,
   "preview": false,
   "title": "Title",
-  "export": true,
-  "plant_view": true
+  "export": true
 }

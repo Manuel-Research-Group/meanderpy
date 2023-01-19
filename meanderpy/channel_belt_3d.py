@@ -21,7 +21,7 @@ class ChannelBelt3D():
     Class for 3D models of channel belts. (Sylvester)
     """
 
-    def __init__(self, topo, xmin, ymin, dx, dy, events, honestSpecificEvents, separator_type): # Added the events parameter by dennis
+    def __init__(self, topo, xmin, ymin, dx, dy, events, honestSpecificEvents, separator_type, width, elevation): # Added the events parameter by dennis
         """
         Initializes the ChannelBelt3D object.
 
@@ -56,6 +56,9 @@ class ChannelBelt3D():
         self.honestSpecificEvents = honestSpecificEvents # Dennis
         
         self.separator_type = separator_type # Added the separator_type parameter by dennis
+
+        self.width = width
+        self.elevation = elevation
 
     def topostrat(self, topo, N = None):
         """
@@ -218,7 +221,7 @@ class ChannelBelt3D():
                 Line2D([0], [0], color=sand_color, lw=LINE_WIDTH, label='Sand'),
                 Line2D([0], [0], color=coarse_sand_color, lw=LINE_WIDTH, label='Coarse Sand'),
                 Line2D([0], [0], color=very_coarse_sand_color, lw=LINE_WIDTH, label='Very Coarse Sand'),
-                Line2D([0], [0], color=gravel_color, lw=LINE_WIDTH, label='Gravel'),                
+                Line2D([0], [0], color=gravel_color, lw=LINE_WIDTH, label='Gravel'),
             ]            
         elif max_num_layers == 5:
             legend_elements = [
@@ -260,7 +263,7 @@ class ChannelBelt3D():
 
         # Matplotlib
         fig1 = plt.figure(figsize=(20,6)) # Dennis: changed from (20,5) to (20,6) to increase the title height # TODO
-        #ax1 = fig1.add_subplot(4,1,(1,2))
+        #ax1 = fig1.add_subplot(4,1,(1,2))        
         ax1 = fig1.add_subplot(1,1,1)
         ax1.set_title('{}Cross section at ({:.3f}) - {:.3f} km'.format(title, xsec, xindex * self.dx + self.xmin))        
 
@@ -307,20 +310,27 @@ class ChannelBelt3D():
             # TODO: testar o tipo do separador para criar a cor específica (vermelho, roxo, azul)
             # recuperar ele do JSON (buscar o tipo e indexar)
             # QUAL RELAÇÃO DOS EVENTOS COM O STRAT e com o FOR acima?
-            ax1.fill(X1, Y8, facecolor=separator_color[self.separator_type[i+8]])
+            ax1.fill(X1, Y8, facecolor=separator_color[self.separator_type[i+8]])    
+
+        # HERE    
         
         if ve != 1:
             ax1.set_aspect(ve, adjustable='datalim')
         
         # Still need to debug this... aparently ymin has no relation with the width from the interface
-        ax1.set_xlim(self.ymin, self.ymin + sy * self.dy) # TODO Dennis: check here the x limits
-        #ax1.set_xlim(-500, 500)
-        
-        ax1.set_ylim(self.zmin, self.zmax)        
-        ax1.set_xlabel('Width (m)')
-        ax1.set_ylabel('Elevation (m)')
+        #ax1.set_xlim(self.ymin, self.ymin + sy * self.dy) # TODO Dennis: check here the x limits
+        print('WIDTH: ', self.width)
+        ax1.set_xlim(-1.2*self.width, 1.2*self.width)        
+        ax1.set_ylim(-0.1*self.elevation, 1.1*self.elevation)
         
         ax1.legend(handles=legend_elements, loc='upper right')
+
+        #plt.savefig('teste.svg')
+        
+        ax1.set_xlabel('Width (m)')
+        ax1.set_ylabel('Elevation (m)')
+
+        plt.savefig('teste.svg')
 
         return fig1
 

@@ -108,21 +108,24 @@
         <label for="render">Display Final Layer of 3D Mesh:</label>
         <input type="checkbox" id="render" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
 
-        <label for="cross_sections">Cross Sections (separated by ;):</label>
+        <label for="cross_sections">Cross Sections at (separated by ;):</label>
         <input type="text" id="cross_sections" onchange="handleChanged(this.id, this.value)" value="10; 40; 70" placeholder="E.g. 10; 40; 70" />
         <label for="cross_sections"> % </label><br /><br />
         
-        <label for="title">Title of the Cross Sections:</label>
-        <input type="text" id="title" onchange="handleChanged(this.id, this.value)" value="Title of the cross-sections" /><br /><br />
+        <label for="title">Cross Sections Title:</label>
+        <input type="text" id="title" onchange="handleChanged(this.id, this.value)" value="Title" /><br /><br />
+        
+        <label for="show_sections">Show Cross Sections during Simulation:</label>
+        <input type="checkbox" id="show_sections" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />        
 
-        <label for="show_sections">Show Cross Sections:</label>
-        <input type="checkbox" id="show_sections" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
+        <label for="export_cross_sections_jpg">Export Cross Sections as JPG:</label>
+        <input type="checkbox" id="export_cross_sections_jpg" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
 
-        <label for="export_3d_ply">Export 3D Mesh (as .ply):</label>
-        <input type="checkbox" id="export_3d_ply" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
+        <label for="export_3d_mesh">Export 3D Mesh:</label>
+        <input type="checkbox" id="export_3d_mesh" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
 
-        <label for="export_3d_xyz">Export 3D Points (as .xyz):</label>
-        <input type="checkbox" id="export_3d_xyz" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
+        <label for="export_3d_points">Export 3D Points (XYZ):</label>
+        <input type="checkbox" id="export_3d_points" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
 
         <label for="export_plant_view">Export Plant View:</label>
         <input type="checkbox" id="export_plant_view" onchange="handleChangedCheckbox(this.id, this.checked)" value=1 checked /><br /><br />
@@ -137,33 +140,6 @@
 <script src="https://d3js.org/d3.v3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
 <script>
-
-/*
-    let allInputs = document.getElementsByTagName("input");
-
-    for(var i=0;i<allInputs.length; i++) {
-        //console.log(allInputs[i].id);
-        if(!sessionStorage.getItem(allInputs[i].id)) {
-            var val = localStorage[allInputs[i].id];
-            console.log("-> ", val);
-
-            if(allInputs[i].type == "checkbox")
-                document.getElementById(allInputs[i].id).checked = val == "true";            
-            else
-                document.getElementById(allInputs[i].id).value = val;
-            
-        }
-        //console.log(allInputs[i].id);
-
-    }
-*/
-    /*
-    if(!localStorage.margin) {
-        populateStorage();
-    } else {
-        setStyles();
-    }
-    */
 
     function populateStorage() {
         localStorage.margin = document.getElementById('margin').value;
