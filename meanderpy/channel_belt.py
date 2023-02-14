@@ -192,7 +192,7 @@ class ChannelBelt:
             # DENNIS: added to save the figures instead of just showing them in a separate window            
             plt.savefig(filename + '.pdf')
             plt.savefig(filename + '.svg')
-            plt.savefig(filename + '.jpg')
+            plt.savefig(filename + '.png')
             cross_section_count = cross_section_count + 1
 
         if generateTableSimulator:
@@ -213,8 +213,8 @@ class ChannelBelt:
 
         # Compact in a zip file all the JPG cross section files in filename folder
         zipfileName = path.join(dir, 'cross_sections_JPG-' + eventName + '.zip')  
-        zip_files_in_dir(dir, zipfileName, lambda fn: path.splitext(fn)[1] == '.jpg')
-        copyfile(zipfileName, 'cross_sections_JPG-' + eventName + '.zip')
+        zip_files_in_dir(dir, zipfileName, lambda fn: path.splitext(fn)[1] == '.png')
+        copyfile(zipfileName, 'cross_sections_PNG-' + eventName + '.zip')
 
         # Compact in a zip file all the SVG files in filename folder  
         # Removed for now since SVG file is not vectorized
