@@ -33,11 +33,10 @@ class ChannelBelt3D():
         :return: TODO
         """
 
-        #self.raw_plot_xsection(0.1, topo)        
-        self.strat = self.topostrat(topo)
-        #self.raw_plot_xsection(0.1, self.strat)
+        
+        self.strat = self.topostrat(topo)        
         self.topo = topo
-        #self.raw_plot_xsection(0.1, self.topo)
+        
 
         self.xmin = xmin
         self.ymin = ymin        
@@ -238,7 +237,8 @@ class ChannelBelt3D():
                 Line2D([0], [0], color=gravel_color, lw=LINE_WIDTH, label='Gravel'),                
             ]
         else:
-            raise Exception('Invalid number of layers.')
+            raise Exception('Invalid number of layers.')       
+        
         
         # Dennis: We only include the separator in the figure legend if at least one of the events is a separator
         hasSeparatorBasalSurface = False
@@ -263,7 +263,7 @@ class ChannelBelt3D():
 
         # Matplotlib
         fig1 = plt.figure(figsize=(20,6)) # Dennis: changed from (20,5) to (20,6) to increase the title height # TODO
-        #ax1 = fig1.add_subplot(4,1,(1,2))        
+        #ax1 = fig1.add_subplot(4,1,(1,2))
         ax1 = fig1.add_subplot(1,1,1)
         ax1.set_title('{}Cross section at ({:.3f}) - {:.3f} km'.format(title, xsec, xindex * self.dx + self.xmin))        
 
@@ -281,11 +281,15 @@ class ChannelBelt3D():
 
         Xv = np.linspace(self.ymin, self.ymin + sy * self.dy, sy)
         X1 = np.concatenate((Xv, Xv[::-1])) # faz array inverso
+
+        X1 = -X1 # changed here to make it consistent with the 3D mesh channel sinuosity
         
         if substrat:
             substract_color = [192/255, 192/255, 192/255]
             Yb = np.ones(sy) * self.zmin
-            ax1.fill(X1, np.concatenate((Yb, strat[::-1,xindex,0])), facecolor=substract_color)
+
+
+            ax1.fill(X1, np.concatenate((Yb, strat[::-1,xindex,0])) * ve, facecolor=substract_color)
             legend_elements.append(Line2D([0], [0], color=substract_color, lw=LINE_WIDTH, label='Substract'))
         
         # atualizar: Y1...Y7
@@ -299,7 +303,17 @@ class ChannelBelt3D():
             Y6 = np.concatenate((strat[:,xindex,i+5], strat[::-1,xindex,i+6]))
             Y7 = np.concatenate((strat[:,xindex,i+6], strat[::-1,xindex,i+7]))
             Y8 = np.concatenate((strat[:,xindex,i+7], strat[::-1,xindex,i+8]))
-            
+
+            Y1 = Y1 * ve
+            Y2 = Y2 * ve
+            Y3 = Y3 * ve
+            Y4 = Y4 * ve
+            Y5 = Y5 * ve
+            Y6 = Y6 * ve
+            Y7 = Y7 * ve
+            Y8 = Y8 * ve
+
+                        
             ax1.fill(X1, Y1, facecolor=gravel_color)
             ax1.fill(X1, Y2, facecolor=very_coarse_sand_color) 
             ax1.fill(X1, Y3, facecolor=coarse_sand_color)
@@ -314,23 +328,32 @@ class ChannelBelt3D():
 
         # HERE    
         
+        # Removed here to fix set_xlim
+        '''
         if ve != 1:
-            ax1.set_aspect(ve, adjustable='datalim')
-        
+            ax1.set_aspect(ve, adjustable='datalim')        
+        '''
+            
+        WIDTH_THRESHOLD = 3
         # Still need to debug this... aparently ymin has no relation with the width from the interface
-        #ax1.set_xlim(self.ymin, self.ymin + sy * self.dy) # TODO Dennis: check here the x limits
-        print('WIDTH: ', self.width)
-        ax1.set_xlim(-1.2*self.width, 1.2*self.width)        
-        ax1.set_ylim(-0.1*self.elevation, 1.1*self.elevation)
+        #plt.xlim(xmin=0, xmax=100)                
+        #ax1.set_xbound(-1.2*self.width, 1.2*self.width)
+        #ax1.set_ybound(lower=-0.1*self.elevation, upper=1.1*self.elevation)
+        ax1.set_xlim(-WIDTH_THRESHOLD*self.width, WIDTH_THRESHOLD*self.width) # set_xlim not working properly
+        # Added "ve" (vertical exaggeration) here to correct the height
+        ax1.set_ylim(-0.1*self.elevation, ve*self.elevation)
         
-        ax1.legend(handles=legend_elements, loc='upper right')
+        ax1.legend(handles=legend_elements, loc='upper right', facecolor="pink")
+
+        # set the background of the legend box
+        #ax1.legend(facecolor="blue")
 
         #plt.savefig('teste.svg')
         
         ax1.set_xlabel('Width (m)')
         ax1.set_ylabel('Elevation (m)')
 
-        plt.savefig('teste.svg')
+        #plt.savefig('teste.svg')
 
         return fig1
 
@@ -697,7 +720,9 @@ class ChannelBelt3D():
             strat = topostrat(self.topo, event_top_layer)
             
             # Produces a grid for the current z layer containing the points in grid.points
+            #grid = pv.StructuredGrid(xx, -yy, strat[:,:,event_top_layer] * ve) # CHECK HERE
             grid = pv.StructuredGrid(xx, yy, strat[:,:,event_top_layer] * ve)
+            print("ve: ", ve)
 
             # top contains all the surface points for each layer
             top = grid.points.copy()

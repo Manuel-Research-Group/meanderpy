@@ -476,9 +476,9 @@ function download() {
 
   // bounding box of the canvas
   minCur = [0,0];
-  maxCur = [width, height];
+  maxCur = [width, height];  
 
-  var savePoints = pointTransformCoordinates(points, minCur, maxCur, minNew, maxNew, SINUOSITY);
+  var savePoints = pointTransformCoordinates(points, minCur, maxCur, minNew, maxNew, SINUOSITY);  
 
   minNew = [0, 0];
   maxNew = [lengthInput.value, elevationInput.value];
@@ -489,7 +489,7 @@ function download() {
   var sinuosity = [];
   var slope = [];
   
-  for (i = 0; i < savePoints.length; i++) {
+  for (i = 0; i < savePoints.length; i++) {    
     sinuosity.push(savePoints[i])
   }
   content.sinuosity = sinuosity;
@@ -519,9 +519,9 @@ function pointTransformCoordinates(points, minCur, maxCur, minNew, maxNew, mode)
     newPoints[i][0] = (newPoints[i][0]) * (maxNew[0] - minNew[0]);
 
     if (mode == SINUOSITY)
-    // DENNIS
-      //newPoints[i][1] = -1*((newPoints[i][1]) * (maxNew[1] - minNew[1]) + minNew[1]);
-      newPoints[i][1] = ((newPoints[i][1]) * (maxNew[1] - minNew[1]) + minNew[1]); 
+    // DENNIS: changing the y coordinate of "points" to correct both the 2D cross-sections and the 3D model
+      newPoints[i][1] = -1*((newPoints[i][1]) * (maxNew[1] - minNew[1]) + minNew[1]);
+      //newPoints[i][1] = ((newPoints[i][1]) * (maxNew[1] - minNew[1]) + minNew[1]); 
     else
       newPoints[i][1] = (maxNew[1] - ((newPoints[i][1]) * (maxNew[1] - minNew[1])));
   }

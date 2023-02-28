@@ -171,7 +171,7 @@ class ChannelBelt:
     # Variable introduced to show the cross sections
     # Generate and organize the new matplotlib figures into a zip
     # TODO: check the parameters below
-    def generate_cross_sections(self, cross_sections, model, eventName, generateTableSimulator):
+    def generate_cross_sections(self, cross_sections, model, eventName, generateTableSimulator, ve):
         """
         Generate and organize the new matplotlib figures into a zip
 
@@ -184,15 +184,16 @@ class ChannelBelt:
             filename = path.join(dir, '{}'.format((int)(cross_section_count) + 1)) # temp folder, all models
 
             print('- Cross-section @ {}'.format(xsec))
+            print('VE::: ', ve)
             model.plot_xsection(
-            xsec = xsec, 
-            ve = 3      
+            xsec, 
+            ve     # added ve here to correct further classes: when generating 3d model and the 2d cross-sections
             )    
             #plt.show()
             # DENNIS: added to save the figures instead of just showing them in a separate window            
             plt.savefig(filename + '.pdf')
             plt.savefig(filename + '.svg')
-            plt.savefig(filename + '.jpg')
+            plt.savefig(filename + '.png')
             cross_section_count = cross_section_count + 1
 
         if generateTableSimulator:
@@ -213,8 +214,8 @@ class ChannelBelt:
 
         # Compact in a zip file all the JPG cross section files in filename folder
         zipfileName = path.join(dir, 'cross_sections_JPG-' + eventName + '.zip')  
-        zip_files_in_dir(dir, zipfileName, lambda fn: path.splitext(fn)[1] == '.jpg')
-        copyfile(zipfileName, 'cross_sections_JPG-' + eventName + '.zip')
+        zip_files_in_dir(dir, zipfileName, lambda fn: path.splitext(fn)[1] == '.png')
+        copyfile(zipfileName, 'cross_sections_PNG-' + eventName + '.zip')
 
         # Compact in a zip file all the SVG files in filename folder  
         # Removed for now since SVG file is not vectorized
@@ -224,7 +225,7 @@ class ChannelBelt:
 
         rmtree(dir)
 
-    def build_3d_model(self, dx, margin = 500, width=500, elevation=500): # recebe lista de bacias e lista de canais
+    def build_3d_model(self, dx, margin = 500, width=500, elevation=500, ve=1): # recebe lista de bacias e lista de canais
         """
         TODO
 
@@ -425,7 +426,7 @@ class ChannelBelt:
             cross_sections = config_json.get('cross_sections', DEFAULT_CONFIG_CROSS_SECTIONS)
             if i == N-1:
                 generateTable = True            
-            self.generate_cross_sections(cross_sections, model_tmp, 'Saving Point ' + str(i), generateTable)
+            self.generate_cross_sections(cross_sections, model_tmp, 'Saving Point ' + str(i), generateTable, ve)
 
         # retorna em topo modelo com todas as camadas    
         return ChannelBelt3D(topo, xmin, ymin, dx, dx, self.events, self.honestSpecificEvents, separator_type, width, elevation) # Dennis: added separator_type

@@ -483,7 +483,8 @@ export = config_json.get('export', DEFAULT_CONFIG_EXPORT)
 plant_view = config_json.get('plant_view', DEFAULT_CONFIG_PLANT_VIEW)
 
 print('Building 3D model using {} meters grid'.format(grid))
-model = belt.build_3d_model(grid, margin)
+print('VE (runner): ', ve)
+model = belt.build_3d_model(grid, margin, width, elevation, ve)
 
 if len(cross_sections) > 0:
   print('Rendering {} cross-section images'.format(len(cross_sections)))
@@ -497,7 +498,7 @@ if show_sections:
 
 if export:
   print('Exporting 3D model')
-  model.export_objs('event_layers.zip', plant_view, 'plant_view.zip', None, 3)
+  model.export_objs('event_layers.zip', plant_view, 'plant_view.zip', None, ve)
 
 if render:
   print('Rendering 3D model')
