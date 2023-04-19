@@ -16,6 +16,7 @@ from shutil import copyfile, rmtree
 CHANNELS_FILE = './channels.json'
 EVENTS_FILE = './events.json'
 CONFIG_FILE = './config.json'
+SIM_PARAM_FILE = './sim-param.json'
 
 ### DEFAULTS CHANNEL PROPERTIES: these values are used if no values are found in the input file "channels.json"
 DEFAULT_SAMPLE_RATE = 50
@@ -355,13 +356,19 @@ def preprocess_specific_events(ch_depth, ch_width, dep_height, dep_props, dep_si
 
 # MAIN
 
-channels_file = open(CHANNELS_FILE, 'r')
-events_file = open(EVENTS_FILE, 'r')
-config_file = open(CONFIG_FILE, 'r')
+#channels_file = open(CHANNELS_FILE, 'r')
+#events_file = open(EVENTS_FILE, 'r')
+#config_file = open(CONFIG_FILE, 'r')
 
-channels_json = json.load(channels_file)
-events_json = json.load(events_file)
-config_json = json.load(config_file)
+sim_param_file = open(SIM_PARAM_FILE, 'r')
+sim_param_json = json.load(sim_param_file)
+
+channels_json = sim_param_json.get('channels')
+events_json = sim_param_json.get('events')
+config_json = sim_param_json.get('config')
+#channels_json = json.load(channels_file)
+#events_json = json.load(events_file)
+#config_json = json.load(config_file)
 
 ##### CHANNEL-BASIN #####
 
@@ -483,7 +490,7 @@ export = config_json.get('export', DEFAULT_CONFIG_EXPORT)
 plant_view = config_json.get('plant_view', DEFAULT_CONFIG_PLANT_VIEW)
 
 print('Building 3D model using {} meters grid'.format(grid))
-print('VE (runner): ', ve)
+# Added ve (vertical exaggeration) here to correct the height of the 3d mesh (extracted from the config.json file)
 model = belt.build_3d_model(grid, margin, width, elevation, ve)
 
 if len(cross_sections) > 0:

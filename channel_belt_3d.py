@@ -341,6 +341,7 @@ class ChannelBelt3D():
         #ax1.set_ybound(lower=-0.1*self.elevation, upper=1.1*self.elevation)
         ax1.set_xlim(-WIDTH_THRESHOLD*self.width, WIDTH_THRESHOLD*self.width) # set_xlim not working properly
         # Added "ve" (vertical exaggeration) here to correct the height
+        # Previous versions were not considering the ve, which was set as default (ve=3)
         ax1.set_ylim(-0.1*self.elevation, ve*self.elevation)
         
         ax1.legend(handles=legend_elements, loc='upper right', facecolor="pink")
@@ -721,8 +722,9 @@ class ChannelBelt3D():
             
             # Produces a grid for the current z layer containing the points in grid.points
             #grid = pv.StructuredGrid(xx, -yy, strat[:,:,event_top_layer] * ve) # CHECK HERE
+            # Added ve (vertical exaggeration) here to correct the height of the mesh according to the specification in the config.json file
             grid = pv.StructuredGrid(xx, yy, strat[:,:,event_top_layer] * ve)
-            print("ve: ", ve)
+            
 
             # top contains all the surface points for each layer
             top = grid.points.copy()

@@ -84,7 +84,7 @@
 
   <div id="controls" class="w-full p-6">
 
-    <div class="bg-white rounded-md p-6">
+    <!--<div class="bg-white rounded-md p-6">-->
       <div class="mb-2">
         <input id="selector" class="w-full" type="range" min="1" max="1" value="1" class="slider" />
       </div>
@@ -92,8 +92,7 @@
         <label for="fileModel3D">3D Models: &nbsp;</label>
         <input id="fileModel3D" class="" type="file" />
       </div>
-      <div class="flex">
-        <button id="showCrossSections" class="button" type="button">Show Cross Sections</button>
+      <div class="flex">        
         <div id="progress-bar" class="w-full" hidden>
           <div class="flex mb-2 items-center justify-between">
             <div id="progress-creating">
@@ -113,8 +112,10 @@
           </div>
         </div>
       </div>
+      <button id="showCrossSections" class="button" type="button">CS</button>
       <button id="change-color" class="button" type="button">Change Color</button>
-    </div>
+      <button id="show-planes" class="button" type="button">Show/Hide Planes</button>
+    <!--</div>-->
   </div>
   </div>
 
@@ -147,6 +148,9 @@
 
     // GLOBALS
     let material = MATERIAL_GREYSCALE;
+    let showPlanes = true;
+    var bbox;
+    var crossSectionWidth;    
 
     fetch('./config.json')
       .then((response) => response.json())
@@ -179,7 +183,7 @@
         //crossSectionTexture.wrapS = crossSectionTexture.wrapT;
         //crossSectionTexture.anisotropy = 16;
         //crossSectionTexture.encoding = THREE.sRGBAEncoding;
-        crossSectionMaterial = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+        crossSectionMaterial = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
         //crossSectionMaterial = new THREE.MeshStandardMaterial({ map: crossSectionTexture, side: THREE.DoubleSide, transparent:true, alphaTest:0.9 });
         crossSectionMaterials.push(crossSectionMaterial);
       }
@@ -358,7 +362,7 @@
       // cria uma opção para cada imagem
       for (let i = 0; i < imagesList.length; i++) {
         const option = document.createElement("option"); // cria o elemento option
-        option.text = "Imagem " + i; // define o texto da opção
+        option.text = "Imagem " + (i+1) + " (" + crossSections[i]*100 + " %)"; // define o texto da opção
         option.value = imagesList[i]; // define o valor da opção como a URL da imagem
         select.add(option); // adiciona a opção na lista de opções do select
       }
@@ -396,6 +400,35 @@
       meshes.forEach(mesh => scene.remove(mesh));
       meshes[sliderIndex].material = material
       scene.add(meshes[sliderIndex]);
+    })
+
+    // TODO
+    $('#show-planes').click(function () {      
+      if (showPlanes == false) {
+        for (let i = 0; i < crossSections.length; i++) {
+          // used previously for the textures
+          meshCrossSectionPlane = new THREE.Mesh(new THREE.PlaneBufferGeometry(crossSectionWidth, bbox.max.y - bbox.min.y - 1), crossSectionMaterials[i]);
+          meshCrossSectionPlane.position.x = -200.0;
+          meshCrossSectionPlane.position.y = -12.0;
+          meshCrossSectionPlane.position.z = 0.0;
+          meshCrossSectionPlane.translateY(40);
+          meshCrossSectionPlane.translateZ(1 * (0.0125 * crossSectionWidth));
+          meshCrossSectionPlane.translateX(crossSections[i] * (bbox.max.x - bbox.min.x)); // where along the channel length                  
+          meshCrossSectionPlane.rotation.y = -Math.PI / 2;
+          meshCrossSectionPlane.overdraw = true;
+          meshCrossSectionPlane.name = "csname" + i;
+          scene.add(meshCrossSectionPlane);
+        }
+        showPlanes = true;
+      }        
+      else {
+        for (let i = 0; i < crossSections.length; i++) {
+          var selectedObject = scene.getObjectByName("csname"+i);
+          scene.remove(selectedObject);
+        }
+        showPlanes = false;
+      } 
+      animate();
     })
 
     $("#fileModel3D").on("change", function (evt) {
@@ -442,8 +475,8 @@
                 //scene.add(worldAxis);
 
                 // Creating the planes
-                var bbox = new THREE.Box3().setFromObject(mesh);
-                var crossSectionWidth = 1.29 * (bbox.max.z - bbox.min.z);
+                bbox = new THREE.Box3().setFromObject(mesh);
+                crossSectionWidth = 1.29 * (bbox.max.z - bbox.min.z);
 
                 for (let i = 0; i < crossSections.length; i++) {
                   // used previously for the textures
@@ -456,7 +489,9 @@
                   meshCrossSectionPlane.translateX(crossSections[i] * (bbox.max.x - bbox.min.x)); // where along the channel length                  
                   meshCrossSectionPlane.rotation.y = -Math.PI / 2;
                   meshCrossSectionPlane.overdraw = true;
-                  scene.add(meshCrossSectionPlane);
+                  meshCrossSectionPlane.name = "csname" + i;
+                  scene.add(meshCrossSectionPlane);                  
+                  
                 }
 
                 firstPass = false;

@@ -1,5 +1,62 @@
-[
-  {
+{
+  "channels": {
+    "width": 500,
+    "length": 10000,
+    "elevation": 500,
+    "sinuosity": [
+      [
+        0,
+        0
+      ],
+      [
+        3333.333333333333,
+        0
+      ],
+      [
+        6666.666666666666,
+        0
+      ],
+      [
+        10000,
+        0
+      ]
+    ],
+    "slope": [
+      [
+        0,
+        500
+      ],
+      [
+        3066.323466684626,
+        0
+      ],
+      [
+        7432.910436871408,
+        492.44814151670874
+      ],
+      [
+        10000,
+        0
+      ]
+    ]
+  },
+  "config": {
+    "title": "Title of the cross-sections",
+    "margin": 500,
+    "ve": 1,
+    "dxdy": 25,
+    "cross_sections": [
+      0.1,
+      0.4,
+      0.7
+    ],
+    "preview": true,
+    "render": true,
+    "show_sections": true,
+    "export": true,
+    "plant_view": true
+  },
+  "events": [{
     "mode": "INCISION",
     "sep_thickness": 1,
     "sep_type": "CONDENSED_SECTION",
@@ -816,5 +873,5 @@
         ]
       }
     ]
-  }
-]
+  }]
+}

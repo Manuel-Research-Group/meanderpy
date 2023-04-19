@@ -183,8 +183,7 @@ class ChannelBelt:
             #filename = path.join(temp_dir, '{}'.format((int)(cross_section_count)+1)) # temp folder, all models
             filename = path.join(dir, '{}'.format((int)(cross_section_count) + 1)) # temp folder, all models
 
-            print('- Cross-section @ {}'.format(xsec))
-            print('VE::: ', ve)
+            print('- Cross-section @ {}'.format(xsec))            
             model.plot_xsection(
             xsec, 
             ve     # added ve here to correct further classes: when generating 3d model and the 2d cross-sections
