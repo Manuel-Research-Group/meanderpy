@@ -7,16 +7,16 @@ import tempfile
 from os import path, walk
 from zipfile import ZipFile
 from shutil import copyfile, rmtree
+import sys # used for command line parameters
 
 # DEBUG code:
 # print('DEBUG1:', type(xCoordPoints[0]))
 # time.sleep(10)
 
 ### FILE PATHS: contains the paths to the three files required to running the code
-CHANNELS_FILE = './channels.json'
-EVENTS_FILE = './events.json'
-CONFIG_FILE = './config.json'
-SIM_PARAM_FILE = './sim-param.json'
+#CHANNELS_FILE = './channels.json'
+#EVENTS_FILE = './events.json'
+#CONFIG_FILE = './config.json'
 
 ### DEFAULTS CHANNEL PROPERTIES: these values are used if no values are found in the input file "channels.json"
 DEFAULT_SAMPLE_RATE = 50
@@ -360,7 +360,18 @@ def preprocess_specific_events(ch_depth, ch_width, dep_height, dep_props, dep_si
 #events_file = open(EVENTS_FILE, 'r')
 #config_file = open(CONFIG_FILE, 'r')
 
-sim_param_file = open(SIM_PARAM_FILE, 'r')
+# Added support for argv parameters on calling
+if len(sys.argv) == 3: # filename, input config json, output directory
+  directory_name = sys.argv[2] + '/'
+  param_name = sys.argv[1]
+elif len(sys.argv) == 2:
+  param_name = sys.argv[1]
+elif len(sys.argv) == 1:
+  param_name = 'parameters.json'
+else:
+  raise Exception("Incorrect program usage. Please use 'python runner.py [parameter input file] [output directory]' ")
+
+sim_param_file = open(param_name, 'r')
 sim_param_json = json.load(sim_param_file)
 
 channels_json = sim_param_json.get('channels')
@@ -491,7 +502,7 @@ plant_view = config_json.get('plant_view', DEFAULT_CONFIG_PLANT_VIEW)
 
 print('Building 3D model using {} meters grid'.format(grid))
 # Added ve (vertical exaggeration) here to correct the height of the 3d mesh (extracted from the config.json file)
-model = belt.build_3d_model(grid, margin, width, elevation, ve)
+model = belt.build_3d_model(grid, margin, width, elevation, ve, param_name, directory_name)
 
 if len(cross_sections) > 0:
   print('Rendering {} cross-section images'.format(len(cross_sections)))
@@ -505,7 +516,7 @@ if show_sections:
 
 if export:
   print('Exporting 3D model')
-  model.export_objs('event_layers.zip', plant_view, 'plant_view.zip', None, ve)
+  model.export_objs(directory_name + 'event_layers.zip', plant_view, directory_name + 'plant_view.zip', None, ve)
 
 if render:
   print('Rendering 3D model')

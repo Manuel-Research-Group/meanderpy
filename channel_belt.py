@@ -171,7 +171,7 @@ class ChannelBelt:
     # Variable introduced to show the cross sections
     # Generate and organize the new matplotlib figures into a zip
     # TODO: check the parameters below
-    def generate_cross_sections(self, cross_sections, model, eventName, generateTableSimulator, ve):
+    def generate_cross_sections(self, cross_sections, model, eventName, generateTableSimulator, ve, param_name, directory_name):
         """
         Generate and organize the new matplotlib figures into a zip
 
@@ -209,22 +209,22 @@ class ChannelBelt:
         # Compact in a zip file all the PDF cross section files in filename folder
         zipfileName = path.join(dir, 'cross_sections_PDF-' + eventName + '.zip')  
         zip_files_in_dir(dir, zipfileName, lambda fn: path.splitext(fn)[1] == '.pdf')
-        copyfile(zipfileName, 'cross_sections_PDF-' + eventName + '.zip')
+        copyfile(zipfileName, directory_name + 'cross_sections_PDF-' + eventName + '.zip')
 
         # Compact in a zip file all the JPG cross section files in filename folder
         zipfileName = path.join(dir, 'cross_sections_JPG-' + eventName + '.zip')  
         zip_files_in_dir(dir, zipfileName, lambda fn: path.splitext(fn)[1] == '.png')
-        copyfile(zipfileName, 'cross_sections_PNG-' + eventName + '.zip')
+        copyfile(zipfileName, directory_name + 'cross_sections_PNG-' + eventName + '.zip')
 
         # Compact in a zip file all the SVG files in filename folder  
         # Removed for now since SVG file is not vectorized
         zipfileName = path.join(dir, 'cross_sections_SVG' + eventName + '.zip')
         zipFilesInDir(dir, zipfileName, lambda fn: path.splitext(fn)[1] == '.svg')
-        copyfile(zipfileName, 'cross_sections_SVG-' + eventName + '.zip')
+        copyfile(zipfileName, directory_name + 'cross_sections_SVG-' + eventName + '.zip')
 
         rmtree(dir)
 
-    def build_3d_model(self, dx, margin = 500, width=500, elevation=500, ve=1): # recebe lista de bacias e lista de canais
+    def build_3d_model(self, dx, margin = 500, width=500, elevation=500, ve=1, param_name='parameters.json', directory_name=''): # recebe lista de bacias e lista de canais
         """
         TODO
 
@@ -403,10 +403,11 @@ class ChannelBelt:
 
 
         # TODO: need to improve here
-        DEFAULT_CONFIG_CROSS_SECTIONS = []
-        CONFIG_FILE = './config.json'
-        config_file = open(CONFIG_FILE, 'r')
-        config_json = json.load(config_file)
+        DEFAULT_CONFIG_CROSS_SECTIONS = []        
+        sim_param_file = open(param_name, 'r')
+        sim_param_json = json.load(sim_param_file)
+        config_json = sim_param_json.get('config')
+
         generateTable = False
         saveAll = True              
         saveLast = False
@@ -425,7 +426,7 @@ class ChannelBelt:
             cross_sections = config_json.get('cross_sections', DEFAULT_CONFIG_CROSS_SECTIONS)
             if i == N-1:
                 generateTable = True            
-            self.generate_cross_sections(cross_sections, model_tmp, 'Saving Point ' + str(i), generateTable, ve)
+            self.generate_cross_sections(cross_sections, model_tmp, 'Saving Point ' + str(i), generateTable, ve, param_name, directory_name)
 
         # retorna em topo modelo com todas as camadas    
         return ChannelBelt3D(topo, xmin, ymin, dx, dx, self.events, self.honestSpecificEvents, separator_type, width, elevation) # Dennis: added separator_type
