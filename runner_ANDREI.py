@@ -209,8 +209,9 @@ def b_spline_eval(p, l, dx, degree=3):
   xEvalNew, yEvalNew = correct_roots(xEval, yEval, yMin, yMax)  
   
   return xEvalNew, yEvalNew
- 
-def plot_channel_profile2D(xCoordPoints, yCoordPoints, viewType):  
+
+# basedir: Directory where the resulting plot will be saved
+def plot_channel_profile2D(basedir, xCoordPoints, yCoordPoints, viewType):  
   """
     Code to plot two lists of 2D points representing a channe information given their x and y coordinates and its view type.
     The x label is fixed as the length in meters. The plot can represent either the channel top or side view.
@@ -234,7 +235,7 @@ def plot_channel_profile2D(xCoordPoints, yCoordPoints, viewType):
   plt.title(title)
   plt.xlabel('Length (m)')
   plt.ylabel(yLabel)
-  plt.savefig(fileName + '.png')
+  plt.savefig(path.join(basedir, fileName + '.png'))
 
 def zip_files_in_dir(dirName, zipFileName, filter):
   """
@@ -366,10 +367,8 @@ if len(sys.argv) == 3: # filename, input config json, output directory
   param_name = sys.argv[1]
 elif len(sys.argv) == 2:
   param_name = sys.argv[1]
-  directory_name = ''
 elif len(sys.argv) == 1:
   param_name = 'simulation-parameters.json'
-  directory_name = ''
 else:
   raise Exception("Incorrect program usage. Please use 'python runner.py [parameter input file] [output directory]' ")
 
@@ -398,8 +397,8 @@ basin_x, basin_z = b_spline_eval(slope, length, DEFAULT_SAMPLE_RATE)
 preview = config_json.get('preview', DEFAULT_CONFIG_PREVIEW)
 
 if(preview):
-  plot_channel_profile2D(channel_x, channel_y, 'TOP')
-  plot_channel_profile2D(basin_x, basin_z, 'SIDE')
+  plot_channel_profile2D(directory_name, channel_x, channel_y, 'TOP')
+  plot_channel_profile2D(directory_name, basin_x, basin_z, 'SIDE')
 
 channel = mp.Channel(channel_x, channel_y)
 basin = mp.Basin(basin_x, basin_z)
@@ -518,8 +517,8 @@ if show_sections:
 
 if export:
   print('Exporting 3D model')
-  model.export_objs(directory_name + 'event_layers.zip', plant_view, directory_name + 'plant_view.zip', None, ve)
+  model.export_objs(directory_name, 'event_layers.zip', plant_view, 'plant_view.zip', None, ve)
 
 if render:
   print('Rendering 3D model')
-  model.render()
+  # model.render()

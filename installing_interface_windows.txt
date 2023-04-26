@@ -1,0 +1,6 @@
+Windows:
+https://nodejs.org/en/download
+1) npm install
+2) npm start
+
+https://meet.google.com/bhe-cyvs-pvm

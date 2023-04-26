@@ -45,7 +45,7 @@ class ChannelBelt:
         # This variable makes sure that it doesn't happen.
         firstEvent = False    
         
-        if len(self.events) == 0:
+        if len(self.events) == 0: # no event in the list
             channel = self.channels[0]
             basin = self.basins[0]
             self.events.append(event) #create a "base event" which is a copy of the first one (need to be confirmed if necessary)
@@ -59,8 +59,8 @@ class ChannelBelt:
         basin = self.basins[-1].copy()
         last_time = self.times[-1]
         
-        for itn in range(1, event.nit+1):            
-            update_progress(itn/event.nit)    
+        for itn in range(1, event.nit+1):
+            update_progress(itn/event.nit)
 
             #plot2D(channel.x, channel.y, 'Channel Preview', 'Width (m)') # need to update the call
             #plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)') # need to update the call
@@ -90,18 +90,17 @@ class ChannelBelt:
                 self.channels.append(channel.copy())
                 self.basins.append(basin.copy())
                 self.events.append(event)
-                # TODO: call generateCrossSections() from here if possible
                 
                 # Used to create the gif files containing the basin animation (OFF FOR NOW - Dennis)
                 #plot2D(basin.x, basin.z, 'Basin Preview', 'Elevation (m)', 'basin_' + str(eventOrder) +'-' + str(itn) + '.png', save=True) # vista lateral
                 #plot2D(channel.x, channel.y, 'Channel Preview', 'Elevation (m)', 'channel_' + str(eventOrder) + '-' + str(itn) + '.png', save=True) # vista superior
             
         # DENNIS: saves a single layer of separator
-        if ((event.mode == 'SEPARATOR') and (not firstEvent)):
+        if ((event.mode == 'SEPARATOR') and (not firstEvent)):            
             self.times.append(last_time + event.dt)
             self.channels.append(channel.copy())
             self.basins.append(basin.copy())
-            self.events.append(event)   
+            self.events.append(event)
 
         # dgb: Save the final mesh
         '''
@@ -413,18 +412,22 @@ class ChannelBelt:
         saveLast = False
         saveNone = False
 
+        # endPrintAt set to len(self.channels) + 1 because it is gonna be used as the endPoint in a range statement which goes up to
+        # (endPoint - 1) in order to guarantee that all saved layers will be processed
+        endPrintingAt = N+1
+        
         if saveAll:
-            startPrintingAt = 1
+            startPrintingAt = 1            
         if saveLast:
-            startPrintingAt = N-1
+            startPrintingAt = endPrintingAt - 1
         if saveNone:
-            startPrintingAt = N
+            startPrintingAt = endPrintingAt        
 
-        for i in range(startPrintingAt, N):
+        for i in range(startPrintingAt, endPrintingAt):
             topo_tmp = topo[:,:,:i*L]
             model_tmp = ChannelBelt3D(topo_tmp, xmin, ymin, dx, dx, self.events, self.honestSpecificEvents, separator_type, width, elevation)
             cross_sections = config_json.get('cross_sections', DEFAULT_CONFIG_CROSS_SECTIONS)
-            if i == N-1:
+            if i == endPrintingAt:
                 generateTable = True            
             self.generate_cross_sections(cross_sections, model_tmp, 'Saving Point ' + str(i), generateTable, ve, param_name, directory_name)
 

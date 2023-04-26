@@ -1,0 +1,75 @@
+ChannelBelt3D:
+- __init__(self, topo, xmin, ymin, dx, dy, events, honestSpecificEvents, separator_type, width, elevation)
+- topostrat
+- raw_plot_xsection
+- plot_table_simulation_parameters
+- plot_xsection
+- plot
+- render
+- reducePlySize
+- generateTriangleMesh
+- export_top_layer
+- export_objs
+- export
+
+ChannelBelt:
+- __init__(self, channel, basin, honestSpecificEvents)
+- simulate
+- plot_basin
+- plot
+- generate_cross_sections
+- build_3d_model
+
+ChannelEvent:
+- __init__(self, mode, nit, dt, saved_ts, cr_dist, cr_wind, Cf, kl, kv, number_layers, ch_depth, ch_width, dep_height, dep_props, dep_sigmas, aggr_props, aggr_sigmas, sep_thickness = 0, sep_type, dens, aggr_factor)
+
+ChannelMapper:
+- __init__(self, xmin, xmax, ymin, ymax, xsize, ysize, downscale = 4, sigma = 2)
+- __repr__
+- map_size
+- post_processing
+- filter
+- downsize
+- create_maps
+- create_md_map
+- create_cld_map
+- create_ch_map
+- crete_z_map
+- create_sl_map
+- plot_map
+- to_pixels
+
+ChannelSpecifics:
+- __init__(self, ch_depth, ch_width, dep_height, dep_props, dep_sigmas, aggr_props, aggr_sigmas)
+
+Channel:
+- def __init__(self, x, y, z = [], d = [], w = []):
+- copy
+- margin_offset
+- derivatives
+- curvature
+- refit
+- resample
+- compute_migration_rate
+- migrate
+- find_cutoffs
+- find_cutoffs_R
+- cut_cutoffs
+- cut_cutoffs_R
+- plot
+
+Definitions:
+
+Meanderpy (only imports):
+
+Runner:
+- create_tabular_param
+- correct_roots
+- b_spline_eval
+- plot_channel_profile2D
+- zip_files_in_dir
+- generate_string_from_event_modes
+- remove_values_from_list
+- round_values_from_list
+- zero_values_from_list
+- preprocess_specific_events
