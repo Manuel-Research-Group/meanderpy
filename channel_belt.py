@@ -173,19 +173,26 @@ class ChannelBelt:
     # Variable introduced to show the cross sections
     # Generate and organize the new matplotlib figures into a zip
     # TODO: check the parameters below
-    def generate_cross_sections(self, cross_sections, model, eventName, generateTableSimulator, ve, param_name, directory_name):
+    # New argument: basedir, the directory where files will be exported, a 'temp' folder will be created inside of it
+    def generate_cross_sections(self, basedir, cross_sections, model, eventName, generateTableSimulator, ve, param_name, directory_name):
         """
         Generate and organize the new matplotlib figures into a zip
 
         :param x: TODO
         """
-        dir = tempfile.mkdtemp()
+        # Create temp dir inside of basedir
+        tempDir = path.join(basedir, 'temp')
+        try:
+          mkdir(tempDir)
+        except FileExistsError:
+          pass
+
         cross_section_count = 0
         for xsec in cross_sections:
             #filename = path.join(temp_dir, '{}'.format((int)(cross_section_count)+1)) # temp folder, all models
-            filename = path.join(dir, '{}'.format((int)(cross_section_count) + 1)) # temp folder, all models
+            filename = path.join(tempDir, '{}'.format((int)(cross_section_count) + 1)) # temp folder, all models
 
-            #print('- Cross-section @ {}'.format(xsec)) # DEBUG
+            print('- Cross-section @ {}'.format(xsec))            
             model.plot_xsection(
             xsec, 
             ve     # added ve here to correct further classes: when generating 3d model and the 2d cross-sections
@@ -200,7 +207,7 @@ class ChannelBelt:
         if generateTableSimulator:
             # Compact in a zip file all the simulation parameters in filename folder
             model.plot_table_simulation_parameters('title')
-            filename_sim_parameters = path.join(dir, 'sim_parameters')
+            filename_sim_parameters = path.join(tempDir, 'sim_parameters')
             plt.savefig(filename_sim_parameters + '.pdf')
         
         # Remove any invalid character for the file name in windows operating systems
@@ -209,24 +216,25 @@ class ChannelBelt:
             eventName = eventName.replace(c, '')
 
         # Compact in a zip file all the PDF cross section files in filename folder
-        zipfileName = path.join(dir, 'cross_sections_PDF-' + eventName + '.zip')  
-        zip_files_in_dir(dir, zipfileName, lambda fn: path.splitext(fn)[1] == '.pdf')
-        copyfile(zipfileName, directory_name + 'cross_sections_PDF-' + eventName + '.zip')
+        zipfileName = path.join(tempDir, 'cross_sections_PDF-' + eventName + '.zip')  
+        zip_files_in_dir(tempDir, zipfileName, lambda fn: path.splitext(fn)[1] == '.pdf')
+        copyfile(zipfileName, path.join(basedir, 'cross_sections_PDF-' + eventName + '.zip'))
 
         # Compact in a zip file all the JPG cross section files in filename folder
-        zipfileName = path.join(dir, 'cross_sections_JPG-' + eventName + '.zip')  
-        zip_files_in_dir(dir, zipfileName, lambda fn: path.splitext(fn)[1] == '.png')
-        copyfile(zipfileName, directory_name + 'cross_sections_PNG-' + eventName + '.zip')
+        zipfileName = path.join(tempDir, 'cross_sections_JPG-' + eventName + '.zip')  
+        zip_files_in_dir(tempDir, zipfileName, lambda fn: path.splitext(fn)[1] == '.png')
+        copyfile(zipfileName, path.join(basedir, 'cross_sections_PNG-' + eventName + '.zip'))
 
         # Compact in a zip file all the SVG files in filename folder  
         # Removed for now since SVG file is not vectorized
-        zipfileName = path.join(dir, 'cross_sections_SVG' + eventName + '.zip')
-        zipFilesInDir(dir, zipfileName, lambda fn: path.splitext(fn)[1] == '.svg')
-        copyfile(zipfileName, directory_name + 'cross_sections_SVG-' + eventName + '.zip')
+        zipfileName = path.join(tempDir, 'cross_sections_SVG' + eventName + '.zip')
+        zipFilesInDir(tempDir, zipfileName, lambda fn: path.splitext(fn)[1] == '.svg')
+        copyfile(zipfileName, path.join(basedir, 'cross_sections_SVG-' + eventName + '.zip'))
 
-        rmtree(dir)
+        rmtree(tempDir)
 
-    def build_3d_model(self, dx, margin = 500, width=500, elevation=500, ve=1, param_name='parameters.json', directory_name=''): # recebe lista de bacias e lista de canais
+    # New argument: basedir: used in generate_cross_sections
+    def build_3d_model(self, basedir, dx, margin = 500, width=500, elevation=500, ve=1, param_name='parameters.json', directory_name=''): # recebe lista de bacias e lista de canais
         """
         TODO
 
@@ -437,7 +445,7 @@ class ChannelBelt:
             cross_sections = config_json.get('cross_sections', DEFAULT_CONFIG_CROSS_SECTIONS)
             if i == endPrintingAt:
                 generateTable = True            
-            self.generate_cross_sections(cross_sections, model_tmp, 'Saving Point ' + str(i), generateTable, ve, param_name, directory_name)
+            self.generate_cross_sections(basedir, cross_sections, model_tmp, 'Saving Point ' + str(i), generateTable, ve, param_name, directory_name)
 
         # retorna em topo modelo com todas as camadas    
         return ChannelBelt3D(topo, xmin, ymin, dx, dx, self.events, self.honestSpecificEvents, separator_type, width, elevation) # Dennis: added separator_type

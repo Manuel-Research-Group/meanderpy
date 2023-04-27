@@ -506,7 +506,7 @@ plant_view = config_json.get('plant_view', DEFAULT_CONFIG_PLANT_VIEW)
 
 print('Building 3D model using {} meters grid'.format(grid))
 # Added ve (vertical exaggeration) here to correct the height of the 3d mesh (extracted from the config.json file)
-model = belt.build_3d_model(grid, margin, width, elevation, ve, args.parameters, args.out_dir)
+model = belt.build_3d_model(args.out_dir, grid, margin, width, elevation, ve, args.parameters, args.out_dir)
 
 if len(cross_sections) > 0:
   print('Rendering {} cross-section images'.format(len(cross_sections)))
