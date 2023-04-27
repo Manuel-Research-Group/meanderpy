@@ -58,7 +58,10 @@ class ChannelBelt:
         channel = self.channels[-1].copy()
         basin = self.basins[-1].copy()
         last_time = self.times[-1]
-        
+
+        # update_progress consumes the last line
+        print('')
+
         for itn in range(1, event.nit+1):
             update_progress(itn/event.nit)
 
@@ -182,7 +185,7 @@ class ChannelBelt:
             #filename = path.join(temp_dir, '{}'.format((int)(cross_section_count)+1)) # temp folder, all models
             filename = path.join(dir, '{}'.format((int)(cross_section_count) + 1)) # temp folder, all models
 
-            print('- Cross-section @ {}'.format(xsec))            
+            #print('- Cross-section @ {}'.format(xsec)) # DEBUG
             model.plot_xsection(
             xsec, 
             ve     # added ve here to correct further classes: when generating 3d model and the 2d cross-sections
@@ -265,6 +268,9 @@ class ChannelBelt:
         # It was created as a separate array because topo is itself an array and not a structure to which we could add an aditional attribute.
         #
         separator_type = np.zeros((N*L), dtype=int)        
+
+        # update_progress consumes the last line
+        print('')
 
         for i in range(0, N): # Dennis - Obs: if used range(1,N) we avoid drawing the layers of the first event twice but it draws the substract wrongly
             update_progress(i/N)
@@ -400,6 +406,8 @@ class ChannelBelt:
 
                 separator_type[i*L + 8] = sep_type_number
 
+        # Show completed progress bar
+        update_progress(1)
 
         # TODO: need to improve here
         DEFAULT_CONFIG_CROSS_SECTIONS = []        

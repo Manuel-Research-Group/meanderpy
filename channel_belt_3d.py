@@ -1,5 +1,5 @@
 import tempfile
-from os import path
+from os import path, mkdir
 from shutil import copyfile, rmtree
 import trimesh
 import numpy as np
@@ -648,7 +648,8 @@ class ChannelBelt3D():
             block_colors = np.zeros([len(block_vertices),3])
             self.generateTriangleMesh(block_vertices, block_triangles, block_colors, filename + '.ply', coloredMesh=False)
   
-    def export_objs(self, top_event_layers_zipname = 'event_layers.zip', savePlantView = True, plant_view_zipname = 'plant_view.zip', reduction = None, ve = 3):
+    # New argument: basedir, the directory where files will be exported, a 'temp' folder will be created inside of it
+    def export_objs(self, basedir, top_event_layers_zipname = 'event_layers.zip', savePlantView = True, plant_view_zipname = 'plant_view.zip', reduction = None, ve = 3):
         """
         Function to export the 3D meshes for each layer. Meshes are compressed as PLY files and compacted into a ZIP.
         Outputs a ZIP file containing the models for each layer (names as model1.ply, model2.ply, etc).
@@ -676,10 +677,15 @@ class ChannelBelt3D():
         # Set the strat material colors to an array
         strat_colors = np.array([SEPARATOR_COLOR, SILT_COLOR, VERY_FINE_SAND_COLOR, FINE_SAND_COLOR, SAND_COLOR, COARSE_SAND_COLOR,
                                 VERY_COARSE_SAND_COLOR, GRAVEL_COLOR, SUBSTRACT_COLOR])
-        
+
+        # Create temp dir inside of basedir
+        tempDir = path.join(basedir, 'temp')
+        try:
+          mkdir(tempDir)
+        except FileExistsError:
+          pass
         # dir contains the path of the temp directory, used to store the intermediate meshes
-        dir = tempfile.mkdtemp()
-        
+
         # strat: 3D numpy array of statigraphic surfaces (previously was named zz)
         #strat = topostrat(self.topo)
         strat = self.strat
@@ -705,7 +711,10 @@ class ChannelBelt3D():
 
                     #break
                 stratCp[yIndex,xIndex,sz-1] = 0
-        
+
+        # update_progress consumes the last line
+        print('')
+
         # Initializes the plant view of the channel for each of the layers.
         plant_view = np.uint8(np.zeros((sy,sx,3)))
         mesh_iterator = 0
@@ -713,9 +722,11 @@ class ChannelBelt3D():
         # For now, we have 4 layers in the following order: silt, sand, gravel and substract
         # Layer 0 corresponds to the initialized layer in the constructor of the channel belt        
         for event_top_layer in range(0, sz, NUMBER_OF_LAYERS_PER_EVENT):
-            update_progress(event_top_layer/sz)            
+            # Fix progress
+            update_progress(event_top_layer/sz)
+
             #filename = 'model{}'.format(int(i/3) + 1) # local folder
-            filename = path.join(dir, '{}'.format((int)(event_top_layer/NUMBER_OF_LAYERS_PER_EVENT) + 1)) # temp folder, all models            
+            filename = path.join(tempDir, '{}'.format((int)(event_top_layer/NUMBER_OF_LAYERS_PER_EVENT) + 1)) # temp folder, all models            
 
             #print('Entering topostrat from export_objs')
             strat = topostrat(self.topo, event_top_layer)
@@ -735,18 +746,21 @@ class ChannelBelt3D():
 
             mesh_iterator = mesh_iterator + 1
 
+        # Show completed progress bar
+        update_progress(1)
+
         # Compact in a zip file all the ply files in filename folder
-        zipfile = path.join(dir, top_event_layers_zipname)
-        zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
-        copyfile(zipfile, top_event_layers_zipname)
+        zipfile = path.join(tempDir, top_event_layers_zipname)
+        zipFilesInDir(tempDir, zipfile, lambda fn: path.splitext(fn)[1] == '.ply')
+        copyfile(zipfile, path.join(basedir, top_event_layers_zipname))
 
         # TODO: save plant view as zip file
         if (savePlantView):
-            zipfile = path.join(dir, plant_view_zipname)
-            zipFilesInDir(dir, zipfile, lambda fn: path.splitext(fn)[1] == '.png')
-            copyfile(zipfile, plant_view_zipname)
+            zipfile = path.join(tempDir, plant_view_zipname)
+            zipFilesInDir(tempDir, zipfile, lambda fn: path.splitext(fn)[1] == '.png')
+            copyfile(zipfile, path.join(basedir, plant_view_zipname))
 
-        rmtree(dir) # remove the temporary folder created to contain the mesh files before zipping   
+        rmtree(tempDir) # remove the temporary folder created to contain the mesh files before zipping   
 
     def export(self, ve = 3):
         """

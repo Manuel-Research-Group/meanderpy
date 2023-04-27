@@ -8,6 +8,24 @@ from os import path, walk
 from zipfile import ZipFile
 from shutil import copyfile, rmtree
 import sys # used for command line parameters
+import argparse
+
+# Instantiate the parser
+parser = argparse.ArgumentParser(description='Simulator')
+
+# Parameters file
+parser.add_argument('--parameters', metavar='JSON', required=False, default='simulation-parameters.json',
+  help='parameters input file')
+
+# Output directory
+parser.add_argument('--out-dir', metavar='DIR', required=False, default='./',
+  help='output directory of generated files')
+
+# Skip the rendering of preview
+parser.add_argument('--skip-preview', required=False, default=False,
+  action='store_true', help='skip the 3d preview rendering')
+
+args = parser.parse_args()
 
 # DEBUG code:
 # print('DEBUG1:', type(xCoordPoints[0]))
@@ -209,8 +227,9 @@ def b_spline_eval(p, l, dx, degree=3):
   xEvalNew, yEvalNew = correct_roots(xEval, yEval, yMin, yMax)  
   
   return xEvalNew, yEvalNew
- 
-def plot_channel_profile2D(xCoordPoints, yCoordPoints, viewType):  
+
+# basedir: Directory where the resulting plot will be saved
+def plot_channel_profile2D(basedir, xCoordPoints, yCoordPoints, viewType):  
   """
     Code to plot two lists of 2D points representing a channe information given their x and y coordinates and its view type.
     The x label is fixed as the length in meters. The plot can represent either the channel top or side view.
@@ -234,7 +253,7 @@ def plot_channel_profile2D(xCoordPoints, yCoordPoints, viewType):
   plt.title(title)
   plt.xlabel('Length (m)')
   plt.ylabel(yLabel)
-  plt.savefig(fileName + '.png')
+  plt.savefig(path.join(basedir, fileName + '.png'))
 
 def zip_files_in_dir(dirName, zipFileName, filter):
   """
@@ -356,24 +375,7 @@ def preprocess_specific_events(ch_depth, ch_width, dep_height, dep_props, dep_si
 
 # MAIN
 
-#channels_file = open(CHANNELS_FILE, 'r')
-#events_file = open(EVENTS_FILE, 'r')
-#config_file = open(CONFIG_FILE, 'r')
-
-# Added support for argv parameters on calling
-if len(sys.argv) == 3: # filename, input config json, output directory
-  directory_name = sys.argv[2] + '/'
-  param_name = sys.argv[1]
-elif len(sys.argv) == 2:
-  param_name = sys.argv[1]
-  directory_name = ''
-elif len(sys.argv) == 1:
-  param_name = 'simulation-parameters.json'
-  directory_name = ''
-else:
-  raise Exception("Incorrect program usage. Please use 'python runner.py [parameter input file] [output directory]' ")
-
-sim_param_file = open(param_name, 'r')
+sim_param_file = open(args.parameters, 'r')
 sim_param_json = json.load(sim_param_file)
 
 channels_json = sim_param_json.get('channels')
@@ -398,8 +400,8 @@ basin_x, basin_z = b_spline_eval(slope, length, DEFAULT_SAMPLE_RATE)
 preview = config_json.get('preview', DEFAULT_CONFIG_PREVIEW)
 
 if(preview):
-  plot_channel_profile2D(channel_x, channel_y, 'TOP')
-  plot_channel_profile2D(basin_x, basin_z, 'SIDE')
+  plot_channel_profile2D(args.out_dir, channel_x, channel_y, 'TOP')
+  plot_channel_profile2D(args.out_dir, basin_x, basin_z, 'SIDE')
 
 channel = mp.Channel(channel_x, channel_y)
 basin = mp.Basin(basin_x, basin_z)
@@ -504,7 +506,7 @@ plant_view = config_json.get('plant_view', DEFAULT_CONFIG_PLANT_VIEW)
 
 print('Building 3D model using {} meters grid'.format(grid))
 # Added ve (vertical exaggeration) here to correct the height of the 3d mesh (extracted from the config.json file)
-model = belt.build_3d_model(grid, margin, width, elevation, ve, param_name, directory_name)
+model = belt.build_3d_model(grid, margin, width, elevation, ve, args.parameters, args.out_dir)
 
 if len(cross_sections) > 0:
   print('Rendering {} cross-section images'.format(len(cross_sections)))
@@ -518,8 +520,8 @@ if show_sections:
 
 if export:
   print('Exporting 3D model')
-  model.export_objs(directory_name + 'event_layers.zip', plant_view, directory_name + 'plant_view.zip', None, ve)
+  model.export_objs(args.out_dir, 'event_layers.zip', plant_view, 'plant_view.zip', None, ve)
 
-if render:
+if render and not args.skip_preview:
   print('Rendering 3D model')
   model.render()
