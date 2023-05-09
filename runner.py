@@ -4,7 +4,7 @@ import meanderpy as mp
 import numpy as np
 import json
 import tempfile
-from os import path, walk
+from os import path, walk, listdir
 from zipfile import ZipFile
 from shutil import copyfile, rmtree
 import sys # used for command line parameters
@@ -126,6 +126,21 @@ DEFAULT_EVENT_SEP_THICKNESS = 0       # Separator layer thickness, in meters
 DEFAULT_EVENT_SEP_TYPE = 'CONDENSED_SECTION'  # Material of the separator (CONDENSED_SECTION, BASAL_SURFACE or INVERSION)
 
 ### AUXILIARY FUNCTIONS
+
+def create_zip_from_files(out_dir: 'Path', out_zip: str, in_dir: 'Path', in_files: list[str]):
+  """
+    Create a zip file inside of out_dir with the name out_zip containing the in_files files from the
+    in_dir directory. All files will be saved in the root of the zip file.
+
+    :param out_dir: The base directory path where the zip file will be saved.
+    :param out_zip: The filename that will be used for the resulting zip file.
+    :param in_dir: The base directory path where the in_files files are.
+    :param in_files: List of all the files inside of in_dir that are going to be placed inside the new zip.
+    :return: None
+  """
+  with ZipFile(path.join(out_dir, out_zip), 'w') as new_zip:
+    for filename in in_files:
+      new_zip.write(path.join(in_dir, filename), arcname=filename)
 
 def create_tabular_param(par):
   """
@@ -517,6 +532,30 @@ if len(cross_sections) > 0:
 if show_sections:
   generate_cross_sections(cross_sections, model, 'Saving Point Runner', True)
 '''
+
+# Create single zip for PDF cross-sections
+create_zip_from_files(
+  args.out_dir,
+  'cross_sections_PDF_joined.zip',
+  args.out_dir,
+  [filename for filename in listdir(args.out_dir) if filename.startswith('cross_sections_PDF')],
+)
+
+# Create single zip for SVG cross-sections
+create_zip_from_files(
+  args.out_dir,
+  'cross_sections_SVG_joined.zip',
+  args.out_dir,
+  [filename for filename in listdir(args.out_dir) if filename.startswith('cross_sections_SVG')],
+)
+
+# Create single zip for PNG cross-sections
+create_zip_from_files(
+  args.out_dir,
+  'cross_sections_PNG_joined.zip',
+  args.out_dir,
+  [filename for filename in listdir(args.out_dir) if filename.startswith('cross_sections_PNG')],
+)
 
 if export:
   print('Exporting 3D model')
