@@ -127,7 +127,7 @@ DEFAULT_EVENT_SEP_TYPE = 'CONDENSED_SECTION'  # Material of the separator (CONDE
 
 ### AUXILIARY FUNCTIONS
 
-def create_zip_from_files(out_dir: 'Path', out_zip: str, in_dir: 'Path', in_files: list[str]):
+def create_zip_from_files(out_dir , out_zip: str, in_dir, in_files):
   """
     Create a zip file inside of out_dir with the name out_zip containing the in_files files from the
     in_dir directory. All files will be saved in the root of the zip file.
